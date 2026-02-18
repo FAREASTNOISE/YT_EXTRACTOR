@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>YT_EXTRACTOR // PROTOCOL v4.0</title>
+    <title>YT_EXTRACTOR // PROTOCOL v4.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
     <script src="https://www.youtube.com/iframe_api"></script>
@@ -16,15 +16,22 @@
             scroll-behavior: smooth;
         }
         .dot-font { font-family: 'Silkscreen', cursive; }
+
+        /* 角丸の黄金比調整：外側24px / 内側12px前後 */
         .nothing-card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(0, 0, 0, 0.08); border-radius: 24px; }
         .nothing-input { background: rgba(0, 0, 0, 0.03); border: 1px solid transparent; border-radius: 12px; transition: all 0.2s; -webkit-appearance: none; }
+
+        /* サムネイル等の内側要素の角丸を外枠(nothing-card)と調和させる */
+        .inner-round { border-radius: 14px; }
+        .scroll-item { border-radius: 18px; padding: 6px; } /* 履歴・関連動画の外枠 */
+        .scroll-item img { border-radius: 12px; } /* 履歴・関連動画の中身 */
 
         .btn-gray-copy { background-color: #eeeeee; color: #666; border-radius: 10px; font-size: 10px; font-weight: 700; padding: 8px 16px; text-transform: uppercase; transition: all 0.2s; border: none; cursor: pointer; }
         .btn-gray-copy:hover { background-color: #000; color: #fff; }
         .btn-black { background: #000; color: #fff; border-radius: 50px; transition: all 0.2s; }
         .tab-active { background: #000 !important; color: #fff !important; }
 
-        .fixed-aspect { width: 100%; aspect-ratio: 16 / 9; border-radius: 18px; overflow: hidden; background: #000; position: relative; }
+        .fixed-aspect { width: 100%; aspect-ratio: 16 / 9; border-radius: 16px; overflow: hidden; background: #000; position: relative; }
 
         .slider-viewport { width: 100%; height: 100%; overflow-x: auto; display: flex; scroll-snap-type: x mandatory; scroll-behavior: smooth; -ms-overflow-style: none; scrollbar-width: none; }
         .slider-viewport::-webkit-scrollbar { display: none; }
@@ -40,8 +47,7 @@
 
         .horizontal-scroll { display: flex; overflow-x: auto; gap: 10px; padding: 10px 0; scroll-behavior: smooth; scroll-snap-type: x proximity; -ms-overflow-style: none; scrollbar-width: none; }
         .horizontal-scroll::-webkit-scrollbar { display: none; }
-        .scroll-item { flex: 0 0 calc((100% - 20px) / 2.2); scroll-snap-align: start; cursor: pointer; }
-        .scroll-item img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 7px; }
+        .scroll-item-content { flex: 0 0 calc((100% - 20px) / 2.2); scroll-snap-align: start; cursor: pointer; }
 
         .checkbox-container { display: flex; align-items: center; cursor: pointer; font-size: 10px; font-weight: 700; text-transform: uppercase; color: #666; }
         .checkbox-container input { display: none; }
@@ -56,7 +62,7 @@
         <header class="mb-10 pl-2">
             <h1 class="dot-font text-2xl mb-1 tracking-tighter">YT_EXTRACTOR</h1>
             <div class="inline-block px-2 py-0.5 border border-black rounded-full">
-                <p class="text-[8px] uppercase tracking-[0.2em] font-bold">Version 4.0 // Share Protocol Active</p>
+                <p class="text-[8px] uppercase tracking-[0.2em] font-bold">Version 4.1 // Design Refined</p>
             </div>
         </header>
 
@@ -239,7 +245,7 @@
             const list = document.getElementById('recommendList');
             document.getElementById('recommendSection').classList.remove('hidden');
             const dummySuffix = ['-XjS6eU0Y_E', 'dQw4w9WgXcQ', '3JZ_D3ELwOQ', '2Vv-BfVoq4g', 'YykjpeuMNEk', 'JGwWNGJdvx8', '9bZkp7q19f0', 'L_jWHffIx5E', 'tVlcKp3bWH8', '09R8_2nJtjg'];
-            list.innerHTML = dummySuffix.map(sid => `<div class="scroll-item nothing-card p-1.5" onclick="loadFromRec('${sid}')"><img src="https://img.youtube.com/vi/${sid}/mqdefault.jpg"></div>`).join('');
+            list.innerHTML = dummySuffix.map(sid => `<div class="scroll-item-content scroll-item nothing-card" onclick="loadFromRec('${sid}')"><img src="https://img.youtube.com/vi/${sid}/mqdefault.jpg"></div>`).join('');
             document.getElementById('recommendIndicator').innerHTML = dummySuffix.map((_, i) => `<div class="dot ${i===0?'active':''}"></div>`).join('');
         }
 
@@ -255,7 +261,7 @@
             const list = document.getElementById('historyList');
             if (history.length === 0) return;
             document.getElementById('historySection').classList.remove('hidden');
-            list.innerHTML = history.map(id => `<div class="scroll-item nothing-card p-1.5" onclick="loadFromHistory('${id}')"><img src="https://img.youtube.com/vi/${id}/mqdefault.jpg"></div>`).join('');
+            list.innerHTML = history.map(id => `<div class="scroll-item-content scroll-item nothing-card" onclick="loadFromHistory('${id}')"><img src="https://img.youtube.com/vi/${id}/mqdefault.jpg"></div>`).join('');
             document.getElementById('historyIndicator').innerHTML = history.map((_, i) => `<div class="dot ${i===0?'active':''}"></div>`).join('');
         }
 
@@ -286,7 +292,6 @@
             if (!currentVideoId) return;
             const w = document.getElementById('eWidth').value, h = document.getElementById('eHeight').value, s = document.getElementById('eStart').value;
             document.getElementById('outIframe').value = `<iframe width="${w}" height="${h}" src="https://www.youtube.com/embed/${currentVideoId}?rel=0${s>0?'&start='+s:''}" frameborder="0" allowfullscreen></iframe>`;
-            // 短縮URL生成 (秒数指定あり/なし)
             document.getElementById('outShortUrl').value = `https://youtu.be/${currentVideoId}${s>0?'?t='+s:''}`;
         }
 
