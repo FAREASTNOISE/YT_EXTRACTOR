@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YT_EXTRACTOR // OPTIMIZED</title>
+    <title>YT_EXTRACTOR // HISTORY</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
     <script src="https://www.youtube.com/iframe_api"></script>
@@ -19,29 +19,26 @@
         .nothing-input { background: rgba(0, 0, 0, 0.03); border: 1px solid transparent; border-radius: 12px; transition: all 0.2s; }
         .nothing-input:focus { background: #fff; border-color: #000; outline: none; }
 
-        /* 復刻：グレーのコピーボタン */
-        .btn-gray-copy {
-            background-color: #eeeeee;
-            color: #666666;
-            border-radius: 10px;
-            font-size: 10px;
-            font-weight: 700;
-            padding: 8px 16px;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            transition: all 0.2s ease;
-            white-space: nowrap;
-        }
+        .btn-gray-copy { background-color: #eeeeee; color: #666; border-radius: 10px; font-size: 10px; font-weight: 700; padding: 8px 16px; text-transform: uppercase; transition: all 0.2s; white-space: nowrap; }
         .btn-gray-copy:hover { background-color: #000; color: #fff; }
-        .btn-gray-copy:active { transform: scale(0.95); }
 
         .btn-black { background: #000; color: #fff; border-radius: 50px; transition: all 0.2s; }
-        .btn-black:hover { transform: translateY(-1px); background: #333; }
         .btn-clear { background: #e5e5e5; color: #666; border-radius: 50px; transition: all 0.2s; }
-        .btn-clear:hover { background: #d0d0d0; color: #000; }
         .tab-active { background: #000 !important; color: #fff !important; }
 
         .aspect-16-9 { aspect-ratio: 16 / 9; width: 100%; object-fit: cover; border-radius: 18px; }
+
+        /* 履歴カルーセル：2枚+1枚の端が見える設定 */
+        .history-scroll { display: flex; overflow-x: auto; gap: 12px; padding: 4px; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
+        .history-item {
+            min-width: calc(45% - 6px); /* 2枚+αが見えるサイズ */
+            scroll-snap-align: start;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .history-item:active { transform: scale(0.95); }
+        .history-scroll::-webkit-scrollbar { display: none; }
+
         .cinema-mode { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 50; background: #000; display: flex; align-items: center; justify-content: center; padding: 20px; }
         .cinema-close { position: absolute; top: 20px; right: 20px; color: white; background: rgba(255,255,255,0.2); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 
@@ -56,13 +53,13 @@
         #player { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
     </style>
 </head>
-<body class="py-12 px-4">
+<body class="py-12 px-4 pb-32">
 
     <div class="max-w-2xl mx-auto">
         <header class="mb-10 pl-2">
-            <h1 class="dot-font text-2xl mb-1 tracking-tighter">YT_EXTRACTOR // OPTIMIZED</h1>
+            <h1 class="dot-font text-2xl mb-1 tracking-tighter">YT_EXTRACTOR // PROTOCOL</h1>
             <div class="inline-block px-2 py-0.5 border border-black rounded-full">
-                <p class="text-[8px] uppercase tracking-[0.2em] font-bold">Design Protocol // v1.9.2</p>
+                <p class="text-[8px] uppercase tracking-[0.2em] font-bold">Version 2.0 // Memory Link</p>
             </div>
         </header>
 
@@ -104,29 +101,30 @@
                         <div class="flex-1 mr-4 text-[10px] font-mono"><span class="text-gray-400 block mb-1 uppercase font-bold">HTML Tag (&lt;img&gt;)</span><input type="text" id="outHtml" readonly class="w-full bg-transparent outline-none"></div>
                         <button onclick="copy('outHtml')" class="btn-gray-copy">Copy</button>
                     </div>
-                    <div class="nothing-card p-4 flex items-center justify-between">
-                        <div class="flex-1 mr-4 text-[10px] font-mono"><span class="text-gray-400 block mb-1 uppercase font-bold">Image URL</span><input type="text" id="urlOutput" readonly class="w-full bg-transparent outline-none text-red-500/60"></div>
-                        <button onclick="copy('urlOutput')" class="btn-gray-copy">Copy</button>
-                    </div>
                 </div>
             </div>
 
             <div id="contentEmbed" class="hidden space-y-6">
-                <div id="playerContainer" class="nothing-card p-2 shadow-xl relative group">
+                <div id="playerContainer" class="nothing-card p-2 relative group">
                     <div class="video-wrapper"><div id="player"></div></div>
-                    <button onclick="toggleCinema()" class="absolute bottom-4 right-4 bg-white/80 backdrop-blur px-3 py-1.5 rounded-full text-[9px] font-bold uppercase opacity-0 group-hover:opacity-100 transition-opacity">Cinema Mode</button>
+                    <button onclick="toggleCinema()" class="absolute bottom-4 right-4 bg-white/80 backdrop-blur px-3 py-1.5 rounded-full text-[9px] font-bold uppercase opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">Cinema Mode</button>
                 </div>
                 <div class="nothing-card p-6">
-                    <div class="grid grid-cols-3 gap-4 mb-6 text-center">
-                        <div><label class="text-[9px] font-bold text-gray-400 block mb-1 uppercase">Width</label><input type="number" id="eWidth" value="560" oninput="updateEmbed()" class="nothing-input w-full p-2 text-center text-sm"></div>
-                        <div><label class="text-[9px] font-bold text-gray-400 block mb-1 uppercase">Height</label><input type="number" id="eHeight" value="315" oninput="updateEmbed()" class="nothing-input w-full p-2 text-center text-sm"></div>
-                        <div class="relative"><label class="text-[9px] font-bold text-gray-400 block mb-1 uppercase">Start</label><input type="number" id="eStart" value="0" oninput="updateEmbed()" class="nothing-input w-full p-2 text-center text-sm">
-                        <button onclick="syncTime()" class="absolute right-1 bottom-1 p-1 bg-black text-white rounded-md text-[8px] uppercase">Sync</button></div>
+                    <div class="grid grid-cols-3 gap-4 mb-4 text-center">
+                        <div><label class="text-[9px] font-bold text-gray-400 block mb-1 uppercase">Width</label><input type="number" id="eWidth" value="560" oninput="updateEmbed()" class="nothing-input w-full p-2 text-center text-xs"></div>
+                        <div><label class="text-[9px] font-bold text-gray-400 block mb-1 uppercase">Height</label><input type="number" id="eHeight" value="315" oninput="updateEmbed()" class="nothing-input w-full p-2 text-center text-xs"></div>
+                        <div class="relative"><label class="text-[9px] font-bold text-gray-400 block mb-1 uppercase">Start</label><input type="number" id="eStart" value="0" oninput="updateEmbed()" class="nothing-input w-full p-2 text-center text-xs"><button onclick="syncTime()" class="absolute right-1 bottom-1 p-1 bg-black text-white rounded-md text-[8px] uppercase">Sync</button></div>
                     </div>
                     <textarea id="outIframe" readonly rows="2" class="nothing-input w-full p-4 text-[10px] font-mono mb-4 border-dashed border-gray-300"></textarea>
-                    <button onclick="copy('outIframe')" class="btn-black w-full py-3 text-xs font-bold uppercase">Copy IFrame Protocol</button>
+                    <button onclick="copy('outIframe')" class="btn-black w-full py-3 text-xs font-bold uppercase">Copy IFrame</button>
                 </div>
             </div>
+        </div>
+
+        <div id="historySection" class="mt-12 hidden">
+            <h3 class="dot-font text-[10px] uppercase text-gray-400 mb-3 px-2 tracking-widest">Recent Sessions</h3>
+            <div class="history-scroll" id="historyList">
+                </div>
         </div>
     </div>
 
@@ -137,15 +135,16 @@
 
     <script>
         let player, currentVideoId = "";
-        let currentSlide = 0;
-        let thumbSources = [];
-        let isCinema = false;
+        let currentSlide = 0, thumbSources = [], isCinema = false;
+
+        // 初期化時に履歴を読み込む
+        window.onload = loadHistory;
 
         async function pasteFromClipboard() {
             try {
                 const text = await navigator.clipboard.readText();
                 if (text) { document.getElementById('videoUrl').value = text; processVideo(); }
-            } catch (err) { alert("手動でペーストしてください"); }
+            } catch (err) {}
         }
 
         function clearInput() {
@@ -160,10 +159,13 @@
             return (match && match[2].length === 11) ? match[2] : null;
         }
 
-        function processVideo() {
-            const url = document.getElementById('videoUrl').value;
-            currentVideoId = extractVideoId(url);
+        function processVideo(vid = null) {
+            const urlInput = document.getElementById('videoUrl');
+            currentVideoId = vid || extractVideoId(urlInput.value);
             if (!currentVideoId) return;
+
+            // 履歴に保存
+            saveHistory(currentVideoId);
 
             document.getElementById('resultArea').classList.remove('hidden');
             thumbSources = [
@@ -182,13 +184,44 @@
             updateEmbed();
         }
 
+        // --- 履歴機能ロジック ---
+        function saveHistory(id) {
+            let history = JSON.parse(localStorage.getItem('yt_history') || '[]');
+            history = history.filter(item => item !== id); // 重複削除
+            history.unshift(id); // 先頭に追加
+            history = history.slice(0, 10); // 最大10件
+            localStorage.setItem('yt_history', JSON.stringify(history));
+            loadHistory();
+        }
+
+        function loadHistory() {
+            const history = JSON.parse(localStorage.getItem('yt_history') || '[]');
+            const list = document.getElementById('historyList');
+            const section = document.getElementById('historySection');
+
+            if (history.length === 0) { section.classList.add('hidden'); return; }
+            section.classList.remove('hidden');
+            list.innerHTML = '';
+
+            history.forEach(id => {
+                const item = document.createElement('div');
+                item.className = 'history-item nothing-card p-1.5 overflow-hidden';
+                item.innerHTML = `<img src="https://img.youtube.com/vi/${id}/mqdefault.jpg" class="aspect-16-9 object-cover rounded-[14px]">`;
+                item.onclick = () => {
+                    document.getElementById('videoUrl').value = `https://www.youtube.com/watch?v=${id}`;
+                    processVideo(id);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                };
+                list.appendChild(item);
+            });
+        }
+
         function toggleCinema() {
             const overlay = document.getElementById('cinemaOverlay');
-            const cinemaContent = document.getElementById('cinemaContent');
             isCinema = !isCinema;
             if (isCinema) {
                 overlay.classList.remove('hidden');
-                cinemaContent.appendChild(document.getElementById('player'));
+                document.getElementById('cinemaContent').appendChild(document.getElementById('player'));
             } else {
                 overlay.classList.add('hidden');
                 document.querySelector('.video-wrapper').appendChild(document.getElementById('player'));
@@ -223,7 +256,6 @@
             const currentUrl = thumbSources[currentSlide].url;
             document.getElementById('outMd').value = `[![](${currentUrl})](https://www.youtube.com/watch?v=${currentVideoId})`;
             document.getElementById('outHtml').value = `<a href="https://www.youtube.com/watch?v=${currentVideoId}"><img src="${currentUrl}" alt="Thumbnail"></a>`;
-            document.getElementById('urlOutput').value = currentUrl;
         }
 
         function syncTime() {
