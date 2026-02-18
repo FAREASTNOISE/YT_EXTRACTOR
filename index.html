@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>YT_EXTRACTOR // PROTOCOL v6.6.3</title>
+    <title>YT_EXTRACTOR // PROTOCOL v6.6.8</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <script src="https://www.youtube.com/iframe_api"></script>
@@ -22,10 +22,17 @@
         .btn-black-rect { background: #000; color: #fff; border-radius: 12px; font-size: 11px; font-weight: 700; padding: 16px; width: 100%; text-transform: uppercase; }
         .btn-gray-copy { background-color: #eeeeee; color: #666; border-radius: 10px; font-size: 10px; font-weight: 700; padding: 8px 16px; text-transform: uppercase; border: none; cursor: pointer; }
         .amazon-btn { background: linear-gradient(to bottom, #f7dfa5, #f0c14b); border: 1px solid #a88734; border-radius: 50px; color: #111; padding: 10px 24px; font-size: 10px; font-weight: bold; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 1px 0 rgba(255,255,255,.4) inset; }
+
+        /* Layout */
         .fixed-aspect { width: 100%; aspect-ratio: 16 / 9; border-radius: 16px; overflow: hidden; background: #000; position: relative; }
         .slider-viewport { width: 100%; height: 100%; overflow-x: auto; display: flex; scroll-snap-type: x mandatory; scroll-behavior: smooth; -ms-overflow-style: none; scrollbar-width: none; }
         .slider-viewport::-webkit-scrollbar { display: none; }
-        .slide-item { flex: 0 0 100%; width: 100%; height: 100%; scroll-snap-align: start; object-fit: cover; }
+
+        /* Centering Asset Rule */
+        .slide-item-container { flex: 0 0 100%; width: 100%; height: 100%; scroll-snap-align: start; display: flex; align-items: center; justify-content: center; }
+        .slide-item-fit { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .slide-item-natural { width: auto; height: auto; object-fit: none; }
+
         .nav-btn { position: absolute; top: 50%; transform: translateY(-50%); width: 34px; height: 34px; background: rgba(255,255,255,0.95); border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 40; box-shadow: 0 2px 8px rgba(0,0,0,0.1); cursor: pointer; border: 1px solid rgba(0,0,0,0.05); }
         .arrow { width: 6px; height: 6px; border-top: 2px solid #000; border-right: 2px solid #000; }
         .indicator-container { display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 12px; height: 10px; }
@@ -44,7 +51,7 @@
         <header class="mb-10 pl-2">
             <h1 onclick="clearInput()" class="dot-font text-2xl mb-1 tracking-tighter cursor-pointer">YT_EXTRACTOR</h1>
             <div class="inline-block px-2 py-0.5 border border-black rounded-full">
-                <p class="text-[8px] uppercase tracking-[0.2em] font-bold">Version 6.6.3 // Asset Logic Fix</p>
+                <p class="text-[8px] uppercase tracking-[0.2em] font-bold">Version 6.6.8 // Complete Revival</p>
             </div>
         </header>
 
@@ -104,12 +111,12 @@
                     </div>
                     <div class="space-y-4 mb-6">
                         <div class="nothing-card p-4 border-dashed bg-transparent">
-                            <label class="text-[9px] text-gray-400 block mb-2 uppercase">iframe embed tag</label>
+                            <label class="text-[9px] text-gray-400 block mb-2 uppercase font-bold">iframe embed tag</label>
                             <textarea id="outIframe" readonly class="nothing-input w-full p-3 text-[10px] font-mono h-16 mb-2 focus:outline-none"></textarea>
                             <button onclick="copy('outIframe')" class="btn-black-rect">Copy IFrame Tag</button>
                         </div>
                         <div class="nothing-card p-4 border-dashed bg-transparent">
-                            <label class="text-[9px] text-gray-400 block mb-2 uppercase">Short URL (youtu.be)</label>
+                            <label class="text-[9px] text-gray-400 block mb-2 uppercase font-bold">Short URL (youtu.be)</label>
                             <div class="flex gap-2">
                                 <input type="text" id="outShortUrl" readonly class="nothing-input flex-grow p-3 text-[11px] font-mono focus:outline-none">
                                 <button onclick="copyRaw(this)" class="btn-gray-copy px-6">Copy</button>
@@ -117,11 +124,11 @@
                         </div>
                     </div>
                     <div class="flex justify-between items-center bg-gray-100 p-4 rounded-xl">
-                        <span class="text-[9px] font-bold uppercase text-gray-400">Share This Video:</span>
+                        <span class="text-[9px] font-bold uppercase text-gray-400">Share:</span>
                         <div class="flex gap-4">
-                            <button onclick="share('x')" class="text-black hover:opacity-60"><svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M12.6.75h2.454l-5.36 6.142L16 15.25h-4.937l-3.867-5.055-4.425 5.055H.316l5.733-6.57L0 .75h5.063l3.495 4.633L12.6.75zm-.86 13.028h1.36L4.323 2.145H2.865l8.875 11.633z"/></svg></button>
-                            <button onclick="share('fb')" class="text-black hover:opacity-60"><svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M16 8.049c0-4.446-3.582-8.05-8-8.05C3.58 0-.002 3.603-.002 8.05c0 4.017 2.926 7.347 6.75 7.951v-5.625h-2.03V8.05H6.75V6.275c0-2.017 1.195-3.131 3.022-3.131.876 0 1.791.157 1.791.157v1.98h-1.009c-.993 0-1.303.621-1.303 1.258v1.51h2.218l-.354 2.326H9.25V16c3.824-.604 6.75-3.934 6.75-7.951z"/></svg></button>
-                            <button onclick="share('line')" class="text-black hover:opacity-60"><svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M24 10.3c0-4.6-5.4-8.3-12-8.3S0 5.7 0 10.3c0 4.1 4.3 7.5 10.1 8.2l-.7 2.3c-.1.3.1.6.4.5l6.4-3.8c4.7-1.3 7.8-4.2 7.8-7.2z"/></svg></button>
+                            <button onclick="share('x')" class="text-black hover:opacity-60"><svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M12.6.75h2.454l-5.36 6.142L16 15.25h-4.937l-3.867-5.055-4.425 5.055H.316l5.733-6.57L0 .75h5.063l3.495 4.633L12.6.75zm-.86 13.028h1.36L4.323 2.145H2.865l8.875 11.633z"/></svg></button>
+                            <button onclick="share('fb')" class="text-black hover:opacity-60"><svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M16 8.049c0-4.446-3.582-8.05-8-8.05C3.58 0-.002 3.603-.002 8.05c0 4.017 2.926 7.347 6.75 7.951v-5.625h-2.03V8.05H6.75V6.275c0-2.017 1.195-3.131 3.022-3.131.876 0 1.791.157 1.791.157v1.98h-1.009c-.993 0-1.303.621-1.303 1.258v1.51h2.218l-.354 2.326H9.25V16c3.824-.604 6.75-3.934 6.75-7.951z"/></svg></button>
+                            <button onclick="share('line')" class="text-black hover:opacity-60"><svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M24 10.3c0-4.6-5.4-8.3-12-8.3S0 5.7 0 10.3c0 4.1 4.3 7.5 10.1 8.2l-.7 2.3c-.1.3.1.6.4.5l6.4-3.8c4.7-1.3 7.8-4.2 7.8-7.2z"/></svg></button>
                         </div>
                     </div>
                 </div>
@@ -147,16 +154,13 @@
             </div>
             <div id="historyIndicator" class="indicator-container"></div>
             <div class="flex justify-end mt-4 px-2">
-                <button onclick="copyAllHistory()" class="btn-history-copy">Copy All YouTube Links from History →</button>
+                <button onclick="copyAllHistory()" class="btn-history-copy">Copy All History URL</button>
             </div>
         </div>
 
         <footer class="mt-20 text-center pb-10">
-            <a href="https://www.amazon.jp/hz/wishlist/ls/zeitgeist-22" target="_blank" class="amazon-btn mb-8">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M15.3 13.7c-1.5.8-3.5 1.2-5.3 1.2-2.6 0-5-.7-6.9-1.9-.3-.2-.3-.5 0-.7.3-.2.6-.1.9.1 1.6 1 3.7 1.6 5.9 1.6 1.6 0 3.3-.3 4.8-1 .3-.1.6.1.7.3.1.2.1.3-.1.4zm.6-1c-.1-.1-.1-.2-.1-.3 0-.4.4-.6.4-.6.3-.1.5 0 .6.2.1.2.1.6-.3.9-.1.1-.4-.1-.6-.2zm4.1-3c-.1-.2-.4-.3-.6-.3h-1.4l-.6-1.7c-.1-.4-.5-.6-.9-.6s-.8.2-.9.6l-.6 1.7h-1.4c-.4 0-.7.1-.8.4-.1.3 0 .6.3.8l1.1.8-.4 1.7c-.1.4 0 .8.4.9.1 0 .3.1.4.1.3 0 .5-.1.7-.3l1.2-.9 1.2.9c.2.2.4.3.7.3.1 0 .3 0 .4-.1.4-.1.5-.5.4-.9l-.4-1.7 1.1-.8c.3-.2.4-.5.3-.8zM12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.4 0-8-3.6-8-8s3.6-8 8-8 8 3.6 8 8-3.6 8-8 8z"/></svg>
-                Support Project via Amazon
-            </a>
-            <p class="copyright">YT_EXTRACTOR v6.6.3 // FAREASTNOISE</p>
+            <a href="https://www.amazon.jp/hz/wishlist/ls/zeitgeist-22" target="_blank" class="amazon-btn mb-8">Support Project via Amazon</a>
+            <p class="copyright">YT_EXTRACTOR v6.6.8 // FAREASTNOISE</p>
         </footer>
     </div>
 
@@ -183,24 +187,6 @@
             else if (videoId) loadVideo(videoId[2], true);
         }
 
-        function fetchPlaylist(listId) {
-            const listEl = document.getElementById('playlistList');
-            document.getElementById('playlistSection').classList.remove('hidden');
-            listEl.innerHTML = '<div class="p-10 text-center w-full text-[10px] uppercase text-gray-400">Loading...</div>';
-            resetPlayer();
-            player = new YT.Player('player', { height: '100%', width: '100%', playerVars: { listType: 'playlist', list: listId },
-                events: { 'onReady': (e) => {
-                    const ids = e.target.getPlaylist();
-                    if (ids && ids.length) {
-                        listEl.innerHTML = ids.slice(0, 50).map(id => `<div class="scroll-item-content item-card" onclick="loadVideo('${id}', true)"><img src="https://img.youtube.com/vi/${id}/mqdefault.jpg" class="w-full rounded-lg"></div>`).join('');
-                        updateDots('playlistList', 'playlistIndicator', 0.4);
-                        loadVideo(ids[0], false);
-                    }
-                }}
-            });
-            document.getElementById('resultArea').classList.remove('hidden');
-        }
-
         async function loadVideo(id, shouldScroll) {
             if (!id || id === currentVideoId) return;
             currentVideoId = id; saveHistory(id);
@@ -209,31 +195,27 @@
             else { resetPlayer(); player = new YT.Player('player', { height:'100%', width:'100%', videoId:id }); }
 
             const cands = [
-                { label: 'Max Res', res: '1280x720', url: `https://i.ytimg.com/vi/${id}/maxresdefault.jpg` },
-                { label: 'HQ', res: '480x360', url: `https://i.ytimg.com/vi/${id}/hqdefault.jpg` },
-                { label: 'MQ', res: '320x180', url: `https://i.ytimg.com/vi/${id}/mqdefault.jpg` },
-                { label: '場面1', res: 'Storyboard', url: `https://i.ytimg.com/vi/${id}/1.jpg` },
-                { label: '場面2', res: 'Storyboard', url: `https://i.ytimg.com/vi/${id}/2.jpg` },
-                { label: '場面3', res: 'Storyboard', url: `https://i.ytimg.com/vi/${id}/3.jpg` }
+                { label: 'Max Res', res: '1280x720', url: `https://img.youtube.com/vi/${id}/maxresdefault.jpg`, isScene: false },
+                { label: 'HQ', res: '480x360', url: `https://img.youtube.com/vi/${id}/hqdefault.jpg`, isScene: false },
+                { label: 'MQ', res: '320x180', url: `https://img.youtube.com/vi/${id}/mqdefault.jpg`, isScene: false },
+                { label: 'Scene 1', res: 'Storyboard', url: `https://img.youtube.com/vi/${id}/1.jpg`, isScene: true },
+                { label: 'Scene 2', res: 'Storyboard', url: `https://img.youtube.com/vi/${id}/2.jpg`, isScene: true },
+                { label: 'Scene 3', res: 'Storyboard', url: `https://img.youtube.com/vi/${id}/3.jpg`, isScene: true }
             ];
 
             assetList = [];
             for (const c of cands) {
                 const ok = await new Promise(r => {
                     const img = new Image();
-                    img.onload = () => r(img.width > 120);
+                    img.onload = () => r(img.width > 1);
                     img.onerror = () => r(false);
                     img.src = c.url;
-                    setTimeout(() => r(false), 2000); // タイムアウト設定
                 });
                 if (ok) assetList.push(c);
             }
-
             const s = document.getElementById('mainSlider');
-            s.innerHTML = assetList.map(a => `<img src="${a.url}" class="slide-item">`).join('');
-            s.scrollTo(0,0);
-            updateDots('mainSlider', 'mainIndicator', 1);
-            updateEmbedOutputs();
+            s.innerHTML = assetList.map(a => `<div class="slide-item-container"><img src="${a.url}" class="${a.isScene ? 'slide-item-natural' : 'slide-item-fit'}"></div>`).join('');
+            s.scrollTo(0,0); updateDots('mainSlider', 'mainIndicator', 1); updateEmbedOutputs();
             if(shouldScroll) document.getElementById('resultArea').scrollIntoView({behavior:'smooth'});
         }
 
@@ -249,13 +231,12 @@
                 if(assetList[idx]) {
                     currentImgUrl = assetList[idx].url;
                     document.getElementById('assetMeta').innerText = `${assetList[idx].label} // ${assetList[idx].res}`;
-                    const md = `[![](${currentImgUrl})](https://www.youtube.com/watch?v=${currentVideoId})`;
                     const tag = `<a href="https://www.youtube.com/watch?v=${currentVideoId}"><img src="${currentImgUrl}"></a>`;
                     document.getElementById('thumbOutputs').innerHTML = `
                         <div class="nothing-card p-4 space-y-4">
-                            <div><label class="text-[9px] text-gray-400 block mb-1 uppercase font-bold">Markdown</label><div class="flex gap-2"><input type="text" value='${md}' readonly class="nothing-input flex-grow p-2 text-[10px] font-mono focus:outline-none"><button onclick="copyRaw(this)" class="btn-gray-copy">Copy</button></div></div>
-                            <div><label class="text-[9px] text-gray-400 block mb-1 uppercase font-bold">HTML Tag</label><div class="flex gap-2"><input type="text" value='${tag.replace(/'/g, "&apos;")}' readonly class="nothing-input flex-grow p-2 text-[10px] font-mono focus:outline-none"><button onclick="copyRaw(this)" class="btn-gray-copy">Copy</button></div></div>
-                            <div><label class="text-[9px] text-gray-400 block mb-1 uppercase font-bold">Direct URL</label><div class="flex gap-2"><input type="text" value='${currentImgUrl}' readonly class="nothing-input flex-grow p-2 text-[10px] font-mono focus:outline-none"><button onclick="copyRaw(this)" class="btn-gray-copy">Copy</button></div></div>
+                            <div><label class="text-[9px] text-gray-400 block mb-1 uppercase font-bold">Markdown</label><div class="flex gap-2"><input type="text" value='[![](${currentImgUrl})](https://www.youtube.com/watch?v=${currentVideoId})' readonly class="nothing-input flex-grow p-2 text-[10px] font-mono"><button onclick="copyRaw(this)" class="btn-gray-copy">Copy</button></div></div>
+                            <div><label class="text-[9px] text-gray-400 block mb-1 uppercase font-bold">HTML Tag</label><div class="flex gap-2"><input type="text" value='${tag.replace(/'/g, "&apos;")}' readonly class="nothing-input flex-grow p-2 text-[10px] font-mono"><button onclick="copyRaw(this)" class="btn-gray-copy">Copy</button></div></div>
+                            <div><label class="text-[9px] text-gray-400 block mb-1 uppercase font-bold">Direct URL</label><div class="flex gap-2"><input type="text" value='${currentImgUrl}' readonly class="nothing-input flex-grow p-2 text-[10px] font-mono"><button onclick="copyRaw(this)" class="btn-gray-copy">Copy</button></div></div>
                         </div>`;
                 }
             } else {
@@ -270,24 +251,31 @@
         }
 
         function updateEmbedOutputs() {
+            if(!currentVideoId) return;
             const w = document.getElementById('eWidth').value, h = document.getElementById('eHeight').value, s = document.getElementById('eStart').value;
             document.getElementById('outIframe').value = `<iframe width="${w}" height="${h}" src="https://www.youtube.com/embed/${currentVideoId}?rel=0${s>0?'&start='+s:''}" frameborder="0" allowfullscreen></iframe>`;
             document.getElementById('outShortUrl').value = `https://youtu.be/${currentVideoId}${s>0?'?t='+s:''}`;
         }
 
-        function saveHistory(id) {
-            let h = JSON.parse(localStorage.getItem('yt_history') || '[]');
-            h = [id, ...h.filter(x => x !== id)].slice(0, 15);
-            localStorage.setItem('yt_history', JSON.stringify(h)); loadHistory();
+        function fetchPlaylist(listId) {
+            const listEl = document.getElementById('playlistList');
+            document.getElementById('playlistSection').classList.remove('hidden');
+            listEl.innerHTML = '<div class="p-10 text-center w-full text-[10px] uppercase text-gray-400">Loading...</div>';
+            resetPlayer();
+            player = new YT.Player('player', { height: '100%', width: '100%', playerVars: { listType: 'playlist', list: listId },
+                events: { 'onReady': (e) => {
+                    const ids = e.target.getPlaylist();
+                    if (ids && ids.length) {
+                        listEl.innerHTML = ids.slice(0, 50).map(id => `<div class="scroll-item-content item-card" onclick="loadVideo('${id}', true)"><img src="https://img.youtube.com/vi/${id}/mqdefault.jpg" class="w-full rounded-lg"></div>`).join('');
+                        updateDots('playlistList', 'playlistIndicator', 0.4); loadVideo(ids[0], false);
+                    }
+                }}
+            });
+            document.getElementById('resultArea').classList.remove('hidden');
         }
 
-        function loadHistory() {
-            const h = JSON.parse(localStorage.getItem('yt_history') || '[]'); if(!h.length) return;
-            document.getElementById('historySection').classList.remove('hidden');
-            document.getElementById('historyList').innerHTML = h.map(id => `<div class="scroll-item-content item-card"><div class="absolute top-1 right-1 bg-gray-400 text-white rounded-full w-4 h-4 text-[10px] flex items-center justify-center cursor-pointer z-10" onclick="event.stopPropagation();removeHistory('${id}')">×</div><img src="https://i.ytimg.com/vi/${id}/mqdefault.jpg" onclick="loadVideo('${id}', true)" class="w-full rounded-lg"></div>`).join('');
-            updateDots('historyList', 'historyIndicator', 0.4);
-        }
-
+        function saveHistory(id) { let h = JSON.parse(localStorage.getItem('yt_history') || '[]'); h = [id, ...h.filter(x => x !== id)].slice(0, 15); localStorage.setItem('yt_history', JSON.stringify(h)); loadHistory(); }
+        function loadHistory() { const h = JSON.parse(localStorage.getItem('yt_history') || '[]'); if(!h.length) return; document.getElementById('historySection').classList.remove('hidden'); document.getElementById('historyList').innerHTML = h.map(id => `<div class="scroll-item-content item-card"><div class="absolute top-1 right-1 bg-gray-400 text-white rounded-full w-4 h-4 text-[10px] flex items-center justify-center cursor-pointer z-10" onclick="event.stopPropagation();removeHistory('${id}')">×</div><img src="https://img.youtube.com/vi/${id}/mqdefault.jpg" onclick="loadVideo('${id}', true)" class="w-full rounded-lg"></div>`).join(''); updateDots('historyList', 'historyIndicator', 0.4); }
         function removeHistory(id) { let h = JSON.parse(localStorage.getItem('yt_history') || '[]'); localStorage.setItem('yt_history', JSON.stringify(h.filter(x => x !== id))); loadHistory(); }
         function resetPlayer() { if(player) { try{player.destroy();}catch(e){} } document.getElementById('player-wrapper').innerHTML = '<div id="player"></div>'; }
         function clearInput() { document.getElementById('videoUrl').value = ""; document.getElementById('resultArea').classList.add('hidden'); document.getElementById('playlistSection').classList.add('hidden'); currentVideoId = ""; }
@@ -296,8 +284,8 @@
         function moveSlide(id, d) { const s=document.getElementById(id); s.scrollBy({left:d*(s.clientWidth*0.8), behavior:'smooth'}); }
         function syncTime() { if(player && player.getCurrentTime) { document.getElementById('eStart').value = Math.floor(player.getCurrentTime()); updateEmbedOutputs(); } }
         function switchTab(t) { document.getElementById('tabThumb').classList.toggle('tab-active', t==='thumb'); document.getElementById('tabEmbed').classList.toggle('tab-active', t==='embed'); document.getElementById('contentThumb').classList.toggle('hidden', t!=='thumb'); document.getElementById('contentEmbed').classList.toggle('hidden', t!=='embed'); localStorage.setItem('yt_last_tab', t); }
-        function share(p) { const u = encodeURIComponent(document.getElementById('outShortUrl').value); if(p==='x') window.open(`https://twitter.com/intent/tweet?url=${u}`); if(p==='fb') window.open(`https://www.facebook.com/sharer/sharer.php?u=${u}`); if(p==='line') window.open(`https://social-plugins.line.me/lineit/share?url=${u}`); }
-        function copyAllHistory() { const h = JSON.parse(localStorage.getItem('yt_history') || '[]'); navigator.clipboard.writeText(h.map(id => `https://youtu.be/${id}`).join('\n')); const b=event.currentTarget; const old=b.innerText; b.innerText="COPIED ALL!"; setTimeout(()=>b.innerText=old, 1500); }
+        function share(p) { const url = encodeURIComponent(document.getElementById('outShortUrl').value); if (p === 'x') window.open(`https://twitter.com/intent/tweet?url=${url}`, '_blank'); else if (p === 'fb') window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank'); else if (p === 'line') window.open(`https://line.me/R/msg/text/?${url}`, '_blank'); }
+        function copyAllHistory() { const h = JSON.parse(localStorage.getItem('yt_history') || '[]'); navigator.clipboard.writeText(h.map(id => `https://youtu.be/${id}`).join('\n')); const b=event.currentTarget; const old=b.innerText; b.innerText="COPIED!"; setTimeout(()=>b.innerText=old, 1500); }
     </script>
 </body>
 </html>
