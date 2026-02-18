@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>YT_EXTRACTOR // PROTOCOL v3.7</title>
+    <title>YT_EXTRACTOR // PROTOCOL v3.8</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
     <script src="https://www.youtube.com/iframe_api"></script>
@@ -21,34 +21,31 @@
 
         .btn-gray-copy { background-color: #eeeeee; color: #666; border-radius: 10px; font-size: 10px; font-weight: 700; padding: 8px 16px; text-transform: uppercase; transition: all 0.2s; border: none; cursor: pointer; }
         .btn-gray-copy:hover { background-color: #000; color: #fff; }
-        .btn-black { background: #000; color: #fff; border-radius: 50px; transition: all 0.2s; -webkit-tap-highlight-color: transparent; }
+        .btn-black { background: #000; color: #fff; border-radius: 50px; transition: all 0.2s; }
         .tab-active { background: #000 !important; color: #fff !important; }
 
-        .fixed-aspect { width: 100%; aspect-ratio: 16 / 9; border-radius: 18px; overflow: hidden; background: #000; }
-        .slider-track { display: flex; transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1); }
-        .slide-item { min-width: 100%; aspect-ratio: 16 / 9; object-fit: cover; flex-shrink: 0; }
+        .fixed-aspect { width: 100%; aspect-ratio: 16 / 9; border-radius: 18px; overflow: hidden; background: #000; position: relative; }
 
-        /* --- 履歴セクション --- */
-        .history-container { position: relative; width: 100%; }
-        .history-scroll {
-            display: flex; overflow-x: auto; gap: 10px; padding: 10px 0;
-            scroll-behavior: smooth; scroll-snap-type: x mandatory;
-            -ms-overflow-style: none; scrollbar-width: none;
-        }
-        .history-scroll::-webkit-scrollbar { display: none; }
-        .history-item { flex: 0 0 calc((100% - 20px) / 2.2); scroll-snap-align: start; cursor: pointer; }
-        .history-item img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 7px; pointer-events: none; }
+        /* --- メインスライダー (スワイプ対応) --- */
+        .slider-viewport { width: 100%; height: 100%; overflow-x: auto; display: flex; scroll-snap-type: x mandatory; scroll-behavior: smooth; -ms-overflow-style: none; scrollbar-width: none; }
+        .slider-viewport::-webkit-scrollbar { display: none; }
+        .slide-item { flex: 0 0 100%; width: 100%; height: 100%; scroll-snap-align: start; object-fit: cover; }
 
-        /* インジケーター（点と線） */
+        /* PC用ナビボタン (Hover時表示) */
+        .main-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 40px; height: 40px; background: rgba(255,255,255,0.8); border-radius: 50%; display: none; align-items: center; justify-content: center; z-index: 20; cursor: pointer; }
+        @media (hover: hover) { .fixed-aspect:hover .main-nav { display: flex; } }
+        .main-nav.prev { left: 10px; } .main-nav.next { right: 10px; }
+
+        /* インジケーター (Nothing Style Line) */
         .indicator-container { display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 12px; height: 10px; }
         .dot { width: 6px; height: 6px; background: #ccc; border-radius: 3px; transition: all 0.3s; cursor: pointer; }
         .dot.active { width: 24px; background: #000; }
 
-        /* ナビゲーション */
-        .hist-nav { position: absolute; top: 40%; transform: translateY(-50%); width: 32px; height: 32px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.1); cursor: pointer; }
-        .hist-nav.prev { left: -10px; } .hist-nav.next { right: -10px; }
-        .arrow { width: 6px; height: 6px; border-top: 2px solid #000; border-right: 2px solid #000; }
-        .arrow-left { transform: rotate(-135deg); } .arrow-right { transform: rotate(45deg); }
+        /* --- 履歴 --- */
+        .history-scroll { display: flex; overflow-x: auto; gap: 10px; padding: 10px 0; scroll-behavior: smooth; scroll-snap-type: x proximity; -ms-overflow-style: none; scrollbar-width: none; }
+        .history-scroll::-webkit-scrollbar { display: none; }
+        .history-item { flex: 0 0 calc((100% - 20px) / 2.2); scroll-snap-align: start; cursor: pointer; }
+        .history-item img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 7px; }
 
         .checkbox-container { display: flex; align-items: center; cursor: pointer; font-size: 10px; font-weight: 700; text-transform: uppercase; color: #666; }
         .checkbox-container input { display: none; }
@@ -63,7 +60,7 @@
         <header class="mb-10 pl-2">
             <h1 class="dot-font text-2xl mb-1 tracking-tighter">YT_EXTRACTOR</h1>
             <div class="inline-block px-2 py-0.5 border border-black rounded-full">
-                <p class="text-[8px] uppercase tracking-[0.2em] font-bold">Version 3.7 // Indicator & Triple Assets</p>
+                <p class="text-[8px] uppercase tracking-[0.2em] font-bold">Version 3.8 // Scene & Motion assets</p>
             </div>
         </header>
 
@@ -88,14 +85,13 @@
 
             <div id="contentThumb" class="space-y-4">
                 <div class="nothing-card p-2 relative">
-                    <div class="fixed-aspect overflow-hidden">
-                        <div class="slider-track" id="sliderTrack"></div>
+                    <div class="fixed-aspect">
+                        <div class="main-nav prev" onclick="moveMainSlide(-1)"><div class="arrow arrow-left" style="transform:rotate(-135deg); width:8px; height:8px; border-top:2px solid #000; border-right:2px solid #000;"></div></div>
+                        <div class="main-nav next" onclick="moveMainSlide(1)"><div class="arrow arrow-right" style="transform:rotate(45deg); width:8px; height:8px; border-top:2px solid #000; border-right:2px solid #000;"></div></div>
+                        <div class="slider-viewport" id="mainSlider"></div>
                     </div>
-                </div>
-                <div class="flex justify-center gap-2 pb-2">
-                    <button onclick="moveSlide(0)" class="w-2 h-2 rounded-full bg-black"></button>
-                    <button onclick="moveSlide(1)" class="w-2 h-2 rounded-full bg-gray-300"></button>
-                    <button onclick="moveSlide(2)" class="w-2 h-2 rounded-full bg-gray-300"></button>
+                    <div id="mainIndicator" class="indicator-container"></div>
+                    <div id="assetMeta" class="text-center text-[9px] font-bold text-gray-400 uppercase mt-1"></div>
                 </div>
                 <div class="grid gap-2" id="thumbOutputs"></div>
             </div>
@@ -121,9 +117,7 @@
 
         <div id="historySection" class="mt-12 hidden border-t border-black/5 pt-8">
             <h3 class="dot-font text-[10px] uppercase text-gray-400 mb-2 px-2 tracking-widest">Recent History</h3>
-            <div class="history-container">
-                <div class="hist-nav prev" onclick="scrollHist(-1)"><div class="arrow arrow-left"></div></div>
-                <div class="hist-nav next" onclick="scrollHist(1)"><div class="arrow arrow-right"></div></div>
+            <div class="history-container relative">
                 <div id="historyList" class="history-scroll"></div>
                 <div id="historyIndicator" class="indicator-container"></div>
             </div>
@@ -132,71 +126,44 @@
 
     <script>
         let player, currentVideoId = "";
+        let assetList = [];
 
         window.onload = () => {
             loadHistory();
             switchTab(localStorage.getItem('yt_last_tab') || 'thumb');
 
+            document.getElementById('mainSlider').addEventListener('scroll', () => updateDots('mainSlider', 'mainIndicator', 1));
+            document.getElementById('historyList').addEventListener('scroll', () => updateDots('historyList', 'historyIndicator', 0.42));
+
             document.getElementById('pasteBtn').addEventListener('click', async () => {
                 try {
                     const text = await navigator.clipboard.readText();
                     if (text) { document.getElementById('videoUrl').value = text; processVideo(); }
-                } catch (err) { console.log("Clipboard error."); }
+                } catch (err) { console.log("Clipboard Error"); }
             });
-
-            // 履歴スクロール時のドット更新
-            const list = document.getElementById('historyList');
-            list.addEventListener('scroll', updateDots);
         };
 
-        function moveSlide(idx) {
-            document.getElementById('sliderTrack').style.transform = `translateX(-${idx * 100}%)`;
+        function moveMainSlide(dir) {
+            const el = document.getElementById('mainSlider');
+            el.scrollBy({ left: dir * el.clientWidth, behavior: 'smooth' });
         }
 
-        function scrollHist(dir) {
-            const list = document.getElementById('historyList');
-            list.scrollBy({ left: dir * (list.clientWidth * 0.5), behavior: 'smooth' });
-        }
-
-        function updateDots() {
-            const list = document.getElementById('historyList');
-            const dots = document.querySelectorAll('.dot');
-            const scrollPos = list.scrollLeft;
-            const itemWidth = list.clientWidth * 0.42; // 約1つ分の幅
-            const activeIndex = Math.round(scrollPos / itemWidth);
+        function updateDots(scrollId, indicatorId, ratio) {
+            const list = document.getElementById(scrollId);
+            const dots = document.querySelectorAll(`#${indicatorId} .dot`);
+            const activeIndex = Math.round(list.scrollLeft / (list.clientWidth * ratio));
             dots.forEach((dot, i) => dot.classList.toggle('active', i === activeIndex));
-        }
 
-        function resizeEmbed(source) {
-            const isLocked = document.getElementById('aspectLock').checked;
-            const wInput = document.getElementById('eWidth');
-            const hInput = document.getElementById('eHeight');
-            if (isLocked) {
-                if (source === 'w') hInput.value = Math.round(wInput.value * (9 / 16));
-                else wInput.value = Math.round(hInput.value * (16 / 9));
-            }
-            updateEmbed();
-        }
-
-        function updateEmbed() {
-            if (!currentVideoId) return;
-            const w = document.getElementById('eWidth').value;
-            const h = document.getElementById('eHeight').value;
-            const s = document.getElementById('eStart').value;
-            document.getElementById('outIframe').value = `<iframe width="${w}" height="${h}" src="https://www.youtube.com/embed/${currentVideoId}?rel=0${s > 0 ? '&start='+s : ''}" frameborder="0" allowfullscreen></iframe>`;
-        }
-
-        function syncTime() {
-            if (player && player.getCurrentTime) {
-                document.getElementById('eStart').value = Math.floor(player.getCurrentTime());
-                updateEmbed();
+            if(scrollId === 'mainSlider' && assetList[activeIndex]) {
+                document.getElementById('assetMeta').innerText = `${assetList[activeIndex].label} // ${assetList[activeIndex].res}`;
+                updateOutputs(assetList[activeIndex].url);
             }
         }
 
         function switchTab(type) {
             const isThumb = type === 'thumb';
-            document.getElementById('tabThumb').className = isThumb ? 'nothing-card px-8 py-2 text-[10px] font-bold uppercase tab-active' : 'nothing-card px-8 py-2 text-[10px] font-bold uppercase text-gray-400';
-            document.getElementById('tabEmbed').className = !isThumb ? 'nothing-card px-8 py-2 text-[10px] font-bold uppercase tab-active' : 'nothing-card px-8 py-2 text-[10px] font-bold uppercase text-gray-400';
+            document.getElementById('tabThumb').className = `nothing-card px-8 py-2 text-[10px] font-bold uppercase ${isThumb?'tab-active':'text-gray-400'}`;
+            document.getElementById('tabEmbed').className = `nothing-card px-8 py-2 text-[10px] font-bold uppercase ${!isThumb?'tab-active':'text-gray-400'}`;
             document.getElementById('contentThumb').classList.toggle('hidden', !isThumb);
             document.getElementById('contentEmbed').classList.toggle('hidden', isThumb);
             localStorage.setItem('yt_last_tab', type);
@@ -208,20 +175,25 @@
             saveHistory(currentVideoId);
             document.getElementById('resultArea').classList.remove('hidden');
 
-            const urls = [
-                `https://img.youtube.com/vi/${currentVideoId}/maxresdefault.jpg`,
-                `https://img.youtube.com/vi/${currentVideoId}/hqdefault.jpg`,
-                `https://img.youtube.com/vi/${currentVideoId}/mqdefault.jpg`
+            assetList = [
+                { label: 'Max Resolution', res: '1280x720', url: `https://img.youtube.com/vi/${currentVideoId}/maxresdefault.jpg` },
+                { label: 'High Quality', res: '480x360', url: `https://img.youtube.com/vi/${currentVideoId}/hqdefault.jpg` },
+                { label: 'Medium Quality', res: '320x180', url: `https://img.youtube.com/vi/${currentVideoId}/mqdefault.jpg` },
+                { label: 'Scene 1', res: '120x90', url: `https://img.youtube.com/vi/${currentVideoId}/1.jpg` },
+                { label: 'Scene 2', res: '120x90', url: `https://img.youtube.com/vi/${currentVideoId}/2.jpg` },
+                { label: 'Scene 3', res: '120x90', url: `https://img.youtube.com/vi/${currentVideoId}/3.jpg` }
             ];
 
-            document.getElementById('sliderTrack').innerHTML = urls.map(u => `<img src="${u}" class="slide-item">`).join('');
+            const slider = document.getElementById('mainSlider');
+            slider.innerHTML = assetList.map(a => `<img src="${a.url}" class="slide-item" onerror="this.src='https://img.youtube.com/vi/${currentVideoId}/hqdefault.jpg'">`).join('');
 
-            if (player && player.loadVideoById) {
-                player.loadVideoById(currentVideoId);
-            } else {
-                player = new YT.Player('player', { height: '100%', width: '100%', videoId: currentVideoId });
-            }
-            updateOutputs(urls[0]);
+            const indicator = document.getElementById('mainIndicator');
+            indicator.innerHTML = assetList.map((_, i) => `<div class="dot ${i===0?'active':''}" onclick="document.getElementById('mainSlider').scrollTo({left:${i*slider.clientWidth},behavior:'smooth'})"></div>`).join('');
+
+            if (player && player.loadVideoById) player.loadVideoById(currentVideoId);
+            else player = new YT.Player('player', { height: '100%', width: '100%', videoId: currentVideoId });
+
+            updateDots('mainSlider', 'mainIndicator', 1);
             updateEmbed();
         }
 
@@ -250,16 +222,10 @@
         function loadHistory() {
             const history = JSON.parse(localStorage.getItem('yt_history') || '[]');
             const list = document.getElementById('historyList');
-            const indicator = document.getElementById('historyIndicator');
             if (history.length === 0) return;
             document.getElementById('historySection').classList.remove('hidden');
-
-            list.innerHTML = history.map(id => `
-                <div class="history-item nothing-card p-1.5" onclick="loadFromHistory('${id}')">
-                    <img src="https://img.youtube.com/vi/${id}/mqdefault.jpg">
-                </div>`).join('');
-
-            indicator.innerHTML = history.map((_, i) => `<div class="dot ${i===0?'active':''}" onclick="document.getElementById('historyList').scrollTo({left:${i*(list.clientWidth*0.42)},behavior:'smooth'})"></div>`).join('');
+            list.innerHTML = history.map(id => `<div class="history-item nothing-card p-1.5" onclick="loadFromHistory('${id}')"><img src="https://img.youtube.com/vi/${id}/mqdefault.jpg"></div>`).join('');
+            document.getElementById('historyIndicator').innerHTML = history.map((_, i) => `<div class="dot ${i===0?'active':''}" onclick="document.getElementById('historyList').scrollTo({left:${i*(list.clientWidth*0.42)},behavior:'smooth'})"></div>`).join('');
         }
 
         function loadFromHistory(id) {
@@ -275,11 +241,27 @@
 
         async function copy(id) {
             const el = document.getElementById(id);
-            await navigator.clipboard.writeText(el.value);
+            await navigator.clipboard.readText(el.value);
             const btn = event.currentTarget;
-            const oldText = btn.innerText;
-            btn.innerText = "DONE";
-            setTimeout(() => btn.innerText = oldText, 1000);
+            const old = btn.innerText; btn.innerText = "DONE";
+            setTimeout(() => btn.innerText = old, 1000);
+        }
+
+        function resizeEmbed(source) {
+            const isLocked = document.getElementById('aspectLock').checked;
+            const w = document.getElementById('eWidth'), h = document.getElementById('eHeight');
+            if (isLocked) source === 'w' ? h.value = Math.round(w.value * 9/16) : w.value = Math.round(h.value * 16/9);
+            updateEmbed();
+        }
+
+        function updateEmbed() {
+            if (!currentVideoId) return;
+            const w = document.getElementById('eWidth').value, h = document.getElementById('eHeight').value, s = document.getElementById('eStart').value;
+            document.getElementById('outIframe').value = `<iframe width="${w}" height="${h}" src="https://www.youtube.com/embed/${currentVideoId}?rel=0${s>0?'&start='+s:''}" frameborder="0" allowfullscreen></iframe>`;
+        }
+
+        function syncTime() {
+            if (player && player.getCurrentTime) { document.getElementById('eStart').value = Math.floor(player.getCurrentTime()); updateEmbed(); }
         }
 
         function clearInput() { document.getElementById('videoUrl').value = ''; document.getElementById('resultArea').classList.add('hidden'); }
