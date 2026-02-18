@@ -3,124 +3,165 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YT EXTRACTOR // PRO MODE</title>
+    <title>YT_EXTRACTOR // GRID_SYSTEM</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
     <script src="https://www.youtube.com/iframe_api"></script>
     <style>
-        body { background-color: #f0f0f0; font-family: 'Inter', sans-serif; color: #000; }
+        :root { --grid-color: rgba(0, 0, 0, 0.05); }
+
+        body {
+            background-color: #f2f2f2;
+            font-family: 'Inter', sans-serif;
+            color: #000;
+            overflow-x: hidden;
+            /* SVG背景: 100pxのグリッドとかすれ演出 */
+            background-image:
+                radial-gradient(circle at center, transparent 0%, #f2f2f2 90%),
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 100% 100%, 100px 100px, 100px 100px;
+            background-attachment: fixed;
+        }
+
         .dot-font { font-family: 'Silkscreen', cursive; letter-spacing: -0.05em; }
-        .nothing-card { background: #fff; border: 1px solid #e5e5e5; border-radius: 24px; }
-        .nothing-input { background: #f5f5f5; border: 1px solid transparent; border-radius: 12px; transition: all 0.2s; }
+
+        /* Nothing風ボックス: 少し透けて罫線が見える */
+        .nothing-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 24px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03);
+        }
+
+        .nothing-input {
+            background: rgba(0, 0, 0, 0.03);
+            border: 1px solid transparent;
+            border-radius: 12px;
+            transition: all 0.2s;
+        }
         .nothing-input:focus { background: #fff; border-color: #000; outline: none; }
-        .btn-black { background: #000; color: #fff; border-radius: 50px; transition: opacity 0.2s; }
-        .btn-black:hover { opacity: 0.8; }
-        .tab-active { background: #000; color: #fff; }
-        .btn-gray-copy { background-color: #eeeeee; color: #666666; border-radius: 10px; font-size: 10px; font-weight: 700; padding: 8px 16px; text-transform: uppercase; letter-spacing: 0.05em; transition: all 0.2s ease; white-space: nowrap; }
-        .btn-gray-copy:hover { background-color: #e0e0e0; color: #000; }
-        .video-wrapper { position: relative; padding-bottom: 56.25%; height: 0; border-radius: 18px; background: #000; overflow: hidden; }
-        #player { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .btn-black { background: #000; color: #fff; border-radius: 50px; transition: all 0.2s; }
+        .btn-black:hover { transform: translateY(-1px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+
+        .tab-active { background: #000 !important; color: #fff !important; }
+
+        .btn-gray-copy {
+            background-color: rgba(0, 0, 0, 0.05);
+            color: #666;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 8px 16px;
+            text-transform: uppercase;
+            transition: all 0.2s;
+        }
+        .btn-gray-copy:hover { background-color: #000; color: #fff; }
+
+        .slider-container { position: relative; width: 100%; overflow: hidden; border-radius: 18px; background: #000; }
+        .slider-track { display: flex; transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1); }
+        .slide-item { min-width: 100%; height: auto; display: block; }
+
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(8px);
+            color: white;
+            width: 36px; height: 36px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            position: absolute; top: 50%; transform: translateY(-50%);
+            z-index: 10; cursor: pointer; border: 1px solid rgba(255,255,255,0.3);
+            transition: all 0.2s;
+        }
+        .nav-btn:hover { background: rgba(255, 255, 255, 0.4); }
+
+        .slide-dot { width: 5px; height: 5px; border-radius: 50%; background: #ccc; transition: all 0.3s; cursor: pointer; }
+        .slide-dot.active { background: #000; width: 20px; border-radius: 10px; }
     </style>
 </head>
 <body class="py-12 px-4">
 
     <div class="max-w-2xl mx-auto">
-        <header class="mb-12 text-center">
-            <h1 class="dot-font text-4xl mb-2">YT_EXTRACTOR</h1>
-            <p class="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Auto-Fallback & Sync // v1.6</p>
+        <header class="mb-16 text-center">
+            <h1 class="dot-font text-5xl mb-3 tracking-tighter">YT_EXTRACTOR</h1>
+            <div class="inline-block px-3 py-1 border border-black rounded-full">
+                <p class="text-[9px] uppercase tracking-[0.3em] font-bold">Grid System Protocol // v1.8</p>
+            </div>
         </header>
 
-        <div class="nothing-card p-6 mb-8 shadow-sm">
+        <div class="nothing-card p-6 mb-8">
             <div class="flex flex-col gap-4">
                 <div class="relative">
-                    <input type="text" id="videoUrl" placeholder="PASTE YOUTUBE URL HERE"
-                        class="nothing-input w-full p-4 pr-24 text-sm font-mono uppercase tracking-tighter">
-                    <button onclick="pasteFromClipboard()"
-                        class="absolute right-2 top-2 bottom-2 px-4 bg-gray-200 hover:bg-gray-300 rounded-lg text-[10px] font-bold uppercase transition-colors">
-                        Paste
-                    </button>
+                    <input type="text" id="videoUrl" placeholder="INPUT_YOUTUBE_SOURCE" class="nothing-input w-full p-4 pr-24 text-sm font-mono uppercase tracking-tighter">
+                    <button onclick="pasteFromClipboard()" class="absolute right-2 top-2 bottom-2 px-4 bg-black text-white rounded-lg text-[9px] font-bold uppercase hover:bg-red-600 transition-colors">Paste</button>
                 </div>
-                <button onclick="processVideo()" class="btn-black w-full py-4 font-bold text-sm tracking-widest uppercase shadow-lg">
-                    Extract Data
-                </button>
+                <button onclick="processVideo()" class="btn-black w-full py-5 font-bold text-sm tracking-[0.2em] uppercase">Start Extraction</button>
             </div>
         </div>
 
-        <div id="resultArea" class="hidden fade-in">
-            <div class="flex gap-2 mb-6 justify-center text-gray-400">
-                <button id="tabThumb" onclick="switchTab('thumb')" class="nothing-card px-6 py-2 text-xs font-bold uppercase tab-active transition-all">Thumbnail</button>
-                <button id="tabEmbed" onclick="switchTab('embed')" class="nothing-card px-6 py-2 text-xs font-bold uppercase transition-all">Embed Code</button>
+        <div id="resultArea" class="hidden space-y-8">
+            <div class="flex gap-2 justify-center">
+                <button id="tabThumb" onclick="switchTab('thumb')" class="nothing-card px-8 py-3 text-xs font-bold uppercase tab-active transition-all">Assets</button>
+                <button id="tabEmbed" onclick="switchTab('embed')" class="nothing-card px-8 py-3 text-xs font-bold uppercase text-gray-400 transition-all">Embed</button>
             </div>
 
-            <div id="contentThumb" class="space-y-3">
-                <div class="nothing-card p-2 overflow-hidden mb-4 bg-gray-100">
-                    <img id="previewImg" src="" class="w-full rounded-[18px] min-h-[100px]" alt="Preview">
+            <div id="contentThumb" class="space-y-4 fade-in">
+                <div class="nothing-card p-2 relative shadow-xl">
+                    <div class="slider-container">
+                        <div class="nav-btn left-3" onclick="moveSlide(-1)">⟵</div>
+                        <div class="nav-btn right-3" onclick="moveSlide(1)">⟶</div>
+                        <div class="slider-track" id="sliderTrack"></div>
+                    </div>
+                    <div class="flex justify-center gap-2 py-4" id="sliderDots"></div>
+                    <p class="text-[9px] text-center text-gray-400 uppercase font-bold mb-2" id="slideLabel">Buffer Ready</p>
                 </div>
 
-                <div class="nothing-card p-4 flex items-center justify-between shadow-sm">
-                    <div class="flex-1 mr-4 text-[10px] font-mono"><span class="text-gray-400 block mb-1 uppercase font-bold">Markdown</span><input type="text" id="outMd" readonly class="w-full bg-transparent outline-none"></div>
-                    <button onclick="copy('outMd')" class="btn-gray-copy">Copy</button>
-                </div>
-                <div class="nothing-card p-4 flex items-center justify-between shadow-sm">
-                    <div class="flex-1 mr-4 text-[10px] font-mono"><span class="text-gray-400 block mb-1 uppercase font-bold">HTML Tag</span><input type="text" id="outHtml" readonly class="w-full bg-transparent outline-none"></div>
-                    <button onclick="copy('outHtml')" class="btn-gray-copy">Copy</button>
-                </div>
-                <div class="nothing-card p-4 flex items-center justify-between shadow-sm">
-                    <div class="flex-1 mr-4 text-[10px] font-mono"><span class="text-gray-400 block mb-1 uppercase font-bold">Image URL</span><input type="text" id="urlOutput" readonly class="w-full bg-transparent outline-none text-red-500/70"></div>
-                    <button onclick="copy('urlOutput')" class="btn-gray-copy">Copy</button>
+                <div class="grid gap-3">
+                    <div class="nothing-card p-5 flex items-center justify-between">
+                        <div class="flex-1 mr-4 text-[10px] font-mono"><span class="text-gray-400 block mb-1 uppercase font-bold">Markdown_Output</span><input type="text" id="outMd" readonly class="w-full bg-transparent outline-none"></div>
+                        <button onclick="copy('outMd')" class="btn-gray-copy">Copy</button>
+                    </div>
+                    <div class="nothing-card p-5 flex items-center justify-between">
+                        <div class="flex-1 mr-4 text-[10px] font-mono"><span class="text-gray-400 block mb-1 uppercase font-bold">HTML_Img_Tag</span><input type="text" id="outHtml" readonly class="w-full bg-transparent outline-none"></div>
+                        <button onclick="copy('outHtml')" class="btn-gray-copy">Copy</button>
+                    </div>
+                    <div class="nothing-card p-5 flex items-center justify-between">
+                        <div class="flex-1 mr-4 text-[10px] font-mono"><span class="text-gray-400 block mb-1 uppercase font-bold">Source_URL</span><input type="text" id="urlOutput" readonly class="w-full bg-transparent outline-none text-red-500/60"></div>
+                        <button onclick="copy('urlOutput')" class="btn-gray-copy">Copy</button>
+                    </div>
                 </div>
             </div>
 
-            <div id="contentEmbed" class="hidden space-y-6">
-                <div class="nothing-card p-2 overflow-hidden">
+            <div id="contentEmbed" class="hidden space-y-6 fade-in">
+                <div class="nothing-card p-2 shadow-xl overflow-hidden">
                     <div class="video-wrapper"><div id="player"></div></div>
                 </div>
-                <div class="nothing-card p-6">
-                    <div class="grid grid-cols-3 gap-4 mb-6">
-                        <div class="text-center">
-                            <label class="text-[9px] font-bold text-gray-400 block mb-1 uppercase">Width</label>
-                            <input type="number" id="eWidth" value="560" oninput="updateEmbed()" class="nothing-input w-full p-2 text-center text-sm">
-                        </div>
-                        <div class="text-center">
-                            <label class="text-[9px] font-bold text-gray-400 block mb-1 uppercase">Height</label>
-                            <input type="number" id="eHeight" value="315" oninput="updateEmbed()" class="nothing-input w-full p-2 text-center text-sm">
-                        </div>
-                        <div class="text-center relative">
-                            <label class="text-[9px] font-bold text-gray-400 block mb-1 uppercase">Start (Sec)</label>
-                            <input type="number" id="eStart" value="0" oninput="updateEmbed()" class="nothing-input w-full p-2 text-center text-sm pr-10">
-                            <button onclick="syncTime()" class="absolute right-1 bottom-1 p-1 bg-black text-white rounded-md text-[8px] hover:bg-red-600 transition-colors uppercase">Sync</button>
-                        </div>
+                <div class="nothing-card p-8">
+                    <div class="grid grid-cols-3 gap-6 mb-8 text-center">
+                        <div><label class="text-[9px] font-bold text-gray-400 block mb-2 uppercase">Width_PX</label><input type="number" id="eWidth" value="560" oninput="updateEmbed()" class="nothing-input w-full p-3 text-center text-sm"></div>
+                        <div><label class="text-[9px] font-bold text-gray-400 block mb-2 uppercase">Height_PX</label><input type="number" id="eHeight" value="315" oninput="updateEmbed()" class="nothing-input w-full p-3 text-center text-sm"></div>
+                        <div class="relative"><label class="text-[9px] font-bold text-gray-400 block mb-2 uppercase">Timestamp</label><input type="number" id="eStart" value="0" oninput="updateEmbed()" class="nothing-input w-full p-3 text-center text-sm">
+                        <button onclick="syncTime()" class="absolute right-1 bottom-1 p-1.5 bg-black text-white rounded-md text-[8px] uppercase">Sync</button></div>
                     </div>
-                    <textarea id="outIframe" readonly rows="3" class="nothing-input w-full p-4 text-[10px] font-mono mb-4 border-dashed border-gray-200"></textarea>
-                    <button onclick="copy('outIframe')" class="btn-black w-full py-3 text-xs font-bold uppercase shadow-md">Copy Embed Code</button>
+                    <textarea id="outIframe" readonly rows="3" class="nothing-input w-full p-5 text-[10px] font-mono mb-6 border-dashed border-gray-300" placeholder="Awaiting synchronization..."></textarea>
+                    <button onclick="copy('outIframe')" class="btn-black w-full py-4 text-xs font-bold uppercase">Copy IFrame Protocol</button>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        let player;
-        let currentVideoId = "";
-
-        function onYouTubeIframeAPIReady() {}
+        // --- 以前のロジックを継承 ---
+        let player, currentVideoId = "";
+        let currentSlide = 0;
+        let thumbSources = [];
 
         async function pasteFromClipboard() {
             try {
-                if (navigator.clipboard && navigator.clipboard.readText) {
-                    const text = await navigator.clipboard.readText();
-                    if (text) {
-                        document.getElementById('videoUrl').value = text;
-                        processVideo();
-                    }
-                } else {
-                    throw new Error();
-                }
-            } catch (err) {
-                alert("ブラウザの制限により自動ペーストできませんでした。入力欄を長押ししてペーストしてください。");
-                document.getElementById('videoUrl').focus();
-            }
+                const text = await navigator.clipboard.readText();
+                if (text) { document.getElementById('videoUrl').value = text; processVideo(); }
+            } catch (err) { alert("手動でペーストしてください"); }
         }
 
         function extractVideoId(url) {
@@ -135,68 +176,73 @@
             if (!currentVideoId) return;
 
             document.getElementById('resultArea').classList.remove('hidden');
+            thumbSources = [
+                { type: 'Primary_Source', url: `https://img.youtube.com/vi/${currentVideoId}/maxresdefault.jpg`, fallback: `https://img.youtube.com/vi/${currentVideoId}/hqdefault.jpg` },
+                { type: 'Sub_Frame_01', url: `https://img.youtube.com/vi/${currentVideoId}/1.jpg` },
+                { type: 'Sub_Frame_02', url: `https://img.youtube.com/vi/${currentVideoId}/2.jpg` },
+                { type: 'Sub_Frame_03', url: `https://img.youtube.com/vi/${currentVideoId}/3.jpg` }
+            ];
 
-            const maxUrl = `https://img.youtube.com/vi/${currentVideoId}/maxresdefault.jpg`;
-            const hqUrl = `https://img.youtube.com/vi/${currentVideoId}/hqdefault.jpg`;
-            const imgElement = document.getElementById('previewImg');
+            setupSlider();
+            currentSlide = 0;
+            updateSlideView();
 
-            // 1. 画像のエラーハンドリング（Fallback機能）
-            imgElement.src = maxUrl;
-            imgElement.onerror = function() {
-                this.src = hqUrl; // maxresがない場合はhqに切り替え
-                updateOutputLinks(hqUrl);
-                this.onerror = null;
-            };
-
-            updateOutputLinks(maxUrl);
-
-            // YouTube Playerの読み込み
-            if (player && player.loadVideoById) {
-                player.loadVideoById(currentVideoId);
-            } else {
-                player = new YT.Player('player', {
-                    videoId: currentVideoId,
-                    playerVars: { 'rel': 0 },
-                    events: { 'onReady': updateEmbed }
-                });
-            }
+            if (player && player.loadVideoById) { player.loadVideoById(currentVideoId); }
+            else { player = new YT.Player('player', { videoId: currentVideoId, playerVars: { 'rel': 0 }, events: { 'onReady': updateEmbed } }); }
             updateEmbed();
         }
 
-        function updateOutputLinks(url) {
-            document.getElementById('outMd').value = `[![](${url})](https://www.youtube.com/watch?v=${currentVideoId})`;
-            document.getElementById('outHtml').value = `<a href="https://www.youtube.com/watch?v=${currentVideoId}"><img src="${url}" alt="Thumbnail"></a>`;
-            document.getElementById('urlOutput').value = url;
+        function setupSlider() {
+            const track = document.getElementById('sliderTrack'), dots = document.getElementById('sliderDots');
+            track.innerHTML = ''; dots.innerHTML = '';
+            thumbSources.forEach((src, idx) => {
+                const img = document.createElement('img');
+                img.src = src.url; img.className = 'slide-item object-cover';
+                if(src.fallback) img.onerror = () => { img.src = src.fallback; thumbSources[idx].url = src.fallback; updateOutputLinks(); };
+                track.appendChild(img);
+                const dot = document.createElement('div');
+                dot.className = 'slide-dot' + (idx === 0 ? ' active' : '');
+                dot.onclick = () => { currentSlide = idx; updateSlideView(); };
+                dots.appendChild(dot);
+            });
+        }
+
+        function moveSlide(step) { currentSlide = (currentSlide + step + thumbSources.length) % thumbSources.length; updateSlideView(); }
+
+        function updateSlideView() {
+            const track = document.getElementById('sliderTrack'), dots = document.querySelectorAll('.slide-dot');
+            track.style.transform = `translateX(-${currentSlide * 100}%)`;
+            dots.forEach((dot, i) => dot.classList.toggle('active', i === currentSlide));
+            document.getElementById('slideLabel').innerText = `Buffer_Type: ${thumbSources[currentSlide].type}`;
+            updateOutputLinks();
+        }
+
+        function updateOutputLinks() {
+            const currentUrl = thumbSources[currentSlide].url;
+            document.getElementById('outMd').value = `[![](${currentUrl})](https://www.youtube.com/watch?v=${currentVideoId})`;
+            document.getElementById('outHtml').value = `<a href="https://www.youtube.com/watch?v=${currentVideoId}"><img src="${currentUrl}"></a>`;
+            document.getElementById('urlOutput').value = currentUrl;
         }
 
         function syncTime() {
-            if (player && player.getCurrentTime) {
-                const now = Math.floor(player.getCurrentTime());
-                document.getElementById('eStart').value = now;
-                updateEmbed();
-            }
+            if (player && player.getCurrentTime) { document.getElementById('eStart').value = Math.floor(player.getCurrentTime()); updateEmbed(); }
         }
 
         function updateEmbed() {
             if (!currentVideoId) return;
             const w = document.getElementById('eWidth').value, h = document.getElementById('eHeight').value, s = document.getElementById('eStart').value;
-            let embedUrl = `https://www.youtube.com/embed/${currentVideoId}?rel=0`;
-            if (s > 0) embedUrl += `&start=${s}`;
+            let embedUrl = `https://www.youtube.com/embed/${currentVideoId}?rel=0${s > 0 ? '&start='+s : ''}`;
             document.getElementById('outIframe').value = `<iframe width="${w}" height="${h}" src="${embedUrl}" frameborder="0" allowfullscreen></iframe>`;
         }
 
         function switchTab(type) {
-            const tT = document.getElementById('tabThumb'), tE = document.getElementById('tabEmbed');
-            const cT = document.getElementById('contentThumb'), cE = document.getElementById('contentEmbed');
-            if (type === 'thumb') {
-                tT.classList.add('tab-active'); tE.classList.remove('tab-active');
-                cT.classList.remove('hidden'); cE.classList.add('hidden');
-                tE.classList.add('text-gray-400'); tT.classList.remove('text-gray-400');
-            } else {
-                tE.classList.add('tab-active'); tT.classList.remove('tab-active');
-                cE.classList.remove('hidden'); cT.classList.add('hidden');
-                tT.classList.add('text-gray-400'); tE.classList.remove('text-gray-400');
-            }
+            const isThumb = type === 'thumb';
+            document.getElementById('tabThumb').classList.toggle('tab-active', isThumb);
+            document.getElementById('tabEmbed').classList.toggle('tab-active', !isThumb);
+            document.getElementById('contentThumb').classList.toggle('hidden', !isThumb);
+            document.getElementById('contentEmbed').classList.toggle('hidden', isThumb);
+            document.getElementById(isThumb ? 'tabEmbed' : 'tabThumb').classList.add('text-gray-400');
+            document.getElementById(isThumb ? 'tabThumb' : 'tabEmbed').classList.remove('text-gray-400');
         }
 
         async function copy(id) {
@@ -204,14 +250,8 @@
             await navigator.clipboard.writeText(el.value);
             const btn = event.currentTarget;
             const originalText = btn.innerText;
-            btn.innerText = "DONE";
-            btn.style.backgroundColor = "#000";
-            btn.style.color = "#fff";
-            setTimeout(() => {
-                btn.innerText = originalText;
-                btn.style.backgroundColor = "";
-                btn.style.color = "";
-            }, 800);
+            btn.innerText = "COPIED"; btn.style.backgroundColor = "#000"; btn.style.color = "#fff";
+            setTimeout(() => { btn.innerText = originalText; btn.style.backgroundColor = ""; btn.style.color = ""; }, 800);
         }
     </script>
 </body>
