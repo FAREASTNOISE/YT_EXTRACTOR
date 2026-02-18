@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>YT_EXTRACTOR // PROTOCOL v5.4</title>
+    <title>YT_EXTRACTOR // PROTOCOL v5.8</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
     <script src="https://www.youtube.com/iframe_api"></script>
@@ -37,23 +37,19 @@
         .horizontal-scroll { display: flex; overflow-x: auto; gap: 12px; padding: 10px 0; scroll-behavior: smooth; scroll-snap-type: x proximity; -ms-overflow-style: none; scrollbar-width: none; }
         .horizontal-scroll::-webkit-scrollbar { display: none; }
         .scroll-item-content { flex: 0 0 calc((100% - 24px) / 2.2); scroll-snap-align: start; position: relative; }
-        .checkbox-container { display: flex; align-items: center; cursor: pointer; font-size: 10px; font-weight: 700; text-transform: uppercase; color: #666; }
-        .checkbox-container input { display: none; }
-        .custom-check { width: 14px; height: 14px; border: 2px solid #ccc; border-radius: 4px; margin-right: 6px; position: relative; }
-        .checkbox-container input:checked + .custom-check { background: #000; border-color: #000; }
-        #errorMsg { color: #ff4444; font-size: 10px; font-weight: bold; text-align: center; margin-top: 10px; display: none; }
-        .support-badge { font-size: 8px; font-weight: 800; letter-spacing: 0.1em; color: #999; text-transform: uppercase; margin-top: 8px; display: flex; align-items: center; gap: 8px; justify-content: center; }
         footer { margin-top: 80px; text-align: center; padding-bottom: 40px; }
         .copyright { font-family: 'Silkscreen', cursive; font-size: 9px; letter-spacing: 0.2em; color: #bbb; }
+        .reset-trigger { cursor: pointer; transition: opacity 0.2s; }
+        .reset-trigger:active { opacity: 0.5; }
     </style>
 </head>
 <body class="py-12 px-4">
 
     <div class="max-w-2xl mx-auto">
         <header id="top" class="mb-10 pl-2">
-            <h1 class="dot-font text-2xl mb-1 tracking-tighter">YT_EXTRACTOR</h1>
+            <h1 onclick="clearInput()" class="dot-font text-2xl mb-1 tracking-tighter reset-trigger">YT_EXTRACTOR</h1>
             <div class="inline-block px-2 py-0.5 border border-black rounded-full">
-                <p class="text-[8px] uppercase tracking-[0.2em] font-bold">Version 5.4 // Playback Protocol Activated</p>
+                <p class="text-[8px] uppercase tracking-[0.2em] font-bold">Version 5.8 // Total Reset Activated</p>
             </div>
         </header>
 
@@ -63,8 +59,6 @@
                     <input type="text" id="videoUrl" placeholder="PASTE VIDEO OR PLAYLIST URL..." class="nothing-input w-full p-4 pr-24 text-sm font-mono uppercase">
                     <button id="pasteBtn" class="absolute right-2 top-2 bottom-2 px-4 bg-black text-white rounded-lg text-[9px] font-bold uppercase">Paste</button>
                 </div>
-                <div class="support-badge"><span class="text-black">Video</span> • <span class="text-black">Playlist</span> • <span class="text-black">Shorts</span> SUPPORTED</div>
-                <div id="errorMsg" class="uppercase text-center">Error: Invalid YouTube link.</div>
                 <div class="flex gap-2">
                     <button onclick="processInput()" class="btn-black flex-grow py-4 font-bold text-xs uppercase">Start Extraction</button>
                     <button onclick="clearInput()" class="bg-gray-200 text-gray-600 px-8 py-4 rounded-[50px] font-bold text-xs uppercase">Clear</button>
@@ -93,50 +87,35 @@
 
             <div id="contentEmbed" class="hidden space-y-6">
                 <div class="nothing-card p-2 relative">
-                    <div class="fixed-aspect"><div id="player"></div></div>
+                    <div class="fixed-aspect">
+                        <div id="player-wrapper" class="w-full h-full"><div id="player"></div></div>
+                    </div>
                 </div>
                 <div class="nothing-card p-6">
-                    <div class="flex justify-between items-center mb-4 px-1">
-                        <label class="checkbox-container"><input type="checkbox" id="aspectLock" checked><span class="custom-check"></span> Lock 16:9 Aspect</label>
-                    </div>
                     <div class="grid grid-cols-3 gap-3 mb-6">
                         <div><label class="text-[9px] font-bold text-gray-400 block mb-1 uppercase">Width</label><input type="number" id="eWidth" value="560" oninput="resizeEmbed('w')" class="nothing-input w-full p-2 text-center text-xs"></div>
                         <div><label class="text-[9px] font-bold text-gray-400 block mb-1 uppercase">Height</label><input type="number" id="eHeight" value="315" oninput="resizeEmbed('h')" class="nothing-input w-full p-2 text-center text-xs"></div>
                         <div class="relative"><label class="text-[9px] font-bold text-gray-400 block mb-1 uppercase">Start (s)</label><input type="number" id="eStart" value="0" oninput="updateEmbedOutputs()" class="nothing-input w-full p-2 text-center text-xs"><button onclick="syncTime()" class="absolute right-1 bottom-1 p-1 bg-black text-white rounded-md text-[7px] uppercase">Sync</button></div>
                     </div>
                     <div class="space-y-4">
-                        <div class="nothing-card p-4 border-dashed bg-transparent">
-                            <label class="text-[9px] font-bold text-gray-400 block mb-2 uppercase px-1">IFrame Embed Tag</label>
+                        <div class="nothing-card p-4 bg-transparent border-dashed">
+                            <label class="text-[9px] font-bold text-gray-400 block mb-2 uppercase">IFrame Code</label>
                             <textarea id="outIframe" readonly class="nothing-input w-full p-3 text-[10px] font-mono h-16 mb-2"></textarea>
                             <button onclick="copy('outIframe')" class="btn-gray-copy w-full">Copy IFrame</button>
                         </div>
-                        <div class="nothing-card p-4 border-dashed bg-transparent">
-                            <label class="text-[9px] font-bold text-gray-400 block mb-2 uppercase px-1">Short URL (youtu.be)</label>
+                        <div class="nothing-card p-4 bg-transparent border-dashed">
+                            <label class="text-[9px] font-bold text-gray-400 block mb-2 uppercase">Short URL</label>
                             <div class="flex gap-2">
                                 <input type="text" id="outShortUrl" readonly class="nothing-input flex-grow p-3 text-[11px] font-mono">
                                 <button onclick="copy('outShortUrl')" class="btn-gray-copy px-6">Copy URL</button>
                             </div>
                         </div>
                     </div>
-                    <div class="mt-8 pt-6 border-t border-black/5">
-                        <p class="text-[9px] font-bold text-gray-400 uppercase mb-3 text-center tracking-widest">Share Context</p>
-                        <div class="grid grid-cols-2 gap-2">
-                            <button onclick="shareOnX()" class="btn-x">X Post</button>
-                            <button onclick="openCurrentImg()" class="btn-image-open">Save Image</button>
-                        </div>
+                    <div class="mt-8 pt-6 border-t border-black/5 grid grid-cols-2 gap-2">
+                        <button onclick="shareOnX()" class="btn-x">X Share</button>
+                        <button onclick="openCurrentImg()" class="btn-image-open">Open Image</button>
                     </div>
                 </div>
-            </div>
-            <button onclick="shareCurrentList()" class="btn-black text-[10px] font-bold uppercase w-full py-4">Copy History Link to Clipboard</button>
-        </div>
-
-        <div id="sharedSection" class="mt-12 hidden border-t border-black/5 pt-8">
-            <h3 class="dot-font text-[10px] uppercase text-red-500 mb-2 px-2 tracking-widest">Received Shared List</h3>
-            <div class="relative">
-                <div class="nav-btn prev" onclick="scrollArea('sharedList', -1)"><div class="arrow" style="transform:rotate(-135deg);"></div></div>
-                <div class="nav-btn next" onclick="scrollArea('sharedList', 1)"><div class="arrow" style="transform:rotate(45deg);"></div></div>
-                <div id="sharedList" class="horizontal-scroll"></div>
-                <div id="sharedIndicator" class="indicator-container"></div>
             </div>
         </div>
 
@@ -151,7 +130,7 @@
         </div>
 
         <div id="historySection" class="mt-12 hidden border-t border-black/5 pt-8">
-            <h3 class="dot-font text-[10px] uppercase text-gray-400 mb-2 px-2 tracking-widest">My Recent History</h3>
+            <h3 class="dot-font text-[10px] uppercase text-gray-400 mb-2 px-2 tracking-widest">Recent History</h3>
             <div class="relative">
                 <div class="nav-btn prev" onclick="scrollArea('historyList', -1)"><div class="arrow" style="transform:rotate(-135deg);"></div></div>
                 <div class="nav-btn next" onclick="scrollArea('historyList', 1)"><div class="arrow" style="transform:rotate(45deg);"></div></div>
@@ -160,19 +139,19 @@
             </div>
         </div>
 
-        <footer><p class="copyright">© FAREASTNOISE // YT_EXTRACTOR PROTOCOL</p></footer>
+        <footer><p class="copyright">© FAREASTNOISE // YT_EXTRACTOR</p></footer>
     </div>
 
     <script>
         let player, currentVideoId = "", assetList = [], currentImgUrl = "", apiReady = false;
 
-        function onYouTubeIframeAPIReady() { apiReady = true; checkSharedLink(); }
+        function onYouTubeIframeAPIReady() { apiReady = true; }
 
         window.onload = () => {
             loadHistory();
             switchTab(localStorage.getItem('yt_last_tab') || 'thumb');
             document.getElementById('mainSlider').addEventListener('scroll', () => updateDots('mainSlider', 'mainIndicator', 1));
-            ['historyList', 'sharedList', 'playlistList'].forEach(id => {
+            ['historyList', 'playlistList'].forEach(id => {
                 const el = document.getElementById(id); if(el) el.addEventListener('scroll', () => updateDots(id, id.replace('List', 'Indicator'), 0.42));
             });
             document.getElementById('pasteBtn').addEventListener('click', async () => {
@@ -183,10 +162,8 @@
         function processInput() {
             const url = document.getElementById('videoUrl').value.trim();
             const vid = extractVideoId(url), lid = extractPlaylistId(url);
-            if (!vid && !lid) { document.getElementById('errorMsg').style.display = 'block'; return; }
-            document.getElementById('errorMsg').style.display = 'none';
             if (lid) fetchPlaylist(lid);
-            if (vid) loadVideo(vid, true);
+            else if (vid) loadVideo(vid, true);
         }
 
         function extractVideoId(url) {
@@ -202,56 +179,70 @@
         function fetchPlaylist(listId) {
             const list = document.getElementById('playlistList');
             document.getElementById('playlistSection').classList.remove('hidden');
-            list.innerHTML = `<div class="p-4 text-[10px] uppercase font-bold text-gray-400 text-center w-full">Loading Playlist...</div>`;
-            if (player) { player.destroy(); player = null; }
-            player = new YT.Player('player', { height: '100%', width: '100%', playerVars: { listType: 'playlist', list: listId },
-                events: { 'onReady': (e) => {
-                    const p = e.target.getPlaylist();
-                    if(p && p.length > 0) {
-                        list.innerHTML = p.slice(0, 50).map(id => `<div class="scroll-item-content scroll-item nothing-card" onclick="loadVideo('${id}', true)"><img src="https://img.youtube.com/vi/${id}/mqdefault.jpg"></div>`).join('');
-                        updateDots('playlistList', 'playlistIndicator', 0.42);
-                        if (!currentVideoId) loadVideo(p[0], false);
+            list.innerHTML = `<div class="p-4 text-[10px] uppercase font-bold text-gray-400 text-center w-full">Refreshing...</div>`;
+            resetPlayerElement();
+            player = new YT.Player('player', {
+                height: '100%', width: '100%',
+                playerVars: { listType: 'playlist', list: listId, index: 0 },
+                events: {
+                    'onReady': (e) => {
+                        const p = e.target.getPlaylist();
+                        if(p && p.length > 0) {
+                            list.innerHTML = p.slice(0, 50).map(id => `<div class="scroll-item-content nothing-card" onclick="loadVideo('${id}', true)"><img src="https://img.youtube.com/vi/${id}/mqdefault.jpg"></div>`).join('');
+                            updateDots('playlistList', 'playlistIndicator', 0.42);
+                            loadVideo(p[0], false);
+                        }
+                    },
+                    'onStateChange': (e) => {
+                        if (e.data === YT.PlayerState.PLAYING) {
+                            const newId = e.target.getVideoData().video_id;
+                            if (newId && newId !== currentVideoId) loadVideo(newId, false);
+                        }
                     }
-                }}
+                }
             });
             document.getElementById('resultArea').classList.remove('hidden');
         }
 
-        // --- ENHANCED SYNC PROTOCOL ---
         function loadVideo(id, shouldScroll) {
-            if (!id) return;
-            currentVideoId = id;
-            saveHistory(id);
+            if (!id || id === currentVideoId) return;
+            currentVideoId = id; saveHistory(id);
             document.getElementById('resultArea').classList.remove('hidden');
-
-            // Player Sync: 確実に動画をロード
             if (player && player.loadVideoById) {
-                player.loadVideoById(id);
+                const data = player.getVideoData();
+                if(!data || data.video_id !== id) player.loadVideoById(id);
             } else if (apiReady) {
+                resetPlayerElement();
                 player = new YT.Player('player', { height: '100%', width: '100%', videoId: id });
             }
-
-            // Assets Sync
             assetList = [
                 { label: 'Max Res', res: '1280x720', url: `https://img.youtube.com/vi/${id}/maxresdefault.jpg` },
                 { label: 'HQ', res: '480x360', url: `https://img.youtube.com/vi/${id}/hqdefault.jpg` },
                 { label: 'MQ', res: '320x180', url: `https://img.youtube.com/vi/${id}/mqdefault.jpg` },
-                { label: 'Scene 1', res: '120x90', url: `https://img.youtube.com/vi/${id}/1.jpg` },
-                { label: 'Scene 2', res: '120x90', url: `https://img.youtube.com/vi/${id}/2.jpg` },
-                { label: 'Scene 3', res: '120x90', url: `https://img.youtube.com/vi/${id}/3.jpg` }
+                { label: 'Scene 1', res: '120x90', url: `https://img.youtube.com/vi/${id}/1.jpg` }
             ];
-
             const slider = document.getElementById('mainSlider');
             slider.innerHTML = assetList.map(a => `<img src="${a.url}" class="slide-item" onerror="this.src='https://img.youtube.com/vi/${id}/hqdefault.jpg'">`).join('');
             slider.scrollTo(0, 0);
-
             document.getElementById('mainIndicator').innerHTML = assetList.map((_, i) => `<div class="dot ${i===0?'active':''}" onclick="document.getElementById('mainSlider').scrollTo({left:${i*slider.clientWidth},behavior:'smooth'})"></div>`).join('');
-
-            // Metadata & Text Sync
             updateDots('mainSlider', 'mainIndicator', 1);
             updateEmbedOutputs();
-
             if (shouldScroll) document.getElementById('resultArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // プレイヤーのHTML要素をゼロから作り直す
+        function resetPlayerElement() {
+            if (player) { try { player.destroy(); } catch(e) {} player = null; }
+            document.getElementById('player-wrapper').innerHTML = '<div id="player"></div>';
+        }
+
+        function clearInput() {
+            if (player) { try { player.stopVideo(); } catch(e) {} }
+            resetPlayerElement();
+            currentVideoId = "";
+            document.getElementById('videoUrl').value = '';
+            document.getElementById('resultArea').classList.add('hidden');
+            document.getElementById('playlistSection').classList.add('hidden');
         }
 
         function updateEmbedOutputs() {
@@ -267,11 +258,10 @@
             if(!d.length || !l) return;
             const idx = Math.min(Math.round(l.scrollLeft / (l.clientWidth * (r || 1))), d.length - 1);
             d.forEach((dot, i) => dot.classList.toggle('active', i === idx));
-
             if(sId === 'mainSlider' && assetList[idx]) {
                 currentImgUrl = assetList[idx].url;
                 document.getElementById('assetMeta').innerText = `${assetList[idx].label} // ${assetList[idx].res}`;
-                document.getElementById('thumbOutputs').innerHTML = `${createCopyRow('Markdown', `[![](${currentImgUrl})](https://www.youtube.com/watch?v=${currentVideoId})`, 'outMd')}${createCopyRow('HTML Tag', `<a href="https://www.youtube.com/watch?v=${currentVideoId}"><img src="${currentImgUrl}"></a>`, 'outHtml')}${createCopyRow('Image URL', currentImgUrl, 'outUrl')}`;
+                document.getElementById('thumbOutputs').innerHTML = `${createCopyRow('Markdown', `[![](${currentImgUrl})](https://www.youtube.com/watch?v=${currentVideoId})`, 'outMd')}${createCopyRow('HTML Tag', `<a href="https://www.youtube.com/watch?v=${currentVideoId}"><img src="${currentImgUrl}"></a>`, 'outHtml')}`;
             }
         }
 
@@ -286,7 +276,7 @@
             const list = document.getElementById('historyList');
             if (!h.length) return document.getElementById('historySection').classList.add('hidden');
             document.getElementById('historySection').classList.remove('hidden');
-            list.innerHTML = h.map(id => `<div class="scroll-item-content scroll-item nothing-card"><div class="del-btn" onclick="removeHistory('${id}', event)">×</div><img src="https://img.youtube.com/vi/${id}/mqdefault.jpg" onclick="loadVideo('${id}', true)"></div>`).join('');
+            list.innerHTML = h.map(id => `<div class="scroll-item-content nothing-card"><div class="del-btn" onclick="removeHistory('${id}', event)">×</div><img src="https://img.youtube.com/vi/${id}/mqdefault.jpg" onclick="loadVideo('${id}', true)"></div>`).join('');
             document.getElementById('historyIndicator').innerHTML = h.map((_, i) => `<div class="dot ${i===0?'active':''}"></div>`).join('');
         }
 
@@ -301,12 +291,9 @@
         function shareOnX() { window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(document.getElementById('outShortUrl').value)}`, '_blank'); }
         function openCurrentImg() { if (currentImgUrl) window.open(currentImgUrl, '_blank'); }
         async function copy(id) { const e = document.getElementById(id); await navigator.clipboard.writeText(e.value); const b = event.currentTarget; b.innerText = "DONE"; setTimeout(() => b.innerText = "COPY", 1000); }
-        function resizeEmbed(s) { const l = document.getElementById('aspectLock').checked; const w = document.getElementById('eWidth'), h = document.getElementById('eHeight'); if (l) s === 'w' ? h.value = Math.round(w.value * 9/16) : w.value = Math.round(h.value * 16/9); updateEmbedOutputs(); }
+        function resizeEmbed(s) { const l = document.getElementById('eWidth'), r = document.getElementById('eHeight'); s === 'w' ? r.value = Math.round(l.value * 9/16) : l.value = Math.round(r.value * 16/9); updateEmbedOutputs(); }
         function syncTime() { if (player && player.getCurrentTime) { document.getElementById('eStart').value = Math.floor(player.getCurrentTime()); updateEmbedOutputs(); } }
-        function clearInput() { document.getElementById('videoUrl').value = ''; document.getElementById('resultArea').classList.add('hidden'); }
-        function shareCurrentList() { const h = JSON.parse(localStorage.getItem('yt_history') || '[]'); if (h.length) navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?list=${h.join(',')}`).then(() => alert("Link Copied!")); }
-        function checkSharedLink() { const p = new URLSearchParams(window.location.search); const l = p.get('list'); if (l) { const ids = l.split(','); document.getElementById('sharedSection').classList.remove('hidden'); document.getElementById('sharedList').innerHTML = ids.map(id => `<div class="scroll-item-content scroll-item nothing-card" onclick="loadVideo('${id}', true)"><img src="https://img.youtube.com/vi/${id}/mqdefault.jpg"></div>`).join(''); updateDots('sharedList', 'sharedIndicator', 0.42); } }
-        function createCopyRow(l, v, id) { return `<div class="nothing-card p-4 flex items-center justify-between"><div class="flex-1 mr-4 text-[10px] font-mono"><span class="text-gray-400 block mb-1 uppercase font-bold">${l}</span><input type="text" id="${id}" value='${v}' readonly class="w-full bg-transparent outline-none"></div><button onclick="copy('${id}')" class="btn-gray-copy">Copy</button></div>`; }
+        function createCopyRow(l, v, id) { return `<div class="nothing-card p-4 flex items-center justify-between mb-2"><div class="flex-1 mr-4 text-[10px] font-mono"><span class="text-gray-400 block mb-1 uppercase font-bold">${l}</span><input type="text" id="${id}" value='${v}' readonly class="w-full bg-transparent outline-none"></div><button onclick="copy('${id}')" class="btn-gray-copy">Copy</button></div>`; }
         function switchTab(t) {
             const isT = t === 'thumb';
             document.getElementById('tabThumb').className = `nothing-card px-8 py-2 text-[10px] font-bold uppercase ${isT?'tab-active':'text-gray-400'}`;
@@ -314,7 +301,6 @@
             document.getElementById('contentThumb').classList.toggle('hidden', !isT);
             document.getElementById('contentEmbed').classList.toggle('hidden', isT);
             localStorage.setItem('yt_last_tab', t);
-            updateEmbedOutputs();
         }
     </script>
 </body>
