@@ -125,27 +125,30 @@ function updateDots(sId, iId, ratio) {
 // 画像系出力タグの生成（ボタン統一版）
 function updateThumbOutputs() {
     const container = document.getElementById('thumbOutputs');
+    // 新しいファイル名に合わせる
+    const iconTag = `<img src="icon-assets.svg" class="btn-icon">`;
+
     container.innerHTML = `
         <div class="nothing-card p-5 space-y-5">
             <div>
                 <label class="text-[9px] text-gray-400 block mb-1.5 uppercase font-bold tracking-wider">HTML Image Tag (IMG)</label>
                 <div class="flex gap-2">
                     <input type="text" value='<a href="https://www.youtube.com/watch?v=${currentVideoId}" target="_blank"><img src="${currentImgUrl}" alt="Thumbnail"></a>' readonly class="nothing-input flex-grow p-3 text-[10px] font-mono focus:outline-none">
-                    <button onclick="copyRaw(this)" class="btn-gray-copy">Copy</button>
+                    <button onclick="copyRaw(this)" class="btn-gray-copy">${iconTag}COPY HTML</button>
                 </div>
             </div>
             <div>
                 <label class="text-[9px] text-gray-400 block mb-1.5 uppercase font-bold tracking-wider">Markdown Link</label>
                 <div class="flex gap-2">
                     <input type="text" value='[![](${currentImgUrl})](https://www.youtube.com/watch?v=${currentVideoId})' readonly class="nothing-input flex-grow p-3 text-[10px] font-mono focus:outline-none">
-                    <button onclick="copyRaw(this)" class="btn-gray-copy">Copy</button>
+                    <button onclick="copyRaw(this)" class="btn-gray-copy">${iconTag}COPY MD</button>
                 </div>
             </div>
             <div>
                 <label class="text-[9px] text-gray-400 block mb-1.5 uppercase font-bold tracking-wider">Direct Asset URL</label>
                 <div class="flex gap-2">
                     <input type="text" value='${currentImgUrl}' readonly class="nothing-input flex-grow p-3 text-[10px] font-mono focus:outline-none">
-                    <button onclick="copyRaw(this)" class="btn-gray-copy">Copy</button>
+                    <button onclick="copyRaw(this)" class="btn-gray-copy">${iconTag}COPY URL</button>
                 </div>
             </div>
         </div>`;

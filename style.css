@@ -283,3 +283,128 @@ body {
     background: rgba(255, 255, 255, 0.95);
     border: 1px solid rgba(0,0,0,0.1);
 }
+
+
+
+
+
+/* ボタン内のアイコン設定 */
+.btn-icon {
+    width: 12px;
+    height: 12px;
+    margin-right: 6px;
+    filter: brightness(0); /* 黒く表示 */
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.btn-gray-copy {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* ...既存のスタイル... */
+}
+
+
+/* タブの親コンテナ：少しだけ余裕を持たせる */
+.tab-container {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 32px;
+    background-color: rgba(229, 231, 235, 0.5); /* グレーの背景 */
+    padding: 4px;
+    border-radius: 24px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+
+    max-width: 320px; /* ここで全体の最大幅を制限 */
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* 各タブボタンの基本：にゅーっと動くための設定 */
+#tabThumb, #tabEmbed {
+    flex: 1; /* 最初は均等 */
+    padding: 10px 16px;
+    border-radius: 18px;
+    /* text-[10px]; */
+	font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-transform: uppercase;
+
+    border: none;
+    cursor: pointer;
+    color: #888;
+    background-color: transparent;
+	transition: flex 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+	background-color 0.3s ease,
+	color 0.3s ease;
+}
+
+/* 選択された時の「にゅーっ」とした伸び */
+.tab-active {
+    flex: 1.15 !important; /* 他より少し広く伸びる */
+    background-color: #000 !important;
+    color: #fff !important;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* アイコンのアニメーション */
+.tab-icon {
+    width: 11px;
+    height: 11px;
+
+	display: inline-block;
+    object-fit: contain;
+    /* アイコンと文字の間の隙間も少し詰めると綺麗です */
+    margin-right: 4px;
+
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* 選択されたボタンのアイコンを少し強調 */
+.tab-active .tab-icon {
+	transform: scale(1.05);
+    filter: invert(1);
+}
+
+/* タブボタンの基本形（非アクティブ状態） */
+#tabThumb, #tabEmbed {
+    background-color: transparent; /* 背景を透明に */
+    color: #888; /* 文字をグレーに */
+    border: none;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); /* ヌルっと動かす */
+}
+
+/* アクティブ（選択中）の状態 */
+.tab-active {
+    background-color: #000 !important; /* 背景を真っ黒に */
+    color: #fff !important; /* 文字を真っ白に */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); /* わずかな浮遊感 */
+}
+
+/* アイコンの色制御 */
+.tab-icon {
+    width: 14px;
+    height: 14px;
+    object-fit: contain;
+    transition: all 0.4s ease;
+}
+
+/* 非アクティブ時のアイコン：薄く、グレーに */
+button:not(.tab-active) .tab-icon {
+    opacity: 0.3;
+    filter: grayscale(1) brightness(0.5);
+}
+
+/* アクティブ時のアイコン：真っ白に（SVGが黒の場合） */
+.tab-active .tab-icon {
+    opacity: 1;
+    filter: invert(1); /* 黒いSVGを白に反転させる */
+}
