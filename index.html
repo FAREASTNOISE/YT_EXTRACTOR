@@ -18,24 +18,41 @@
         .nothing-card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(0, 0, 0, 0.08); border-radius: 24px; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.02); }
         .nothing-input { background: rgba(0, 0, 0, 0.03); border: 1px solid transparent; border-radius: 12px; transition: all 0.2s; }
         .nothing-input:focus { background: #fff; border-color: #000; outline: none; }
+
+        /* 復刻：グレーのコピーボタン */
+        .btn-gray-copy {
+            background-color: #eeeeee;
+            color: #666666;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 8px 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        .btn-gray-copy:hover { background-color: #000; color: #fff; }
+        .btn-gray-copy:active { transform: scale(0.95); }
+
         .btn-black { background: #000; color: #fff; border-radius: 50px; transition: all 0.2s; }
         .btn-black:hover { transform: translateY(-1px); background: #333; }
         .btn-clear { background: #e5e5e5; color: #666; border-radius: 50px; transition: all 0.2s; }
         .btn-clear:hover { background: #d0d0d0; color: #000; }
         .tab-active { background: #000 !important; color: #fff !important; }
 
-        /* シネマモード（全画面風表示）用 */
+        .aspect-16-9 { aspect-ratio: 16 / 9; width: 100%; object-fit: cover; border-radius: 18px; }
         .cinema-mode { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 50; background: #000; display: flex; align-items: center; justify-content: center; padding: 20px; }
         .cinema-close { position: absolute; top: 20px; right: 20px; color: white; background: rgba(255,255,255,0.2); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 
-        .slider-container { position: relative; width: 100%; overflow: hidden; border-radius: 18px; background: #eee; }
+        .slider-container { position: relative; width: 100%; overflow: hidden; border-radius: 18px; background: #000; }
         .slider-track { display: flex; transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1); }
-        .slide-item { min-width: 100%; height: auto; display: block; }
+        .slide-item { min-width: 100%; }
         .nav-btn { background: rgba(255, 255, 255, 0.3); backdrop-filter: blur(4px); color: black; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: absolute; top: 50%; transform: translateY(-50%); z-index: 10; cursor: pointer; border: 1px solid rgba(0,0,0,0.05); }
         .slide-dot { width: 5px; height: 5px; border-radius: 50%; background: #ccc; transition: all 0.3s; cursor: pointer; }
         .slide-dot.active { background: #000; width: 20px; border-radius: 10px; }
 
-        .video-wrapper { position: relative; padding-bottom: 56.25%; height: 0; border-radius: 18px; background: #000; overflow: hidden; transition: all 0.3s; }
+        .video-wrapper { position: relative; padding-bottom: 56.25%; height: 0; border-radius: 18px; background: #000; overflow: hidden; }
         #player { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
     </style>
 </head>
@@ -45,7 +62,7 @@
         <header class="mb-10 pl-2">
             <h1 class="dot-font text-2xl mb-1 tracking-tighter">YT_EXTRACTOR // OPTIMIZED</h1>
             <div class="inline-block px-2 py-0.5 border border-black rounded-full">
-                <p class="text-[8px] uppercase tracking-[0.2em] font-bold">Optimized Protocol // v1.9</p>
+                <p class="text-[8px] uppercase tracking-[0.2em] font-bold">Design Protocol // v1.9.2</p>
             </div>
         </header>
 
@@ -70,7 +87,7 @@
 
             <div id="contentThumb" class="space-y-4">
                 <div class="nothing-card p-2 relative">
-                    <div class="slider-container">
+                    <div class="slider-container aspect-16-9">
                         <div class="nav-btn left-3" onclick="moveSlide(-1)">⟵</div>
                         <div class="nav-btn right-3" onclick="moveSlide(1)">⟶</div>
                         <div class="slider-track" id="sliderTrack"></div>
@@ -84,8 +101,12 @@
                         <button onclick="copy('outMd')" class="btn-gray-copy">Copy</button>
                     </div>
                     <div class="nothing-card p-4 flex items-center justify-between">
-                        <div class="flex-1 mr-4 text-[10px] font-mono"><span class="text-gray-400 block mb-1 uppercase font-bold">HTML Tag</span><input type="text" id="outHtml" readonly class="w-full bg-transparent outline-none"></div>
+                        <div class="flex-1 mr-4 text-[10px] font-mono"><span class="text-gray-400 block mb-1 uppercase font-bold">HTML Tag (&lt;img&gt;)</span><input type="text" id="outHtml" readonly class="w-full bg-transparent outline-none"></div>
                         <button onclick="copy('outHtml')" class="btn-gray-copy">Copy</button>
+                    </div>
+                    <div class="nothing-card p-4 flex items-center justify-between">
+                        <div class="flex-1 mr-4 text-[10px] font-mono"><span class="text-gray-400 block mb-1 uppercase font-bold">Image URL</span><input type="text" id="urlOutput" readonly class="w-full bg-transparent outline-none text-red-500/60"></div>
+                        <button onclick="copy('urlOutput')" class="btn-gray-copy">Copy</button>
                     </div>
                 </div>
             </div>
@@ -103,7 +124,7 @@
                         <button onclick="syncTime()" class="absolute right-1 bottom-1 p-1 bg-black text-white rounded-md text-[8px] uppercase">Sync</button></div>
                     </div>
                     <textarea id="outIframe" readonly rows="2" class="nothing-input w-full p-4 text-[10px] font-mono mb-4 border-dashed border-gray-300"></textarea>
-                    <button onclick="copy('outIframe')" class="btn-black w-full py-3 text-xs font-bold uppercase">Copy IFrame</button>
+                    <button onclick="copy('outIframe')" class="btn-black w-full py-3 text-xs font-bold uppercase">Copy IFrame Protocol</button>
                 </div>
             </div>
         </div>
@@ -111,8 +132,7 @@
 
     <div id="cinemaOverlay" class="hidden cinema-mode" onclick="toggleCinema()">
         <div class="cinema-close">✕</div>
-        <div id="cinemaContent" class="w-full max-w-4xl aspect-video bg-black rounded-lg overflow-hidden shadow-2xl" onclick="event.stopPropagation()">
-            </div>
+        <div id="cinemaContent" class="w-full max-w-4xl aspect-video bg-black rounded-lg overflow-hidden shadow-2xl" onclick="event.stopPropagation()"></div>
     </div>
 
     <script>
@@ -121,8 +141,6 @@
         let thumbSources = [];
         let isCinema = false;
 
-        function onYouTubeIframeAPIReady() {}
-
         async function pasteFromClipboard() {
             try {
                 const text = await navigator.clipboard.readText();
@@ -130,7 +148,6 @@
             } catch (err) { alert("手動でペーストしてください"); }
         }
 
-        // --- URLクリア機能 ---
         function clearInput() {
             document.getElementById('videoUrl').value = '';
             document.getElementById('resultArea').classList.add('hidden');
@@ -165,13 +182,9 @@
             updateEmbed();
         }
 
-        // --- シネマモード（全画面風表示） ---
         function toggleCinema() {
             const overlay = document.getElementById('cinemaOverlay');
-            const wrapper = document.querySelector('.video-wrapper');
             const cinemaContent = document.getElementById('cinemaContent');
-            const originalContainer = document.querySelector('.video-wrapper');
-
             isCinema = !isCinema;
             if (isCinema) {
                 overlay.classList.remove('hidden');
@@ -187,7 +200,7 @@
             track.innerHTML = ''; dots.innerHTML = '';
             thumbSources.forEach((src, idx) => {
                 const img = document.createElement('img');
-                img.src = src.url; img.className = 'slide-item object-cover';
+                img.src = src.url; img.className = 'slide-item aspect-16-9';
                 if(src.fallback) img.onerror = () => { img.src = src.fallback; thumbSources[idx].url = src.fallback; updateOutputLinks(); };
                 track.appendChild(img);
                 const dot = document.createElement('div');
@@ -209,7 +222,8 @@
         function updateOutputLinks() {
             const currentUrl = thumbSources[currentSlide].url;
             document.getElementById('outMd').value = `[![](${currentUrl})](https://www.youtube.com/watch?v=${currentVideoId})`;
-            document.getElementById('outHtml').value = `<a href="https://www.youtube.com/watch?v=${currentVideoId}"><img src="${currentUrl}"></a>`;
+            document.getElementById('outHtml').value = `<a href="https://www.youtube.com/watch?v=${currentVideoId}"><img src="${currentUrl}" alt="Thumbnail"></a>`;
+            document.getElementById('urlOutput').value = currentUrl;
         }
 
         function syncTime() {
@@ -229,8 +243,6 @@
             document.getElementById('tabEmbed').classList.toggle('tab-active', !isThumb);
             document.getElementById('contentThumb').classList.toggle('hidden', !isThumb);
             document.getElementById('contentEmbed').classList.toggle('hidden', isThumb);
-            document.getElementById(isThumb ? 'tabEmbed' : 'tabThumb').classList.add('text-gray-400');
-            document.getElementById(isThumb ? 'tabThumb' : 'tabEmbed').classList.remove('text-gray-400');
         }
 
         async function copy(id) {
@@ -238,8 +250,8 @@
             await navigator.clipboard.writeText(el.value);
             const btn = event.currentTarget;
             const originalText = btn.innerText;
-            btn.innerText = "DONE"; btn.style.backgroundColor = "#000"; btn.style.color = "#fff";
-            setTimeout(() => { btn.innerText = originalText; btn.style.backgroundColor = ""; btn.style.color = ""; }, 800);
+            btn.innerText = "DONE";
+            setTimeout(() => { btn.innerText = originalText; }, 800);
         }
     </script>
 </body>
