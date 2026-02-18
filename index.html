@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>YT_EXTRACTOR // PROTOCOL v5.8</title>
+    <title>YT_EXTRACTOR // PROTOCOL v5.9</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
     <script src="https://www.youtube.com/iframe_api"></script>
@@ -41,6 +41,10 @@
         .copyright { font-family: 'Silkscreen', cursive; font-size: 9px; letter-spacing: 0.2em; color: #bbb; }
         .reset-trigger { cursor: pointer; transition: opacity 0.2s; }
         .reset-trigger:active { opacity: 0.5; }
+        /* Loading Styles */
+        #loader-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #000; color: #fff; z-index: 20; }
+        .loading-text { font-family: 'Silkscreen'; font-size: 10px; letter-spacing: 0.2em; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
     </style>
 </head>
 <body class="py-12 px-4">
@@ -49,7 +53,7 @@
         <header id="top" class="mb-10 pl-2">
             <h1 onclick="clearInput()" class="dot-font text-2xl mb-1 tracking-tighter reset-trigger">YT_EXTRACTOR</h1>
             <div class="inline-block px-2 py-0.5 border border-black rounded-full">
-                <p class="text-[8px] uppercase tracking-[0.2em] font-bold">Version 5.8 // Total Reset Activated</p>
+                <p class="text-[8px] uppercase tracking-[0.2em] font-bold">Version 5.9 // Smart Asset Sync</p>
             </div>
         </header>
 
@@ -88,6 +92,7 @@
             <div id="contentEmbed" class="hidden space-y-6">
                 <div class="nothing-card p-2 relative">
                     <div class="fixed-aspect">
+                        <div id="loader-overlay"><div class="loading-text">LOADING PROTOCOL...</div></div>
                         <div id="player-wrapper" class="w-full h-full"><div id="player"></div></div>
                     </div>
                 </div>
@@ -122,8 +127,6 @@
         <div id="playlistSection" class="mt-12 hidden border-t border-black pt-8">
             <h3 class="dot-font text-[10px] uppercase text-black mb-2 px-2 tracking-widest font-bold">Playlist Items</h3>
             <div class="relative">
-                <div class="nav-btn prev" onclick="scrollArea('playlistList', -1)"><div class="arrow" style="transform:rotate(-135deg);"></div></div>
-                <div class="nav-btn next" onclick="scrollArea('playlistList', 1)"><div class="arrow" style="transform:rotate(45deg);"></div></div>
                 <div id="playlistList" class="horizontal-scroll"></div>
                 <div id="playlistIndicator" class="indicator-container"></div>
             </div>
@@ -132,8 +135,6 @@
         <div id="historySection" class="mt-12 hidden border-t border-black/5 pt-8">
             <h3 class="dot-font text-[10px] uppercase text-gray-400 mb-2 px-2 tracking-widest">Recent History</h3>
             <div class="relative">
-                <div class="nav-btn prev" onclick="scrollArea('historyList', -1)"><div class="arrow" style="transform:rotate(-135deg);"></div></div>
-                <div class="nav-btn next" onclick="scrollArea('historyList', 1)"><div class="arrow" style="transform:rotate(45deg);"></div></div>
                 <div id="historyList" class="horizontal-scroll"></div>
                 <div id="historyIndicator" class="indicator-container"></div>
             </div>
@@ -159,6 +160,8 @@
             });
         };
 
+        function showLoader(show) { document.getElementById('loader-overlay').style.display = show ? 'flex' : 'none'; }
+
         function processInput() {
             const url = document.getElementById('videoUrl').value.trim();
             const vid = extractVideoId(url), lid = extractPlaylistId(url);
@@ -176,16 +179,27 @@
             return m ? m[1] : null;
         }
 
+        async function checkImage(url) {
+            return new Promise(resolve => {
+                const img = new Image();
+                img.onload = () => resolve(img.width !== 120); // YouTubeのダミー画像は幅120
+                img.onerror = () => resolve(false);
+                img.src = url;
+            });
+        }
+
         function fetchPlaylist(listId) {
             const list = document.getElementById('playlistList');
             document.getElementById('playlistSection').classList.remove('hidden');
             list.innerHTML = `<div class="p-4 text-[10px] uppercase font-bold text-gray-400 text-center w-full">Refreshing...</div>`;
             resetPlayerElement();
+            showLoader(true);
             player = new YT.Player('player', {
                 height: '100%', width: '100%',
                 playerVars: { listType: 'playlist', list: listId, index: 0 },
                 events: {
                     'onReady': (e) => {
+                        showLoader(false);
                         const p = e.target.getPlaylist();
                         if(p && p.length > 0) {
                             list.innerHTML = p.slice(0, 50).map(id => `<div class="scroll-item-content nothing-card" onclick="loadVideo('${id}', true)"><img src="https://img.youtube.com/vi/${id}/mqdefault.jpg"></div>`).join('');
@@ -204,33 +218,46 @@
             document.getElementById('resultArea').classList.remove('hidden');
         }
 
-        function loadVideo(id, shouldScroll) {
+        async function loadVideo(id, shouldScroll) {
             if (!id || id === currentVideoId) return;
             currentVideoId = id; saveHistory(id);
             document.getElementById('resultArea').classList.remove('hidden');
+
             if (player && player.loadVideoById) {
                 const data = player.getVideoData();
                 if(!data || data.video_id !== id) player.loadVideoById(id);
             } else if (apiReady) {
                 resetPlayerElement();
-                player = new YT.Player('player', { height: '100%', width: '100%', videoId: id });
+                showLoader(true);
+                player = new YT.Player('player', {
+                    height: '100%', width: '100%', videoId: id,
+                    events: { 'onReady': () => showLoader(false) }
+                });
             }
-            assetList = [
+
+            const candidates = [
                 { label: 'Max Res', res: '1280x720', url: `https://img.youtube.com/vi/${id}/maxresdefault.jpg` },
                 { label: 'HQ', res: '480x360', url: `https://img.youtube.com/vi/${id}/hqdefault.jpg` },
                 { label: 'MQ', res: '320x180', url: `https://img.youtube.com/vi/${id}/mqdefault.jpg` },
                 { label: 'Scene 1', res: '120x90', url: `https://img.youtube.com/vi/${id}/1.jpg` }
             ];
+
+            // 画質の存在チェック
+            assetList = [];
+            for (const item of candidates) {
+                if (await checkImage(item.url)) assetList.push(item);
+            }
+
             const slider = document.getElementById('mainSlider');
-            slider.innerHTML = assetList.map(a => `<img src="${a.url}" class="slide-item" onerror="this.src='https://img.youtube.com/vi/${id}/hqdefault.jpg'">`).join('');
+            slider.innerHTML = assetList.map(a => `<img src="${a.url}" class="slide-item">`).join('');
             slider.scrollTo(0, 0);
             document.getElementById('mainIndicator').innerHTML = assetList.map((_, i) => `<div class="dot ${i===0?'active':''}" onclick="document.getElementById('mainSlider').scrollTo({left:${i*slider.clientWidth},behavior:'smooth'})"></div>`).join('');
+
             updateDots('mainSlider', 'mainIndicator', 1);
             updateEmbedOutputs();
             if (shouldScroll) document.getElementById('resultArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
-        // プレイヤーのHTML要素をゼロから作り直す
         function resetPlayerElement() {
             if (player) { try { player.destroy(); } catch(e) {} player = null; }
             document.getElementById('player-wrapper').innerHTML = '<div id="player"></div>';
