@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YT_EXTRACTOR // COMPLETE</title>
+    <title>YT_EXTRACTOR // PROTOCOL v2.2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
     <script src="https://www.youtube.com/iframe_api"></script>
@@ -17,9 +17,8 @@
         .dot-font { font-family: 'Silkscreen', cursive; }
         .nothing-card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(0, 0, 0, 0.08); border-radius: 24px; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.02); }
         .nothing-input { background: rgba(0, 0, 0, 0.03); border: 1px solid transparent; border-radius: 12px; transition: all 0.2s; }
-        .nothing-input:focus { background: #fff; border-color: #000; outline: none; }
 
-        .btn-gray-copy { background-color: #eeeeee; color: #666; border-radius: 10px; font-size: 10px; font-weight: 700; padding: 8px 16px; text-transform: uppercase; transition: all 0.2s; white-space: nowrap; }
+        .btn-gray-copy { background-color: #eeeeee; color: #666; border-radius: 10px; font-size: 10px; font-weight: 700; padding: 8px 16px; text-transform: uppercase; transition: all 0.2s; }
         .btn-gray-copy:hover { background-color: #000; color: #fff; }
 
         .btn-black { background: #000; color: #fff; border-radius: 50px; transition: all 0.2s; }
@@ -28,23 +27,39 @@
 
         .aspect-16-9 { aspect-ratio: 16 / 9; width: 100%; object-fit: cover; border-radius: 18px; }
 
-        .history-scroll { display: flex; overflow-x: auto; gap: 12px; padding: 4px; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
+        /* 履歴カルーセルのPC対応 */
+        .history-container { position: relative; }
+        .history-scroll {
+            display: flex; overflow-x: auto; gap: 12px; padding: 4px;
+            scroll-behavior: smooth; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;
+        }
+        .history-scroll::-webkit-scrollbar { display: none; } /* スクロールバー非表示 */
+
         .history-item { min-width: calc(45% - 6px); scroll-snap-align: start; cursor: pointer; transition: transform 0.2s; }
-        .history-item:active { transform: scale(0.95); }
-        .history-scroll::-webkit-scrollbar { display: none; }
+        .history-item:hover { transform: translateY(-2px); }
+
+        /* 履歴用ナビボタン（スッキリ版） */
+        .hist-nav {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            width: 32px; height: 32px; background: rgba(255,255,255,0.9);
+            border: 1px solid rgba(0,0,0,0.1); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            z-index: 20; cursor: pointer; transition: opacity 0.3s, background 0.2s;
+            opacity: 0; pointer-events: none;
+        }
+        .history-container:hover .hist-nav { opacity: 1; pointer-events: auto; }
+        .hist-nav:hover { background: #000; color: #fff; }
+        .hist-nav.prev { left: -16px; }
+        .hist-nav.next { right: -16px; }
 
         .cinema-mode { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 50; background: #000; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .cinema-close { position: absolute; top: 20px; right: 20px; color: white; background: rgba(255,255,255,0.2); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .video-wrapper { position: relative; padding-bottom: 56.25%; height: 0; border-radius: 18px; background: #000; overflow: hidden; }
+        #player { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
 
         .slider-container { position: relative; width: 100%; overflow: hidden; border-radius: 18px; background: #000; }
         .slider-track { display: flex; transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1); }
         .slide-item { min-width: 100%; }
-        .nav-btn { background: rgba(255, 255, 255, 0.3); backdrop-filter: blur(4px); color: black; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: absolute; top: 50%; transform: translateY(-50%); z-index: 10; cursor: pointer; border: 1px solid rgba(0,0,0,0.05); }
-        .slide-dot { width: 5px; height: 5px; border-radius: 50%; background: #ccc; transition: all 0.3s; cursor: pointer; }
-        .slide-dot.active { background: #000; width: 20px; border-radius: 10px; }
-
-        .video-wrapper { position: relative; padding-bottom: 56.25%; height: 0; border-radius: 18px; background: #000; overflow: hidden; }
-        #player { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .nav-btn { background: rgba(255, 255, 255, 0.3); backdrop-filter: blur(4px); color: black; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: absolute; top: 50%; transform: translateY(-50%); z-index: 10; cursor: pointer; }
     </style>
 </head>
 <body class="py-12 px-4 pb-40">
@@ -53,7 +68,7 @@
         <header class="mb-10 pl-2">
             <h1 class="dot-font text-2xl mb-1 tracking-tighter">YT_EXTRACTOR // PROTOCOL</h1>
             <div class="inline-block px-2 py-0.5 border border-black rounded-full">
-                <p class="text-[8px] uppercase tracking-[0.2em] font-bold">Version 2.1 // Memory + Source Link</p>
+                <p class="text-[8px] uppercase tracking-[0.2em] font-bold">Version 2.2 // Desktop Optimized</p>
             </div>
         </header>
 
@@ -85,7 +100,6 @@
                     </div>
                     <div class="flex justify-center gap-2 py-3" id="sliderDots"></div>
                 </div>
-
                 <div class="grid gap-2">
                     <div class="nothing-card p-4 flex items-center justify-between">
                         <div class="flex-1 mr-4 text-[10px] font-mono"><span class="text-gray-400 block mb-1 uppercase font-bold">Markdown</span><input type="text" id="outMd" readonly class="w-full bg-transparent outline-none"></div>
@@ -105,7 +119,7 @@
             <div id="contentEmbed" class="hidden space-y-6">
                 <div id="playerContainer" class="nothing-card p-2 relative group">
                     <div class="video-wrapper"><div id="player"></div></div>
-                    <button onclick="toggleCinema()" class="absolute bottom-4 right-4 bg-white/80 backdrop-blur px-3 py-1.5 rounded-full text-[9px] font-bold uppercase opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">Cinema Mode</button>
+                    <button onclick="toggleCinema()" class="absolute bottom-4 right-4 bg-white/80 backdrop-blur px-3 py-1.5 rounded-full text-[9px] font-bold uppercase opacity-0 group-hover:opacity-100 transition-opacity">Cinema Mode</button>
                 </div>
                 <div class="nothing-card p-6">
                     <div class="grid grid-cols-3 gap-4 mb-4 text-center">
@@ -122,22 +136,45 @@
         <div id="historySection" class="mt-12 hidden border-t border-black/5 pt-8">
             <h3 class="dot-font text-[10px] uppercase text-gray-400 mb-4 px-2 tracking-widest flex items-center justify-between">
                 <span>Recent History</span>
-                <span class="text-[8px] opacity-50">Local Storage</span>
+                <span class="text-[8px] opacity-30">Wheel / Arrow Scroll</span>
             </h3>
-            <div class="history-scroll" id="historyList"></div>
+            <div class="history-container">
+                <div class="hist-nav prev" onclick="scrollHist(-1)">▲</div>
+                <div class="hist-nav next" onclick="scrollHist(1)">▼</div>
+                <div class="history-scroll" id="historyList"></div>
+            </div>
         </div>
     </div>
 
     <div id="cinemaOverlay" class="hidden cinema-mode" onclick="toggleCinema()">
         <div class="cinema-close">✕</div>
-        <div id="cinemaContent" class="w-full max-w-4xl aspect-video bg-black rounded-lg overflow-hidden shadow-2xl" onclick="event.stopPropagation()"></div>
+        <div id="cinemaContent" class="w-full max-w-4xl aspect-video bg-black rounded-lg shadow-2xl" onclick="event.stopPropagation()"></div>
     </div>
 
     <script>
         let player, currentVideoId = "";
         let currentSlide = 0, thumbSources = [], isCinema = false;
 
-        window.onload = loadHistory;
+        window.onload = () => {
+            loadHistory();
+            setupWheelScroll();
+        };
+
+        // --- マウスホイール対応 ---
+        function setupWheelScroll() {
+            const scrollContainer = document.getElementById('historyList');
+            scrollContainer.addEventListener('wheel', (evt) => {
+                evt.preventDefault();
+                scrollContainer.scrollLeft += evt.deltaY;
+            });
+        }
+
+        // --- 履歴ナビゲーションボタン ---
+        function scrollHist(dir) {
+            const container = document.getElementById('historyList');
+            const scrollAmount = container.clientWidth / 2;
+            container.scrollBy({ left: dir * scrollAmount, behavior: 'smooth' });
+        }
 
         async function pasteFromClipboard() {
             try {
@@ -251,7 +288,7 @@
             const currentUrl = thumbSources[currentSlide].url;
             document.getElementById('outMd').value = `[![](${currentUrl})](https://www.youtube.com/watch?v=${currentVideoId})`;
             document.getElementById('outHtml').value = `<a href="https://www.youtube.com/watch?v=${currentVideoId}"><img src="${currentUrl}" alt="Thumbnail"></a>`;
-            document.getElementById('urlOutput').value = currentUrl; // URL表示の更新
+            document.getElementById('urlOutput').value = currentUrl;
         }
 
         function syncTime() {
