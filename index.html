@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>YT_EXTRACTOR // PROTOCOL v2.5</title>
+    <title>YT_EXTRACTOR // PROTOCOL v2.6</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
-    <script src="https://www.youtube.com/iframe_api"></script>
     <style>
         :root { --grid-color: rgba(0, 0, 0, 0.05); }
         body {
@@ -24,6 +23,9 @@
 
         .btn-gray-copy { background-color: #eeeeee; color: #666; border-radius: 10px; font-size: 10px; font-weight: 700; padding: 8px 16px; text-transform: uppercase; }
 
+        /* 画像比率の固定：ここが重要 */
+        .fixed-aspect { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 18px; display: block; }
+
         /* 履歴：2.5個表示設定 */
         .history-container { position: relative; width: 100%; }
         .history-scroll {
@@ -33,6 +35,7 @@
         }
         .history-scroll::-webkit-scrollbar { display: none; }
         .history-item { min-width: 40%; scroll-snap-align: start; cursor: pointer; }
+        .history-item img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 14px; }
 
         /* 線の矢印ボタン */
         .hist-nav {
@@ -41,9 +44,7 @@
             border-radius: 50%; display: flex; align-items: center; justify-content: center;
             z-index: 30; cursor: pointer; opacity: 0; pointer-events: none;
         }
-        @media (hover: hover) {
-            .history-container:hover .hist-nav { opacity: 1; pointer-events: auto; }
-        }
+        @media (hover: hover) { .history-container:hover .hist-nav { opacity: 1; pointer-events: auto; } }
         .arrow { width: 10px; height: 10px; border-top: 2px solid #000; border-right: 2px solid #000; }
         .arrow-left { transform: rotate(-135deg); margin-left: 4px; }
         .arrow-right { transform: rotate(45deg); margin-right: 4px; }
@@ -53,7 +54,7 @@
 
         .slider-container { position: relative; width: 100%; overflow: hidden; border-radius: 18px; background: #000; }
         .slider-track { display: flex; transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1); }
-        .slide-item { min-width: 100%; }
+        .slide-item { min-width: 100%; aspect-ratio: 16 / 9; object-fit: cover; flex-shrink: 0; }
     </style>
 </head>
 <body class="py-12 px-4 pb-48">
@@ -62,7 +63,7 @@
         <header id="top" class="mb-10 pl-2">
             <h1 class="dot-font text-2xl mb-1 tracking-tighter">YT_EXTRACTOR</h1>
             <div class="inline-block px-2 py-0.5 border border-black rounded-full">
-                <p class="text-[8px] uppercase tracking-[0.2em] font-bold">Version 2.5 // iOS Optimized</p>
+                <p class="text-[8px] uppercase tracking-[0.2em] font-bold">Version 2.6 // Ratio Fixed</p>
             </div>
         </header>
 
@@ -87,8 +88,7 @@
                 <div class="flex justify-center gap-2 py-3" id="sliderDots"></div>
             </div>
 
-            <div class="grid gap-2" id="outputs">
-                </div>
+            <div class="grid gap-2" id="outputs"></div>
         </div>
 
         <div id="historySection" class="mt-12 hidden border-t border-black/5 pt-8">
@@ -109,7 +109,6 @@
             loadHistory();
             setupWheelScroll();
 
-            // iPhone用の貼り付けイベントリスナー
             document.getElementById('pasteBtn').addEventListener('click', async () => {
                 try {
                     const text = await navigator.clipboard.readText();
@@ -118,7 +117,7 @@
                         processVideo();
                     }
                 } catch (err) {
-                    alert("ブラウザの「貼り付け」許可が必要です。または入力欄を長押ししてペーストしてください。");
+                    console.log("Clipboard access denied. User can still manual paste.");
                 }
             });
         };
@@ -145,7 +144,7 @@
             history.forEach(id => {
                 const item = document.createElement('div');
                 item.className = 'history-item nothing-card p-1.5';
-                item.innerHTML = `<img src="https://img.youtube.com/vi/${id}/mqdefault.jpg" class="aspect-16-9 object-cover rounded-[14px] pointer-events-none">`;
+                item.innerHTML = `<img src="https://img.youtube.com/vi/${id}/mqdefault.jpg" class="pointer-events-none">`;
                 item.onclick = () => {
                     document.getElementById('videoUrl').value = `https://www.youtube.com/watch?v=${id}`;
                     processVideo(id);
@@ -169,20 +168,20 @@
             document.getElementById('resultArea').classList.remove('hidden');
 
             thumbSources = [
-                { type: 'Main', url: `https://img.youtube.com/vi/${currentVideoId}/maxresdefault.jpg`, fallback: `https://img.youtube.com/vi/${currentVideoId}/hqdefault.jpg` },
+                { type: 'Main', url: `https://img.youtube.com/vi/${currentVideoId}/maxresdefault.jpg` },
                 { type: 'Scene 1', url: `https://img.youtube.com/vi/${currentVideoId}/1.jpg` },
                 { type: 'Scene 2', url: `https://img.youtube.com/vi/${currentVideoId}/2.jpg` },
                 { type: 'Scene 3', url: `https://img.youtube.com/vi/${currentVideoId}/3.jpg` }
             ];
 
             const track = document.getElementById('sliderTrack');
-            track.innerHTML = thumbSources.map(s => `<img src="${s.url}" class="slide-item aspect-16-9" onerror="this.src='https://img.youtube.com/vi/${currentVideoId}/hqdefault.jpg'">`).join('');
+            track.innerHTML = thumbSources.map(s => `<img src="${s.url}" class="slide-item" onerror="this.src='https://img.youtube.com/vi/${currentVideoId}/hqdefault.jpg'">`).join('');
 
             updateOutputs();
         }
 
         function updateOutputs() {
-            const url = thumbSources[0].url;
+            const url = `https://img.youtube.com/vi/${currentVideoId}/maxresdefault.jpg`;
             const html = `
                 ${createCopyRow('Markdown', `[![](${url})](https://www.youtube.com/watch?v=${currentVideoId})`, 'outMd')}
                 ${createCopyRow('HTML Tag', `<a href="https://www.youtube.com/watch?v=${currentVideoId}"><img src="${url}"></a>`, 'outHtml')}
