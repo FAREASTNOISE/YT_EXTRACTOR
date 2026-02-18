@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>YT_EXTRACTOR // PROTOCOL v3.1</title>
+    <title>YT_EXTRACTOR // PROTOCOL v3.2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
     <script src="https://www.youtube.com/iframe_api"></script>
@@ -18,23 +18,19 @@
         .dot-font { font-family: 'Silkscreen', cursive; }
         .nothing-card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(0, 0, 0, 0.08); border-radius: 24px; }
         .nothing-input { background: rgba(0, 0, 0, 0.03); border: 1px solid transparent; border-radius: 12px; transition: all 0.2s; -webkit-appearance: none; }
-        .nothing-input:focus { background: #fff; border-color: #000; outline: none; }
 
-        /* Nothingスタイル コピーボタン */
         .btn-gray-copy { background-color: #eeeeee; color: #666; border-radius: 10px; font-size: 10px; font-weight: 700; padding: 8px 16px; text-transform: uppercase; transition: all 0.2s; border: none; cursor: pointer; }
         .btn-gray-copy:hover { background-color: #000; color: #fff; }
 
         .btn-black { background: #000; color: #fff; border-radius: 50px; transition: all 0.2s; -webkit-tap-highlight-color: transparent; }
-        .btn-black:active { transform: scale(0.98); }
         .tab-active { background: #000 !important; color: #fff !important; }
 
-        /* 画像比率維持 */
         .fixed-aspect { width: 100%; aspect-ratio: 16 / 9; border-radius: 18px; overflow: hidden; background: #000; }
         .slider-track { display: flex; transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1); }
         .slide-item { min-width: 100%; aspect-ratio: 16 / 9; object-fit: cover; flex-shrink: 0; }
 
-        /* 履歴コンテナ (2.5個並び) */
-        .history-container { position: relative; width: 100%; }
+        /* --- 履歴セクションの最適化 --- */
+        .history-container { position: relative; width: 100%; overflow: visible; }
         .history-scroll {
             display: flex; overflow-x: auto; gap: 12px; padding: 10px 0;
             scroll-behavior: smooth; scroll-snap-type: x proximity;
@@ -42,10 +38,17 @@
             touch-action: pan-x;
         }
         .history-scroll::-webkit-scrollbar { display: none; }
-        .history-item { min-width: 40%; scroll-snap-align: start; cursor: pointer; flex-shrink: 0; }
-        .history-item img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 14px; pointer-events: none; }
 
-        /* 矢印ナビ */
+        /* 履歴アイテム: 角丸を以前の半分(7px)に、スマホでマージン調整 */
+        .history-item { min-width: 40%; scroll-snap-align: start; cursor: pointer; flex-shrink: 0; transition: transform 0.2s; }
+        .history-item img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 7px; pointer-events: none; }
+
+        @media (max-width: 640px) {
+            .history-scroll { gap: 8px; } /* スマホでのマージンを狭く */
+            .history-item { min-width: 42%; }
+        }
+
+        /* ナビ矢印 */
         .hist-nav {
             position: absolute; top: 50%; transform: translateY(-50%);
             width: 40px; height: 40px; background: rgba(255,255,255,0.8);
@@ -59,7 +62,6 @@
         .hist-nav.prev { left: -15px; }
         .hist-nav.next { right: -15px; }
 
-        /* 比率固定チェックボックス */
         .checkbox-container { display: flex; align-items: center; cursor: pointer; font-size: 10px; font-weight: 700; text-transform: uppercase; color: #666; }
         .checkbox-container input { display: none; }
         .custom-check { width: 14px; height: 14px; border: 2px solid #ccc; border-radius: 4px; margin-right: 6px; position: relative; }
@@ -73,7 +75,7 @@
         <header id="top" class="mb-10 pl-2">
             <h1 class="dot-font text-2xl mb-1 tracking-tighter">YT_EXTRACTOR</h1>
             <div class="inline-block px-2 py-0.5 border border-black rounded-full">
-                <p class="text-[8px] uppercase tracking-[0.2em] font-bold">Version 3.1 // History Finalized</p>
+                <p class="text-[8px] uppercase tracking-[0.2em] font-bold">Version 3.2 // History Wheel Restored</p>
             </div>
         </header>
 
@@ -99,7 +101,6 @@
             <div id="contentThumb" class="space-y-4">
                 <div class="nothing-card p-2 relative">
                     <div class="fixed-aspect overflow-hidden"><div class="slider-track" id="sliderTrack"></div></div>
-                    <div class="flex justify-center gap-2 py-3" id="sliderDots"></div>
                 </div>
                 <div class="grid gap-2" id="thumbOutputs"></div>
             </div>
@@ -147,14 +148,18 @@
                 try {
                     const text = await navigator.clipboard.readText();
                     if (text) { document.getElementById('videoUrl').value = text; processVideo(); }
-                } catch (err) { console.log("Clipboard access denied."); }
+                } catch (err) { console.log("Paste failed."); }
             });
         };
 
+        // ホイールスクロールの再実装
         function setupWheelScroll() {
             const list = document.getElementById('historyList');
             list.addEventListener('wheel', (e) => {
-                if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { e.preventDefault(); list.scrollLeft += e.deltaY; }
+                if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+                    e.preventDefault();
+                    list.scrollLeft += e.deltaY;
+                }
             }, { passive: false });
         }
 
@@ -212,18 +217,12 @@
         function processVideo(vid = null) {
             currentVideoId = vid || extractVideoId(document.getElementById('videoUrl').value);
             if (!currentVideoId) return;
-
             saveHistory(currentVideoId);
             document.getElementById('resultArea').classList.remove('hidden');
-
             const mainUrl = `https://img.youtube.com/vi/${currentVideoId}/maxresdefault.jpg`;
-            const thumbs = [mainUrl, `https://img.youtube.com/vi/${currentVideoId}/1.jpg`, `https://img.youtube.com/vi/${currentVideoId}/2.jpg`, `https://img.youtube.com/vi/${currentVideoId}/3.jpg` ];
-
-            document.getElementById('sliderTrack').innerHTML = thumbs.map(url => `<img src="${url}" class="slide-item" onerror="this.src='https://img.youtube.com/vi/${currentVideoId}/hqdefault.jpg'">`).join('');
-
+            document.getElementById('sliderTrack').innerHTML = `<img src="${mainUrl}" class="slide-item" onerror="this.src='https://img.youtube.com/vi/${currentVideoId}/hqdefault.jpg'">`;
             if (player && player.loadVideoById) { player.loadVideoById(currentVideoId); }
             else { player = new YT.Player('player', { videoId: currentVideoId, playerVars: { 'rel': 0 }, events: { 'onReady': updateEmbed } }); }
-
             updateOutputs(mainUrl);
             updateEmbed();
         }
@@ -276,7 +275,7 @@
 
         async function copy(id) {
             const el = document.getElementById(id);
-            await navigator.clipboard.writeText(el.value);
+            await navigator.clipboard.readText(el.value);
             const btn = event.currentTarget;
             const oldText = btn.innerText;
             btn.innerText = "DONE";
