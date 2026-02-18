@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>YT_EXTRACTOR // PROTOCOL v4.3</title>
+    <title>YT_EXTRACTOR // PROTOCOL v4.4</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
     <script src="https://www.youtube.com/iframe_api"></script>
@@ -18,7 +18,6 @@
         .dot-font { font-family: 'Silkscreen', cursive; }
         .nothing-card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(0, 0, 0, 0.08); border-radius: 24px; }
         .nothing-input { background: rgba(0, 0, 0, 0.03); border: 1px solid transparent; border-radius: 12px; transition: all 0.2s; -webkit-appearance: none; }
-        .inner-round { border-radius: 14px; }
         .scroll-item { border-radius: 18px; padding: 6px; }
         .scroll-item img { border-radius: 12px; }
         .btn-gray-copy { background-color: #eeeeee; color: #666; border-radius: 10px; font-size: 10px; font-weight: 700; padding: 8px 16px; text-transform: uppercase; transition: all 0.2s; border: none; cursor: pointer; }
@@ -51,18 +50,18 @@
         <header class="mb-10 pl-2">
             <h1 class="dot-font text-2xl mb-1 tracking-tighter">YT_EXTRACTOR</h1>
             <div class="inline-block px-2 py-0.5 border border-black rounded-full">
-                <p class="text-[8px] uppercase tracking-[0.2em] font-bold">Version 4.3 // Sharing & Aspect Lock</p>
+                <p class="text-[8px] uppercase tracking-[0.2em] font-bold">Version 4.4 // Playlist Integration Active</p>
             </div>
         </header>
 
         <div class="nothing-card p-6 mb-8">
             <div class="flex flex-col gap-4">
                 <div class="relative">
-                    <input type="text" id="videoUrl" placeholder="PASTE YOUTUBE URL" class="nothing-input w-full p-4 pr-24 text-sm font-mono uppercase">
+                    <input type="text" id="videoUrl" placeholder="PASTE VIDEO OR PLAYLIST URL" class="nothing-input w-full p-4 pr-24 text-sm font-mono uppercase">
                     <button id="pasteBtn" class="absolute right-2 top-2 bottom-2 px-4 bg-black text-white rounded-lg text-[9px] font-bold uppercase">Paste</button>
                 </div>
                 <div class="flex gap-2">
-                    <button onclick="processVideo()" class="btn-black flex-grow py-4 font-bold text-xs uppercase">Start Extraction</button>
+                    <button onclick="processInput()" class="btn-black flex-grow py-4 font-bold text-xs uppercase">Start Extraction</button>
                     <button onclick="clearInput()" class="bg-gray-200 text-gray-600 px-8 py-4 rounded-[50px] font-bold text-xs uppercase">Clear</button>
                 </div>
             </div>
@@ -114,19 +113,29 @@
 
                     <div class="space-y-4">
                         <div class="nothing-card p-4 border-dashed bg-transparent">
-                            <label class="text-[9px] font-bold text-gray-400 block mb-2 uppercase px-1">Short URL (youtu.be)</label>
-                            <div class="flex gap-2">
-                                <input type="text" id="outShortUrl" readonly class="nothing-input flex-grow p-3 text-[11px] font-mono">
-                                <button onclick="copy('outShortUrl')" class="btn-gray-copy px-6">Copy</button>
-                            </div>
-                        </div>
-                        <div class="nothing-card p-4 border-dashed bg-transparent">
                             <label class="text-[9px] font-bold text-gray-400 block mb-2 uppercase px-1">IFrame Embed Tag</label>
                             <textarea id="outIframe" readonly class="nothing-input w-full p-3 text-[10px] font-mono h-16 mb-2"></textarea>
                             <button onclick="copy('outIframe')" class="btn-gray-copy w-full">Copy IFrame</button>
                         </div>
+                        <div class="nothing-card p-4 border-dashed bg-transparent">
+                            <label class="text-[9px] font-bold text-gray-400 block mb-2 uppercase px-1">Short URL (youtu.be)</label>
+                            <div class="flex gap-2">
+                                <input type="text" id="outShortUrl" readonly class="nothing-input flex-grow p-3 text-[11px] font-mono">
+                                <button onclick="copy('outShortUrl')" class="btn-gray-copy px-6">Copy URL</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <div id="playlistSection" class="mt-12 hidden border-t border-black pt-8">
+            <h3 class="dot-font text-[10px] uppercase text-black mb-2 px-2 tracking-widest font-bold">Playlist Items</h3>
+            <div class="history-container relative">
+                <div class="nav-btn prev" onclick="scrollArea('playlistList', -1)"><div class="arrow" style="transform:rotate(-135deg); margin-left:2px;"></div></div>
+                <div class="nav-btn next" onclick="scrollArea('playlistList', 1)"><div class="arrow" style="transform:rotate(45deg); margin-right:2px;"></div></div>
+                <div id="playlistList" class="horizontal-scroll"></div>
+                <div id="playlistIndicator" class="indicator-container"></div>
             </div>
         </div>
 
@@ -152,25 +161,70 @@
     </div>
 
     <script>
-        let player, currentVideoId = "";
-        let assetList = [];
+        let player, currentVideoId = "", assetList = [];
 
         window.onload = () => {
             loadHistory();
             checkSharedLink();
             switchTab(localStorage.getItem('yt_last_tab') || 'thumb');
-
             document.getElementById('mainSlider').addEventListener('scroll', () => updateDots('mainSlider', 'mainIndicator', 1));
-            ['historyList', 'recommendList', 'sharedList'].forEach(id => {
+            ['historyList', 'recommendList', 'sharedList', 'playlistList'].forEach(id => {
                 const el = document.getElementById(id);
                 if(el) el.addEventListener('scroll', () => updateDots(id, id.replace('List', 'Indicator'), 0.42));
             });
-
             document.getElementById('pasteBtn').addEventListener('click', async () => {
                 const text = await navigator.clipboard.readText();
-                if (text) { document.getElementById('videoUrl').value = text; processVideo(); }
+                if (text) { document.getElementById('videoUrl').value = text; processInput(); }
             });
         };
+
+        function processInput() {
+            const url = document.getElementById('videoUrl').value;
+            const listId = extractPlaylistId(url);
+            if (listId) fetchPlaylist(listId);
+            const vid = extractVideoId(url);
+            if (vid) loadVideo(vid);
+        }
+
+        function extractPlaylistId(url) {
+            const match = url.match(/[?&]list=([^#& ]+)/);
+            return match ? match[1] : null;
+        }
+
+        async function fetchPlaylist(listId) {
+            try {
+                // YouTube Embed APIを介してプレイリストデータを疑似取得（公式APIキーなしでの簡易実装）
+                // 実際にはiframeにプレイリストを読み込ませることで動作させます
+                const section = document.getElementById('playlistSection');
+                const list = document.getElementById('playlistList');
+                section.classList.remove('hidden');
+
+                // プレースホルダー（実際のプレイリスト取得にはAPIキーが必要ですが、
+                // 今回は「プレイリストURLから動画1本目を抽出し、リストとして操作可能にする」仕様にしています）
+                list.innerHTML = `<div class="p-4 text-[10px] uppercase font-bold text-gray-400">Loading Playlist Contents...</div>`;
+
+                // 簡易的な対応として、iframeからインデックスを操作できるようにplayerをセットアップ
+                if (player && player.loadPlaylist) {
+                    player.loadPlaylist({listType:'playlist', list:listId});
+                } else {
+                    player = new YT.Player('player', {
+                        height: '100%', width: '100%',
+                        playerVars: { listType:'playlist', list:listId },
+                        events: { 'onReady': (e) => {
+                            const pData = e.target.getPlaylist();
+                            if(pData) {
+                                list.innerHTML = pData.slice(0, 20).map(id => `
+                                    <div class="scroll-item-content scroll-item nothing-card" onclick="loadVideo('${id}')">
+                                        <img src="https://img.youtube.com/vi/${id}/mqdefault.jpg">
+                                    </div>`).join('');
+                                updateDots('playlistList', 'playlistIndicator', 0.42);
+                            }
+                        }}
+                    });
+                }
+                document.getElementById('resultArea').classList.remove('hidden');
+            } catch (e) { console.error("Playlist error", e); }
+        }
 
         function checkSharedLink() {
             const params = new URLSearchParams(window.location.search);
@@ -178,28 +232,20 @@
             if (list) {
                 const ids = list.split(',');
                 document.getElementById('sharedSection').classList.remove('hidden');
-                const scrollList = document.getElementById('sharedList');
-                scrollList.innerHTML = ids.map(id => `<div class="scroll-item-content scroll-item nothing-card" onclick="loadVideo('${id}')"><img src="https://img.youtube.com/vi/${id}/mqdefault.jpg"></div>`).join('');
+                document.getElementById('sharedList').innerHTML = ids.map(id => `<div class="scroll-item-content scroll-item nothing-card" onclick="loadVideo('${id}')"><img src="https://img.youtube.com/vi/${id}/mqdefault.jpg"></div>`).join('');
                 document.getElementById('sharedIndicator').innerHTML = ids.map((_, i) => `<div class="dot ${i===0?'active':''}"></div>`).join('');
             }
         }
 
         function shareCurrentList() {
             const history = JSON.parse(localStorage.getItem('yt_history') || '[]');
-            if (history.length === 0) return alert("No history to share.");
+            if (history.length === 0) return alert("No history.");
             const shareUrl = `${window.location.origin}${window.location.pathname}?list=${history.join(',')}`;
-            navigator.clipboard.writeText(shareUrl).then(() => alert("Shared Link Copied!"));
+            navigator.clipboard.writeText(shareUrl).then(() => alert("Link Copied!"));
         }
 
-        function scrollArea(id, dir) {
-            const el = document.getElementById(id);
-            el.scrollBy({ left: dir * (el.clientWidth * 0.5), behavior: 'smooth' });
-        }
-
-        function moveMainSlide(dir) {
-            const el = document.getElementById('mainSlider');
-            el.scrollBy({ left: dir * el.clientWidth, behavior: 'smooth' });
-        }
+        function scrollArea(id, dir) { const el = document.getElementById(id); el.scrollBy({ left: dir * (el.clientWidth * 0.5), behavior: 'smooth' }); }
+        function moveMainSlide(dir) { const el = document.getElementById('mainSlider'); el.scrollBy({ left: dir * el.clientWidth, behavior: 'smooth' }); }
 
         function updateDots(scrollId, indicatorId, ratio) {
             const list = document.getElementById(scrollId);
@@ -222,34 +268,27 @@
             localStorage.setItem('yt_last_tab', type);
         }
 
-        function processVideo(vid = null) {
-            currentVideoId = vid || extractVideoId(document.getElementById('videoUrl').value);
-            if (!currentVideoId) return;
-            saveHistory(currentVideoId);
-            loadRecommendations(currentVideoId);
+        function loadVideo(id) {
+            currentVideoId = id;
+            saveHistory(id);
+            loadRecommendations(id);
             document.getElementById('resultArea').classList.remove('hidden');
-
             assetList = [
-                { label: 'Max Resolution', res: '1280x720', url: `https://img.youtube.com/vi/${currentVideoId}/maxresdefault.jpg` },
-                { label: 'High Quality', res: '480x360', url: `https://img.youtube.com/vi/${currentVideoId}/hqdefault.jpg` },
-                { label: 'Medium Quality', res: '320x180', url: `https://img.youtube.com/vi/${currentVideoId}/mqdefault.jpg` },
-                { label: 'Scene 1', res: '120x90', url: `https://img.youtube.com/vi/${currentVideoId}/1.jpg` },
-                { label: 'Scene 2', res: '120x90', url: `https://img.youtube.com/vi/${currentVideoId}/2.jpg` },
-                { label: 'Scene 3', res: '120x90', url: `https://img.youtube.com/vi/${currentVideoId}/3.jpg` }
+                { label: 'Max Resolution', res: '1280x720', url: `https://img.youtube.com/vi/${id}/maxresdefault.jpg` },
+                { label: 'High Quality', res: '480x360', url: `https://img.youtube.com/vi/${id}/hqdefault.jpg` },
+                { label: 'Medium Quality', res: '320x180', url: `https://img.youtube.com/vi/${id}/mqdefault.jpg` },
+                { label: 'Scene 1', res: '120x90', url: `https://img.youtube.com/vi/${id}/1.jpg` },
+                { label: 'Scene 2', res: '120x90', url: `https://img.youtube.com/vi/${id}/2.jpg` },
+                { label: 'Scene 3', res: '120x90', url: `https://img.youtube.com/vi/${id}/3.jpg` }
             ];
-
             const slider = document.getElementById('mainSlider');
-            slider.innerHTML = assetList.map(a => `<img src="${a.url}" class="slide-item" onerror="this.src='https://img.youtube.com/vi/${currentVideoId}/hqdefault.jpg'">`).join('');
+            slider.innerHTML = assetList.map(a => `<img src="${a.url}" class="slide-item" onerror="this.src='https://img.youtube.com/vi/${id}/hqdefault.jpg'">`).join('');
             document.getElementById('mainIndicator').innerHTML = assetList.map((_, i) => `<div class="dot ${i===0?'active':''}" onclick="document.getElementById('mainSlider').scrollTo({left:${i*slider.clientWidth},behavior:'smooth'})"></div>`).join('');
-
-            if (player && player.loadVideoById) player.loadVideoById(currentVideoId);
-            else player = new YT.Player('player', { height: '100%', width: '100%', videoId: currentVideoId });
-
+            if (player && player.loadVideoById) player.loadVideoById(id);
+            else player = new YT.Player('player', { height: '100%', width: '100%', videoId: id });
             updateDots('mainSlider', 'mainIndicator', 1);
             updateEmbed();
         }
-
-        function loadVideo(id) { document.getElementById('videoUrl').value = `https://www.youtube.com/watch?v=${id}`; processVideo(id); window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
         function updateOutputs(url) {
             document.getElementById('thumbOutputs').innerHTML = `
@@ -318,7 +357,7 @@
         }
 
         function syncTime() { if (player && player.getCurrentTime) { document.getElementById('eStart').value = Math.floor(player.getCurrentTime()); updateEmbed(); } }
-        function clearInput() { document.getElementById('videoUrl').value = ''; document.getElementById('resultArea').classList.add('hidden'); }
+        function clearInput() { document.getElementById('videoUrl').value = ''; document.getElementById('resultArea').classList.add('hidden'); document.getElementById('playlistSection').classList.add('hidden'); }
     </script>
 </body>
 </html>
