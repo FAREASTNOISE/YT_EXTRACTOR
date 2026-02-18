@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>YT_EXTRACTOR // PROTOCOL v3.9</title>
+    <title>YT_EXTRACTOR // PROTOCOL v4.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
     <script src="https://www.youtube.com/iframe_api"></script>
@@ -56,7 +56,7 @@
         <header class="mb-10 pl-2">
             <h1 class="dot-font text-2xl mb-1 tracking-tighter">YT_EXTRACTOR</h1>
             <div class="inline-block px-2 py-0.5 border border-black rounded-full">
-                <p class="text-[8px] uppercase tracking-[0.2em] font-bold">Version 3.9 // Recommendations Protocol</p>
+                <p class="text-[8px] uppercase tracking-[0.2em] font-bold">Version 4.0 // Share Protocol Active</p>
             </div>
         </header>
 
@@ -105,8 +105,21 @@
                         <div><label class="text-[9px] font-bold text-gray-400 block mb-1 uppercase">Height</label><input type="number" id="eHeight" value="315" oninput="resizeEmbed('h')" class="nothing-input w-full p-2 text-center text-xs"></div>
                         <div class="relative"><label class="text-[9px] font-bold text-gray-400 block mb-1 uppercase">Start (s)</label><input type="number" id="eStart" value="0" oninput="updateEmbed()" class="nothing-input w-full p-2 text-center text-xs"><button onclick="syncTime()" class="absolute right-1 bottom-1 p-1 bg-black text-white rounded-md text-[7px] uppercase">Sync</button></div>
                     </div>
-                    <textarea id="outIframe" readonly class="nothing-input w-full p-4 text-[10px] font-mono mb-4 h-20 border-dashed border-gray-300"></textarea>
-                    <button onclick="copy('outIframe')" class="btn-gray-copy w-full py-4 text-xs">Copy IFrame Tag</button>
+
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-[9px] font-bold text-gray-400 block mb-1 uppercase px-1">IFrame Embed Tag</label>
+                            <textarea id="outIframe" readonly class="nothing-input w-full p-3 text-[10px] font-mono h-16 border-dashed border-gray-300"></textarea>
+                            <button onclick="copy('outIframe')" class="btn-gray-copy w-full mt-1">Copy IFrame Tag</button>
+                        </div>
+                        <div>
+                            <label class="text-[9px] font-bold text-gray-400 block mb-1 uppercase px-1">Short URL (youtu.be)</label>
+                            <div class="flex gap-2">
+                                <input type="text" id="outShortUrl" readonly class="nothing-input flex-grow p-3 text-[10px] font-mono">
+                                <button onclick="copy('outShortUrl')" class="btn-gray-copy px-6">Copy URL</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -140,11 +153,9 @@
         window.onload = () => {
             loadHistory();
             switchTab(localStorage.getItem('yt_last_tab') || 'thumb');
-
             document.getElementById('mainSlider').addEventListener('scroll', () => updateDots('mainSlider', 'mainIndicator', 1));
             document.getElementById('historyList').addEventListener('scroll', () => updateDots('historyList', 'historyIndicator', 0.42));
             document.getElementById('recommendList').addEventListener('scroll', () => updateDots('recommendList', 'recommendIndicator', 0.42));
-
             document.getElementById('pasteBtn').addEventListener('click', async () => {
                 const text = await navigator.clipboard.readText();
                 if (text) { document.getElementById('videoUrl').value = text; processVideo(); }
@@ -164,9 +175,9 @@
         function updateDots(scrollId, indicatorId, ratio) {
             const list = document.getElementById(scrollId);
             const dots = document.querySelectorAll(`#${indicatorId} .dot`);
+            if(!dots.length) return;
             const activeIndex = Math.round(list.scrollLeft / (list.clientWidth * ratio));
             dots.forEach((dot, i) => dot.classList.toggle('active', i === activeIndex));
-
             if(scrollId === 'mainSlider' && assetList[activeIndex]) {
                 document.getElementById('assetMeta').innerText = `${assetList[activeIndex].label} // ${assetList[activeIndex].res}`;
                 updateOutputs(assetList[activeIndex].url);
@@ -225,20 +236,11 @@
         }
 
         function loadRecommendations(id) {
-            const section = document.getElementById('recommendSection');
             const list = document.getElementById('recommendList');
-            const indicator = document.getElementById('recommendIndicator');
-            section.classList.remove('hidden');
-
-            // 関連動画のシミュレーション（YouTubeの一般的な動画IDパターンなどを活用）
+            document.getElementById('recommendSection').classList.remove('hidden');
             const dummySuffix = ['-XjS6eU0Y_E', 'dQw4w9WgXcQ', '3JZ_D3ELwOQ', '2Vv-BfVoq4g', 'YykjpeuMNEk', 'JGwWNGJdvx8', '9bZkp7q19f0', 'L_jWHffIx5E', 'tVlcKp3bWH8', '09R8_2nJtjg'];
-
-            list.innerHTML = dummySuffix.map(sid => `
-                <div class="scroll-item nothing-card p-1.5" onclick="loadFromRec('${sid}')">
-                    <img src="https://img.youtube.com/vi/${sid}/mqdefault.jpg">
-                </div>`).join('');
-
-            indicator.innerHTML = dummySuffix.map((_, i) => `<div class="dot ${i===0?'active':''}"></div>`).join('');
+            list.innerHTML = dummySuffix.map(sid => `<div class="scroll-item nothing-card p-1.5" onclick="loadFromRec('${sid}')"><img src="https://img.youtube.com/vi/${sid}/mqdefault.jpg"></div>`).join('');
+            document.getElementById('recommendIndicator').innerHTML = dummySuffix.map((_, i) => `<div class="dot ${i===0?'active':''}"></div>`).join('');
         }
 
         function saveHistory(id) {
@@ -284,6 +286,8 @@
             if (!currentVideoId) return;
             const w = document.getElementById('eWidth').value, h = document.getElementById('eHeight').value, s = document.getElementById('eStart').value;
             document.getElementById('outIframe').value = `<iframe width="${w}" height="${h}" src="https://www.youtube.com/embed/${currentVideoId}?rel=0${s>0?'&start='+s:''}" frameborder="0" allowfullscreen></iframe>`;
+            // 短縮URL生成 (秒数指定あり/なし)
+            document.getElementById('outShortUrl').value = `https://youtu.be/${currentVideoId}${s>0?'?t='+s:''}`;
         }
 
         function syncTime() {
