@@ -253,3 +253,33 @@ body {
 .amazon-btn:hover {
     opacity: 0.9;
 }
+
+
+/* タグ用：小さな角丸ボタン */
+.btn-small-round {
+    background: #000;
+    color: #fff;
+    border-radius: 50px;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 6px 16px;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    cursor: pointer;
+    border: none;
+}
+.btn-small-round:active { transform: scale(0.95); opacity: 0.8; }
+
+
+
+/* 履歴の親要素を基準にするための設定 */
+#historySection .relative {
+    position: relative;
+    padding: 0 10px;
+}
+
+/* 履歴用の小さなボタン */
+#historySection .nav-btn {
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0,0,0,0.1);
+}
