@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>YT_EXTRACTOR // PROTOCOL v3.5</title>
+    <title>YT_EXTRACTOR // PROTOCOL v3.6</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
     <script src="https://www.youtube.com/iframe_api"></script>
@@ -26,26 +26,40 @@
 
         .fixed-aspect { width: 100%; aspect-ratio: 16 / 9; border-radius: 18px; overflow: hidden; background: #000; }
 
-        /* --- 履歴セクション: 2.2個分 & ホイール強化 --- */
+        /* --- 履歴セクション: 2.2個分 & ナビゲーション --- */
         .history-container { position: relative; width: 100%; }
         .history-scroll {
             display: flex; overflow-x: auto; gap: 10px; padding: 10px 0;
-            scroll-behavior: auto;
+            scroll-behavior: smooth;
             scroll-snap-type: x proximity;
             -ms-overflow-style: none; scrollbar-width: none;
-            touch-action: pan-x;
+            touch-action: pan-x; /* タッチスクロールを有効化 */
         }
         .history-scroll::-webkit-scrollbar { display: none; }
 
         .history-item {
             flex: 0 0 calc((100% - 20px) / 2.2);
             scroll-snap-align: start; cursor: pointer;
-            pointer-events: auto; /* クリックとスクロールを確実に拾う */
         }
         .history-item img {
             width: 100%; aspect-ratio: 16 / 9; object-fit: cover;
-            border-radius: 7px; pointer-events: none; /* 画像がスクロールを邪魔しないように */
+            border-radius: 7px; pointer-events: none;
         }
+
+        /* 左右ボタン */
+        .hist-nav {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            width: 36px; height: 36px; background: rgba(255,255,255,0.9);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 1px solid rgba(0,0,0,0.05);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            z-index: 30; cursor: pointer; transition: 0.2s;
+        }
+        .hist-nav:active { transform: translateY(-50%) scale(0.9); }
+        .arrow { width: 8px; height: 8px; border-top: 2px solid #000; border-right: 2px solid #000; }
+        .arrow-left { transform: rotate(-135deg); margin-left: 2px; }
+        .arrow-right { transform: rotate(45deg); margin-right: 2px; }
+        .hist-nav.prev { left: -10px; }
+        .hist-nav.next { right: -10px; }
 
         .checkbox-container { display: flex; align-items: center; cursor: pointer; font-size: 10px; font-weight: 700; text-transform: uppercase; color: #666; }
         .checkbox-container input { display: none; }
@@ -60,7 +74,7 @@
         <header class="mb-10 pl-2">
             <h1 class="dot-font text-2xl mb-1 tracking-tighter">YT_EXTRACTOR</h1>
             <div class="inline-block px-2 py-0.5 border border-black rounded-full">
-                <p class="text-[8px] uppercase tracking-[0.2em] font-bold">Version 3.5 // Wheel Master Protocol</p>
+                <p class="text-[8px] uppercase tracking-[0.2em] font-bold">Version 3.6 // Memory & Navigation</p>
             </div>
         </header>
 
@@ -79,8 +93,8 @@
 
         <div id="resultArea" class="hidden space-y-6">
             <div class="flex gap-2 justify-center">
-                <button id="tabThumb" onclick="switchTab('thumb')" class="nothing-card px-8 py-2 text-[10px] font-bold uppercase tab-active">Assets</button>
-                <button id="tabEmbed" onclick="switchTab('embed')" class="nothing-card px-8 py-2 text-[10px] font-bold uppercase text-gray-400">Embed</button>
+                <button id="tabThumb" onclick="switchTab('thumb')" class="nothing-card px-8 py-2 text-[10px] font-bold uppercase">Assets</button>
+                <button id="tabEmbed" onclick="switchTab('embed')" class="nothing-card px-8 py-2 text-[10px] font-bold uppercase">Embed</button>
             </div>
 
             <div id="contentThumb" class="space-y-4">
@@ -112,6 +126,8 @@
         <div id="historySection" class="mt-12 hidden border-t border-black/5 pt-8">
             <h3 class="dot-font text-[10px] uppercase text-gray-400 mb-2 px-2 tracking-widest">Recent History</h3>
             <div class="history-container">
+                <div class="hist-nav prev" onclick="scrollHist(-1)"><div class="arrow arrow-left"></div></div>
+                <div class="hist-nav next" onclick="scrollHist(1)"><div class="arrow arrow-right"></div></div>
                 <div id="historyList" class="history-scroll"></div>
             </div>
         </div>
@@ -120,19 +136,11 @@
     <script>
         let player, currentVideoId = "";
 
-        // マウスホイールのハンドラを定義
-        const wheelHandler = (e) => {
-            const list = document.getElementById('historyList');
-            if (e.deltaY !== 0) {
-                e.preventDefault();
-                // デルタ値を加算して横スクロールを実行（1.2倍で少し軽快に）
-                list.scrollLeft += e.deltaY * 1.2;
-            }
-        };
-
         window.onload = () => {
             loadHistory();
-            showScrollHint();
+            // 保存されたタブ設定を復元
+            const lastTab = localStorage.getItem('yt_last_tab') || 'thumb';
+            switchTab(lastTab);
 
             document.getElementById('pasteBtn').addEventListener('click', async () => {
                 try {
@@ -142,23 +150,11 @@
             });
         };
 
-        function applyWheelScroll() {
+        function scrollHist(dir) {
             const list = document.getElementById('historyList');
-            if (!list) return;
-            // 既存のリスナーを解除して重複を防ぎ、passive: false で再登録
-            list.removeEventListener('wheel', wheelHandler);
-            list.addEventListener('wheel', wheelHandler, { passive: false });
-        }
-
-        function showScrollHint() {
-            const list = document.getElementById('historyList');
-            const history = JSON.parse(localStorage.getItem('yt_history') || '[]');
-            if (history.length > 2) {
-                setTimeout(() => {
-                    list.scrollBy({ left: 60, behavior: 'smooth' });
-                    setTimeout(() => list.scrollTo({ left: 0, behavior: 'smooth' }), 500);
-                }, 800);
-            }
+            // 2.2個並びなので、概ね1個分強スクロールさせる
+            const move = list.clientWidth * 0.5;
+            list.scrollBy({ left: dir * move, behavior: 'smooth' });
         }
 
         function resizeEmbed(source) {
@@ -190,10 +186,12 @@
 
         function switchTab(type) {
             const isThumb = type === 'thumb';
-            document.getElementById('tabThumb').classList.toggle('tab-active', isThumb);
-            document.getElementById('tabEmbed').classList.toggle('tab-active', !isThumb);
+            document.getElementById('tabThumb').className = isThumb ? 'nothing-card px-8 py-2 text-[10px] font-bold uppercase tab-active' : 'nothing-card px-8 py-2 text-[10px] font-bold uppercase text-gray-400';
+            document.getElementById('tabEmbed').className = !isThumb ? 'nothing-card px-8 py-2 text-[10px] font-bold uppercase tab-active' : 'nothing-card px-8 py-2 text-[10px] font-bold uppercase text-gray-400';
             document.getElementById('contentThumb').classList.toggle('hidden', !isThumb);
             document.getElementById('contentEmbed').classList.toggle('hidden', isThumb);
+            // タブの選択状態を保存
+            localStorage.setItem('yt_last_tab', type);
         }
 
         function processVideo(vid = null) {
@@ -250,9 +248,6 @@
                 <div class="history-item nothing-card p-1.5" onclick="loadFromHistory('${id}')">
                     <img src="https://img.youtube.com/vi/${id}/mqdefault.jpg">
                 </div>`).join('');
-
-            // 履歴描画後にホイールイベントをアタッチ
-            applyWheelScroll();
         }
 
         function loadFromHistory(id) {
