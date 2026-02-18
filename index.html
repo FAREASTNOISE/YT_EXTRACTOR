@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>YT_EXTRACTOR // PROTOCOL v6.6</title>
+    <title>YT_EXTRACTOR // PROTOCOL v6.6.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <script src="https://www.youtube.com/iframe_api"></script>
@@ -20,8 +20,8 @@
         .item-card:hover { transform: translateY(-2px); }
         .nothing-input { background: rgba(0, 0, 0, 0.03); border: 1px solid transparent; border-radius: 12px; transition: all 0.2s; }
         .btn-black-rect { background: #000; color: #fff; border-radius: 12px; font-size: 11px; font-weight: 700; padding: 16px; width: 100%; text-transform: uppercase; }
+        .btn-gray-copy { background-color: #eeeeee; color: #666; border-radius: 10px; font-size: 10px; font-weight: 700; padding: 8px 16px; text-transform: uppercase; border: none; cursor: pointer; }
 
-        /* Amazon Style */
         .amazon-btn { background: linear-gradient(to bottom, #f7dfa5, #f0c14b); border: 1px solid #a88734; border-radius: 50px; color: #111; padding: 10px 24px; font-size: 10px; font-weight: bold; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 1px 0 rgba(255,255,255,.4) inset; }
 
         .fixed-aspect { width: 100%; aspect-ratio: 16 / 9; border-radius: 16px; overflow: hidden; background: #000; position: relative; }
@@ -50,7 +50,7 @@
         <header class="mb-10 pl-2">
             <h1 onclick="clearInput()" class="dot-font text-2xl mb-1 tracking-tighter cursor-pointer">YT_EXTRACTOR</h1>
             <div class="inline-block px-2 py-0.5 border border-black rounded-full">
-                <p class="text-[8px] uppercase tracking-[0.2em] font-bold">Version 6.6 // Final Refinement</p>
+                <p class="text-[8px] uppercase tracking-[0.2em] font-bold">Version 6.6.1 // Final Refinement</p>
             </div>
         </header>
 
@@ -118,7 +118,7 @@
                             <label class="text-[9px] text-gray-400 block mb-2 uppercase">Short URL (youtu.be)</label>
                             <div class="flex gap-2">
                                 <input type="text" id="outShortUrl" readonly class="nothing-input flex-grow p-3 text-[11px] font-mono focus:outline-none">
-                                <button onclick="copy('outShortUrl')" class="btn-gray-copy px-6">Copy</button>
+                                <button onclick="copyRaw(this)" class="btn-gray-copy px-6">Copy</button>
                             </div>
                         </div>
                     </div>
@@ -162,7 +162,7 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M15.3 13.7c-1.5.8-3.5 1.2-5.3 1.2-2.6 0-5-.7-6.9-1.9-.3-.2-.3-.5 0-.7.3-.2.6-.1.9.1 1.6 1 3.7 1.6 5.9 1.6 1.6 0 3.3-.3 4.8-1 .3-.1.6.1.7.3.1.2.1.3-.1.4zm.6-1c-.1-.1-.1-.2-.1-.3 0-.4.4-.6.4-.6.3-.1.5 0 .6.2.1.2.1.6-.3.9-.1.1-.4-.1-.6-.2zm4.1-3c-.1-.2-.4-.3-.6-.3h-1.4l-.6-1.7c-.1-.4-.5-.6-.9-.6s-.8.2-.9.6l-.6 1.7h-1.4c-.4 0-.7.1-.8.4-.1.3 0 .6.3.8l1.1.8-.4 1.7c-.1.4 0 .8.4.9.1 0 .3.1.4.1.3 0 .5-.1.7-.3l1.2-.9 1.2.9c.2.2.4.3.7.3.1 0 .3 0 .4-.1.4-.1.5-.5.4-.9l-.4-1.7 1.1-.8c.3-.2.4-.5.3-.8zM12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.4 0-8-3.6-8-8s3.6-8 8-8 8 3.6 8 8-3.6 8-8 8z"/></svg>
                 Support Project via Amazon
             </a>
-            <p class="copyright">YT_EXTRACTOR v6.6 // FAREASTNOISE</p>
+            <p class="copyright">YT_EXTRACTOR v6.6.1 // FAREASTNOISE</p>
         </footer>
     </div>
 
