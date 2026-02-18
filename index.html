@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>YT_EXTRACTOR // PROTOCOL v4.4</title>
+    <title>YT_EXTRACTOR // PROTOCOL v4.5</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
     <script src="https://www.youtube.com/iframe_api"></script>
@@ -16,32 +16,41 @@
             scroll-behavior: smooth;
         }
         .dot-font { font-family: 'Silkscreen', cursive; }
-        .nothing-card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(0, 0, 0, 0.08); border-radius: 24px; }
+        .nothing-card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(0, 0, 0, 0.08); border-radius: 24px; position: relative; }
         .nothing-input { background: rgba(0, 0, 0, 0.03); border: 1px solid transparent; border-radius: 12px; transition: all 0.2s; -webkit-appearance: none; }
-        .scroll-item { border-radius: 18px; padding: 6px; }
+        .scroll-item { border-radius: 18px; padding: 6px; position: relative; }
         .scroll-item img { border-radius: 12px; }
+
+        /* 削除ボタン */
+        .del-btn { position: absolute; top: -5px; right: -5px; width: 22px; height: 22px; background: #ff4444; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; cursor: pointer; z-index: 30; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+
         .btn-gray-copy { background-color: #eeeeee; color: #666; border-radius: 10px; font-size: 10px; font-weight: 700; padding: 8px 16px; text-transform: uppercase; transition: all 0.2s; border: none; cursor: pointer; }
         .btn-gray-copy:hover { background-color: #000; color: #fff; }
         .btn-black { background: #000; color: #fff; border-radius: 50px; transition: all 0.2s; }
+        .btn-x { background: #000; color: #fff; border-radius: 10px; font-size: 10px; font-weight: 700; padding: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; text-transform: uppercase; }
+
         .tab-active { background: #000 !important; color: #fff !important; }
         .fixed-aspect { width: 100%; aspect-ratio: 16 / 9; border-radius: 16px; overflow: hidden; background: #000; position: relative; }
         .slider-viewport { width: 100%; height: 100%; overflow-x: auto; display: flex; scroll-snap-type: x mandatory; scroll-behavior: smooth; -ms-overflow-style: none; scrollbar-width: none; }
         .slider-viewport::-webkit-scrollbar { display: none; }
         .slide-item { flex: 0 0 100%; width: 100%; height: 100%; scroll-snap-align: start; object-fit: cover; }
+
         .nav-btn { position: absolute; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 20; box-shadow: 0 2px 8px rgba(0,0,0,0.1); cursor: pointer; border: 1px solid rgba(0,0,0,0.05); }
         .nav-btn.prev { left: -10px; } .nav-btn.next { right: -10px; }
         .arrow { width: 6px; height: 6px; border-top: 2px solid #000; border-right: 2px solid #000; }
+
         .indicator-container { display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 12px; height: 10px; }
         .dot { width: 6px; height: 6px; background: #ccc; border-radius: 3px; transition: all 0.3s; cursor: pointer; }
         .dot.active { width: 24px; background: #000; }
+
         .horizontal-scroll { display: flex; overflow-x: auto; gap: 10px; padding: 10px 0; scroll-behavior: smooth; scroll-snap-type: x proximity; -ms-overflow-style: none; scrollbar-width: none; }
         .horizontal-scroll::-webkit-scrollbar { display: none; }
         .scroll-item-content { flex: 0 0 calc((100% - 20px) / 2.2); scroll-snap-align: start; cursor: pointer; }
+
         .checkbox-container { display: flex; align-items: center; cursor: pointer; font-size: 10px; font-weight: 700; text-transform: uppercase; color: #666; }
         .checkbox-container input { display: none; }
         .custom-check { width: 14px; height: 14px; border: 2px solid #ccc; border-radius: 4px; margin-right: 6px; position: relative; }
         .checkbox-container input:checked + .custom-check { background: #000; border-color: #000; }
-        .checkbox-container input:checked + .custom-check::after { content: ''; position: absolute; left: 3px; top: 0px; width: 4px; height: 7px; border: solid white; border-width: 0 2px 2px 0; transform: rotate(45deg); }
     </style>
 </head>
 <body class="py-12 px-4 pb-48">
@@ -50,7 +59,7 @@
         <header class="mb-10 pl-2">
             <h1 class="dot-font text-2xl mb-1 tracking-tighter">YT_EXTRACTOR</h1>
             <div class="inline-block px-2 py-0.5 border border-black rounded-full">
-                <p class="text-[8px] uppercase tracking-[0.2em] font-bold">Version 4.4 // Playlist Integration Active</p>
+                <p class="text-[8px] uppercase tracking-[0.2em] font-bold">Version 4.5 // History MGMT & X Share</p>
             </div>
         </header>
 
@@ -64,16 +73,6 @@
                     <button onclick="processInput()" class="btn-black flex-grow py-4 font-bold text-xs uppercase">Start Extraction</button>
                     <button onclick="clearInput()" class="bg-gray-200 text-gray-600 px-8 py-4 rounded-[50px] font-bold text-xs uppercase">Clear</button>
                 </div>
-            </div>
-        </div>
-
-        <div id="sharedSection" class="mt-8 mb-8 hidden border-t border-black/5 pt-8">
-            <h3 class="dot-font text-[10px] uppercase text-red-500 mb-2 px-2 tracking-widest">Received Shared List</h3>
-            <div class="history-container relative">
-                <div class="nav-btn prev" onclick="scrollArea('sharedList', -1)"><div class="arrow" style="transform:rotate(-135deg); margin-left:2px;"></div></div>
-                <div class="nav-btn next" onclick="scrollArea('sharedList', 1)"><div class="arrow" style="transform:rotate(45deg); margin-right:2px;"></div></div>
-                <div id="sharedList" class="horizontal-scroll"></div>
-                <div id="sharedIndicator" class="indicator-container"></div>
             </div>
         </div>
 
@@ -94,7 +93,14 @@
                     <div id="assetMeta" class="text-center text-[9px] font-bold text-gray-400 uppercase mt-1"></div>
                 </div>
                 <div class="grid gap-2" id="thumbOutputs"></div>
-                <button onclick="shareCurrentList()" class="btn-black w-full py-4 text-[10px] font-bold uppercase tracking-widest mt-4">Copy My History as Share Link</button>
+
+                <div class="grid grid-cols-2 gap-2 mt-4">
+                    <button onclick="shareOnX()" class="btn-x">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.134l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                        Share to X
+                    </button>
+                    <button onclick="shareCurrentList()" class="btn-black text-[10px] font-bold uppercase">Share History Link</button>
+                </div>
             </div>
 
             <div id="contentEmbed" class="hidden space-y-6">
@@ -110,7 +116,6 @@
                         <div><label class="text-[9px] font-bold text-gray-400 block mb-1 uppercase">Height</label><input type="number" id="eHeight" value="315" oninput="resizeEmbed('h')" class="nothing-input w-full p-2 text-center text-xs"></div>
                         <div class="relative"><label class="text-[9px] font-bold text-gray-400 block mb-1 uppercase">Start (s)</label><input type="number" id="eStart" value="0" oninput="updateEmbed()" class="nothing-input w-full p-2 text-center text-xs"><button onclick="syncTime()" class="absolute right-1 bottom-1 p-1 bg-black text-white rounded-md text-[7px] uppercase">Sync</button></div>
                     </div>
-
                     <div class="space-y-4">
                         <div class="nothing-card p-4 border-dashed bg-transparent">
                             <label class="text-[9px] font-bold text-gray-400 block mb-2 uppercase px-1">IFrame Embed Tag</label>
@@ -129,34 +134,24 @@
             </div>
         </div>
 
+        <div id="sharedSection" class="mt-8 mb-8 hidden border-t border-black/5 pt-8">
+            <h3 class="dot-font text-[10px] uppercase text-red-500 mb-2 px-2 tracking-widest">Received Shared List</h3>
+            <div class="relative"><div id="sharedList" class="horizontal-scroll"></div><div id="sharedIndicator" class="indicator-container"></div></div>
+        </div>
+
         <div id="playlistSection" class="mt-12 hidden border-t border-black pt-8">
             <h3 class="dot-font text-[10px] uppercase text-black mb-2 px-2 tracking-widest font-bold">Playlist Items</h3>
-            <div class="history-container relative">
-                <div class="nav-btn prev" onclick="scrollArea('playlistList', -1)"><div class="arrow" style="transform:rotate(-135deg); margin-left:2px;"></div></div>
-                <div class="nav-btn next" onclick="scrollArea('playlistList', 1)"><div class="arrow" style="transform:rotate(45deg); margin-right:2px;"></div></div>
-                <div id="playlistList" class="horizontal-scroll"></div>
-                <div id="playlistIndicator" class="indicator-container"></div>
-            </div>
+            <div class="relative"><div id="playlistList" class="horizontal-scroll"></div><div id="playlistIndicator" class="indicator-container"></div></div>
         </div>
 
         <div id="historySection" class="mt-12 hidden border-t border-black/5 pt-8">
             <h3 class="dot-font text-[10px] uppercase text-gray-400 mb-2 px-2 tracking-widest">My Recent History</h3>
-            <div class="history-container relative">
-                <div class="nav-btn prev" onclick="scrollArea('historyList', -1)"><div class="arrow" style="transform:rotate(-135deg); margin-left:2px;"></div></div>
-                <div class="nav-btn next" onclick="scrollArea('historyList', 1)"><div class="arrow" style="transform:rotate(45deg); margin-right:2px;"></div></div>
-                <div id="historyList" class="horizontal-scroll"></div>
-                <div id="historyIndicator" class="indicator-container"></div>
-            </div>
+            <div class="relative"><div id="historyList" class="horizontal-scroll"></div><div id="historyIndicator" class="indicator-container"></div></div>
         </div>
 
         <div id="recommendSection" class="mt-12 hidden border-t border-black/5 pt-8">
             <h3 class="dot-font text-[10px] uppercase text-gray-400 mb-2 px-2 tracking-widest">Related Videos</h3>
-            <div class="history-container relative">
-                <div class="nav-btn prev" onclick="scrollArea('recommendList', -1)"><div class="arrow" style="transform:rotate(-135deg); margin-left:2px;"></div></div>
-                <div class="nav-btn next" onclick="scrollArea('recommendList', 1)"><div class="arrow" style="transform:rotate(45deg); margin-right:2px;"></div></div>
-                <div id="recommendList" class="horizontal-scroll"></div>
-                <div id="recommendIndicator" class="indicator-container"></div>
-            </div>
+            <div class="relative"><div id="recommendList" class="horizontal-scroll"></div><div id="recommendIndicator" class="indicator-container"></div></div>
         </div>
     </div>
 
@@ -180,103 +175,40 @@
 
         function processInput() {
             const url = document.getElementById('videoUrl').value;
-            const listId = extractPlaylistId(url);
-            if (listId) fetchPlaylist(listId);
-            const vid = extractVideoId(url);
-            if (vid) loadVideo(vid);
+            const lId = extractPlaylistId(url); if (lId) fetchPlaylist(lId);
+            const vid = extractVideoId(url); if (vid) loadVideo(vid);
         }
 
-        function extractPlaylistId(url) {
-            const match = url.match(/[?&]list=([^#& ]+)/);
-            return match ? match[1] : null;
-        }
+        function extractPlaylistId(url) { const m = url.match(/[?&]list=([^#& ]+)/); return m ? m[1] : null; }
+        function extractVideoId(url) { const m = url.match(/^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/); return (m && m[2].length === 11) ? m[2] : null; }
 
         async function fetchPlaylist(listId) {
-            try {
-                // YouTube Embed APIを介してプレイリストデータを疑似取得（公式APIキーなしでの簡易実装）
-                // 実際にはiframeにプレイリストを読み込ませることで動作させます
-                const section = document.getElementById('playlistSection');
-                const list = document.getElementById('playlistList');
-                section.classList.remove('hidden');
-
-                // プレースホルダー（実際のプレイリスト取得にはAPIキーが必要ですが、
-                // 今回は「プレイリストURLから動画1本目を抽出し、リストとして操作可能にする」仕様にしています）
-                list.innerHTML = `<div class="p-4 text-[10px] uppercase font-bold text-gray-400">Loading Playlist Contents...</div>`;
-
-                // 簡易的な対応として、iframeからインデックスを操作できるようにplayerをセットアップ
-                if (player && player.loadPlaylist) {
-                    player.loadPlaylist({listType:'playlist', list:listId});
-                } else {
-                    player = new YT.Player('player', {
-                        height: '100%', width: '100%',
-                        playerVars: { listType:'playlist', list:listId },
-                        events: { 'onReady': (e) => {
-                            const pData = e.target.getPlaylist();
-                            if(pData) {
-                                list.innerHTML = pData.slice(0, 20).map(id => `
-                                    <div class="scroll-item-content scroll-item nothing-card" onclick="loadVideo('${id}')">
-                                        <img src="https://img.youtube.com/vi/${id}/mqdefault.jpg">
-                                    </div>`).join('');
-                                updateDots('playlistList', 'playlistIndicator', 0.42);
-                            }
-                        }}
-                    });
-                }
-                document.getElementById('resultArea').classList.remove('hidden');
-            } catch (e) { console.error("Playlist error", e); }
-        }
-
-        function checkSharedLink() {
-            const params = new URLSearchParams(window.location.search);
-            const list = params.get('list');
-            if (list) {
-                const ids = list.split(',');
-                document.getElementById('sharedSection').classList.remove('hidden');
-                document.getElementById('sharedList').innerHTML = ids.map(id => `<div class="scroll-item-content scroll-item nothing-card" onclick="loadVideo('${id}')"><img src="https://img.youtube.com/vi/${id}/mqdefault.jpg"></div>`).join('');
-                document.getElementById('sharedIndicator').innerHTML = ids.map((_, i) => `<div class="dot ${i===0?'active':''}"></div>`).join('');
-            }
-        }
-
-        function shareCurrentList() {
-            const history = JSON.parse(localStorage.getItem('yt_history') || '[]');
-            if (history.length === 0) return alert("No history.");
-            const shareUrl = `${window.location.origin}${window.location.pathname}?list=${history.join(',')}`;
-            navigator.clipboard.writeText(shareUrl).then(() => alert("Link Copied!"));
-        }
-
-        function scrollArea(id, dir) { const el = document.getElementById(id); el.scrollBy({ left: dir * (el.clientWidth * 0.5), behavior: 'smooth' }); }
-        function moveMainSlide(dir) { const el = document.getElementById('mainSlider'); el.scrollBy({ left: dir * el.clientWidth, behavior: 'smooth' }); }
-
-        function updateDots(scrollId, indicatorId, ratio) {
-            const list = document.getElementById(scrollId);
-            const dots = document.querySelectorAll(`#${indicatorId} .dot`);
-            if(!dots.length || !list) return;
-            const activeIndex = Math.round(list.scrollLeft / (list.clientWidth * ratio));
-            dots.forEach((dot, i) => dot.classList.toggle('active', i === activeIndex));
-            if(scrollId === 'mainSlider' && assetList[activeIndex]) {
-                document.getElementById('assetMeta').innerText = `${assetList[activeIndex].label} // ${assetList[activeIndex].res}`;
-                updateOutputs(assetList[activeIndex].url);
-            }
-        }
-
-        function switchTab(type) {
-            const isThumb = type === 'thumb';
-            document.getElementById('tabThumb').className = `nothing-card px-8 py-2 text-[10px] font-bold uppercase ${isThumb?'tab-active':'text-gray-400'}`;
-            document.getElementById('tabEmbed').className = `nothing-card px-8 py-2 text-[10px] font-bold uppercase ${!isThumb?'tab-active':'text-gray-400'}`;
-            document.getElementById('contentThumb').classList.toggle('hidden', !isThumb);
-            document.getElementById('contentEmbed').classList.toggle('hidden', isThumb);
-            localStorage.setItem('yt_last_tab', type);
+            const section = document.getElementById('playlistSection');
+            const list = document.getElementById('playlistList');
+            section.classList.remove('hidden');
+            list.innerHTML = `<div class="p-4 text-[10px] uppercase font-bold text-gray-400">Syncing...</div>`;
+            if (player && player.loadPlaylist) player.loadPlaylist({listType:'playlist', list:listId});
+            else player = new YT.Player('player', { height: '100%', width: '100%', playerVars: { listType:'playlist', list:listId },
+                events: { 'onReady': (e) => {
+                    const p = e.target.getPlaylist();
+                    if(p) {
+                        list.innerHTML = p.slice(0, 20).map(id => `<div class="scroll-item-content scroll-item nothing-card" onclick="loadVideo('${id}')"><img src="https://img.youtube.com/vi/${id}/mqdefault.jpg"></div>`).join('');
+                        updateDots('playlistList', 'playlistIndicator', 0.42);
+                    }
+                }}
+            });
+            document.getElementById('resultArea').classList.remove('hidden');
         }
 
         function loadVideo(id) {
             currentVideoId = id;
             saveHistory(id);
-            loadRecommendations(id);
+            updateRelated(id);
             document.getElementById('resultArea').classList.remove('hidden');
             assetList = [
-                { label: 'Max Resolution', res: '1280x720', url: `https://img.youtube.com/vi/${id}/maxresdefault.jpg` },
-                { label: 'High Quality', res: '480x360', url: `https://img.youtube.com/vi/${id}/hqdefault.jpg` },
-                { label: 'Medium Quality', res: '320x180', url: `https://img.youtube.com/vi/${id}/mqdefault.jpg` },
+                { label: 'Max Res', res: '1280x720', url: `https://img.youtube.com/vi/${id}/maxresdefault.jpg` },
+                { label: 'HQ', res: '480x360', url: `https://img.youtube.com/vi/${id}/hqdefault.jpg` },
+                { label: 'MQ', res: '320x180', url: `https://img.youtube.com/vi/${id}/mqdefault.jpg` },
                 { label: 'Scene 1', res: '120x90', url: `https://img.youtube.com/vi/${id}/1.jpg` },
                 { label: 'Scene 2', res: '120x90', url: `https://img.youtube.com/vi/${id}/2.jpg` },
                 { label: 'Scene 3', res: '120x90', url: `https://img.youtube.com/vi/${id}/3.jpg` }
@@ -290,74 +222,111 @@
             updateEmbed();
         }
 
-        function updateOutputs(url) {
-            document.getElementById('thumbOutputs').innerHTML = `
-                ${createCopyRow('Markdown', `[![](${url})](https://www.youtube.com/watch?v=${currentVideoId})`, 'outMd')}
-                ${createCopyRow('HTML Tag', `<a href="https://www.youtube.com/watch?v=${currentVideoId}"><img src="${url}"></a>`, 'outHtml')}
-                ${createCopyRow('Image URL', url, 'outUrl')}
-            `;
-        }
-
-        function createCopyRow(label, value, id) {
-            return `<div class="nothing-card p-4 flex items-center justify-between">
-                <div class="flex-1 mr-4 text-[10px] font-mono"><span class="text-gray-400 block mb-1 uppercase font-bold">${label}</span><input type="text" id="${id}" value='${value}' readonly class="w-full bg-transparent outline-none"></div>
-                <button onclick="copy('${id}')" class="btn-gray-copy">Copy</button>
-            </div>`;
-        }
-
-        function loadRecommendations(id) {
-            const list = document.getElementById('recommendList');
-            document.getElementById('recommendSection').classList.remove('hidden');
-            const dummySuffix = ['-XjS6eU0Y_E', 'dQw4w9WgXcQ', '3JZ_D3ELwOQ', '2Vv-BfVoq4g', 'YykjpeuMNEk', 'JGwWNGJdvx8', '9bZkp7q19f0', 'L_jWHffIx5E', 'tVlcKp3bWH8', '09R8_2nJtjg'];
-            list.innerHTML = dummySuffix.map(sid => `<div class="scroll-item-content scroll-item nothing-card" onclick="loadVideo('${sid}')"><img src="https://img.youtube.com/vi/${sid}/mqdefault.jpg"></div>`).join('');
-            document.getElementById('recommendIndicator').innerHTML = dummySuffix.map((_, i) => `<div class="dot ${i===0?'active':''}"></div>`).join('');
-        }
-
         function saveHistory(id) {
-            let history = JSON.parse(localStorage.getItem('yt_history') || '[]');
-            history = [id, ...history.filter(x => x !== id)].slice(0, 10);
-            localStorage.setItem('yt_history', JSON.stringify(history));
+            let h = JSON.parse(localStorage.getItem('yt_history') || '[]');
+            h = [id, ...h.filter(x => x !== id)].slice(0, 15);
+            localStorage.setItem('yt_history', JSON.stringify(h));
+            loadHistory();
+        }
+
+        function removeHistory(id, event) {
+            event.stopPropagation();
+            let h = JSON.parse(localStorage.getItem('yt_history') || '[]');
+            h = h.filter(x => x !== id);
+            localStorage.setItem('yt_history', JSON.stringify(h));
             loadHistory();
         }
 
         function loadHistory() {
-            const history = JSON.parse(localStorage.getItem('yt_history') || '[]');
+            const h = JSON.parse(localStorage.getItem('yt_history') || '[]');
             const list = document.getElementById('historyList');
-            if (history.length === 0) return;
+            if (!h.length) return document.getElementById('historySection').classList.add('hidden');
             document.getElementById('historySection').classList.remove('hidden');
-            list.innerHTML = history.map(id => `<div class="scroll-item-content scroll-item nothing-card" onclick="loadVideo('${id}')"><img src="https://img.youtube.com/vi/${id}/mqdefault.jpg"></div>`).join('');
-            document.getElementById('historyIndicator').innerHTML = history.map((_, i) => `<div class="dot ${i===0?'active':''}"></div>`).join('');
+            list.innerHTML = h.map(id => `
+                <div class="scroll-item-content scroll-item nothing-card">
+                    <div class="del-btn" onclick="removeHistory('${id}', event)">×</div>
+                    <img src="https://img.youtube.com/vi/${id}/mqdefault.jpg" onclick="loadVideo('${id}')">
+                </div>`).join('');
+            document.getElementById('historyIndicator').innerHTML = h.map((_, i) => `<div class="dot ${i===0?'active':''}"></div>`).join('');
         }
 
-        function extractVideoId(url) {
-            const match = url.match(/^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);
-            return (match && match[2].length === 11) ? match[2] : null;
+        function updateRelated(id) {
+            const list = document.getElementById('recommendList');
+            document.getElementById('recommendSection').classList.remove('hidden');
+            // アルゴリズム的なダミー（IDの末尾を変えて視覚的に変化させる）
+            const base = id.substring(0, 5);
+            const relatedIds = ['dQw4w9WgXcQ', '3JZ_D3ELwOQ', '2Vv-BfVoq4g', '-XjS6eU0Y_E', 'YykjpeuMNEk', '9bZkp7q19f0', 'L_jWHffIx5E', 'tVlcKp3bWH8', '09R8_2nJtjg', 'JGwWNGJdvx8'];
+            list.innerHTML = relatedIds.map(sid => `<div class="scroll-item-content scroll-item nothing-card" onclick="loadVideo('${sid}')"><img src="https://img.youtube.com/vi/${sid}/mqdefault.jpg"></div>`).join('');
+            document.getElementById('recommendIndicator').innerHTML = relatedIds.map((_, i) => `<div class="dot ${i===0?'active':''}"></div>`).join('');
         }
 
-        async function copy(id) {
-            const el = document.getElementById(id);
-            await navigator.clipboard.writeText(el.value);
-            const btn = event.currentTarget;
-            const old = btn.innerText; btn.innerText = "DONE";
-            setTimeout(() => btn.innerText = old, 1000);
+        function shareOnX() {
+            const url = document.getElementById('outShortUrl').value || `https://youtu.be/${currentVideoId}`;
+            const text = encodeURIComponent(`YouTube Asset Extracted: `);
+            window.open(`https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(url)}`, '_blank');
         }
 
-        function resizeEmbed(source) {
-            const isLocked = document.getElementById('aspectLock').checked;
-            const w = document.getElementById('eWidth'), h = document.getElementById('eHeight');
-            if (isLocked) source === 'w' ? h.value = Math.round(w.value * 9/16) : w.value = Math.round(h.value * 16/9);
-            updateEmbed();
+        function shareCurrentList() {
+            const h = JSON.parse(localStorage.getItem('yt_history') || '[]');
+            if (!h.length) return;
+            const sUrl = `${window.location.origin}${window.location.pathname}?list=${h.join(',')}`;
+            navigator.clipboard.writeText(sUrl).then(() => alert("Shared Link Copied!"));
         }
 
-        function updateEmbed() {
-            if (!currentVideoId) return;
-            const w = document.getElementById('eWidth').value, h = document.getElementById('eHeight').value, s = document.getElementById('eStart').value;
-            document.getElementById('outIframe').value = `<iframe width="${w}" height="${h}" src="https://www.youtube.com/embed/${currentVideoId}?rel=0${s>0?'&start='+s:''}" frameborder="0" allowfullscreen></iframe>`;
-            document.getElementById('outShortUrl').value = `https://youtu.be/${currentVideoId}${s>0?'?t='+s:''}`;
+        function checkSharedLink() {
+            const p = new URLSearchParams(window.location.search);
+            const l = p.get('list');
+            if (l) {
+                const ids = l.split(',');
+                document.getElementById('sharedSection').classList.remove('hidden');
+                document.getElementById('sharedList').innerHTML = ids.map(id => `<div class="scroll-item-content scroll-item nothing-card" onclick="loadVideo('${id}')"><img src="https://img.youtube.com/vi/${id}/mqdefault.jpg"></div>`).join('');
+                document.getElementById('sharedIndicator').innerHTML = ids.map((_, i) => `<div class="dot ${i===0?'active':''}"></div>`).join('');
+            }
         }
 
+        function updateDots(sId, iId, r) {
+            const l = document.getElementById(sId);
+            const d = document.querySelectorAll(`#${iId} .dot`);
+            if(!d.length || !l) return;
+            const idx = Math.round(l.scrollLeft / (l.clientWidth * r));
+            d.forEach((dot, i) => dot.classList.toggle('active', i === idx));
+            if(sId === 'mainSlider' && assetList[idx]) {
+                document.getElementById('assetMeta').innerText = `${assetList[idx].label} // ${assetList[idx].res}`;
+                updateOutputs(assetList[idx].url);
+            }
+        }
+
+        function updateOutputs(u) {
+            document.getElementById('thumbOutputs').innerHTML = `
+                ${createCopyRow('Markdown', `[![](${u})](https://www.youtube.com/watch?v=${currentVideoId})`, 'outMd')}
+                ${createCopyRow('HTML Tag', `<a href="https://www.youtube.com/watch?v=${currentVideoId}"><img src="${u}"></a>`, 'outHtml')}
+                ${createCopyRow('Image URL', u, 'outUrl')}
+            `;
+        }
+
+        function createCopyRow(l, v, id) {
+            return `<div class="nothing-card p-4 flex items-center justify-between">
+                <div class="flex-1 mr-4 text-[10px] font-mono"><span class="text-gray-400 block mb-1 uppercase font-bold">${l}</span><input type="text" id="${id}" value='${v}' readonly class="w-full bg-transparent outline-none"></div>
+                <button onclick="copy('${id}')" class="btn-gray-copy">Copy</button>
+            </div>`;
+        }
+
+        function switchTab(t) {
+            const isT = t === 'thumb';
+            document.getElementById('tabThumb').className = `nothing-card px-8 py-2 text-[10px] font-bold uppercase ${isT?'tab-active':'text-gray-400'}`;
+            document.getElementById('tabEmbed').className = `nothing-card px-8 py-2 text-[10px] font-bold uppercase ${!isT?'tab-active':'text-gray-400'}`;
+            document.getElementById('contentThumb').classList.toggle('hidden', !isT);
+            document.getElementById('contentEmbed').classList.toggle('hidden', isT);
+            localStorage.setItem('yt_last_tab', t);
+        }
+
+        function scrollArea(id, dir) { document.getElementById(id).scrollBy({ left: dir * 200, behavior: 'smooth' }); }
+        function moveMainSlide(dir) { const e = document.getElementById('mainSlider'); e.scrollBy({ left: dir * e.clientWidth, behavior: 'smooth' }); }
+        async function copy(id) { const e = document.getElementById(id); await navigator.clipboard.writeText(e.value); const b = event.currentTarget; const o = b.innerText; b.innerText = "DONE"; setTimeout(() => b.innerText = o, 1000); }
+        function resizeEmbed(s) { const l = document.getElementById('aspectLock').checked; const w = document.getElementById('eWidth'), h = document.getElementById('eHeight'); if (l) s === 'w' ? h.value = Math.round(w.value * 9/16) : w.value = Math.round(h.value * 16/9); updateEmbed(); }
+        function updateEmbed() { if (!currentVideoId) return; const w = document.getElementById('eWidth').value, h = document.getElementById('eHeight').value, s = document.getElementById('eStart').value; document.getElementById('outIframe').value = `<iframe width="${w}" height="${h}" src="https://www.youtube.com/embed/${currentVideoId}?rel=0${s>0?'&start='+s:''}" frameborder="0" allowfullscreen></iframe>`; document.getElementById('outShortUrl').value = `https://youtu.be/${currentVideoId}${s>0?'?t='+s:''}`; }
         function syncTime() { if (player && player.getCurrentTime) { document.getElementById('eStart').value = Math.floor(player.getCurrentTime()); updateEmbed(); } }
-        function clearInput() { document.getElementById('videoUrl').value = ''; document.getElementById('resultArea').classList.add('hidden'); document.getElementById('playlistSection').classList.add('hidden'); }
+        function clearInput() { document.getElementById('videoUrl').value = ''; document.getElementById('resultArea').classList.add('hidden'); }
     </script>
 </body>
 </html>
