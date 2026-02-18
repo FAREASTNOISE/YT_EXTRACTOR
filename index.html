@@ -3,90 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YT_EXTRACTOR // GRID_SYSTEM</title>
+    <title>YT_EXTRACTOR // OPTIMIZED</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
     <script src="https://www.youtube.com/iframe_api"></script>
     <style>
         :root { --grid-color: rgba(0, 0, 0, 0.05); }
-
         body {
-            background-color: #f2f2f2;
-            font-family: 'Inter', sans-serif;
-            color: #000;
-            overflow-x: hidden;
-            /* SVG背景: 100pxのグリッドとかすれ演出 */
-            background-image:
-                radial-gradient(circle at center, transparent 0%, #f2f2f2 90%),
-                linear-gradient(var(--grid-color) 1px, transparent 1px),
-                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
-            background-size: 100% 100%, 100px 100px, 100px 100px;
-            background-attachment: fixed;
+            background-color: #f2f2f2; font-family: 'Inter', sans-serif; color: #000; overflow-x: hidden;
+            background-image: radial-gradient(circle at center, transparent 0%, #f2f2f2 90%), linear-gradient(var(--grid-color) 1px, transparent 1px), linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 100% 100%, 100px 100px, 100px 100px; background-attachment: fixed;
         }
-
-        .dot-font { font-family: 'Silkscreen', cursive; letter-spacing: -0.05em; }
-
-        /* Nothing風ボックス: 少し透けて罫線が見える */
-        .nothing-card {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(0, 0, 0, 0.08);
-            border-radius: 24px;
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03);
-        }
-
-        .nothing-input {
-            background: rgba(0, 0, 0, 0.03);
-            border: 1px solid transparent;
-            border-radius: 12px;
-            transition: all 0.2s;
-        }
+        .dot-font { font-family: 'Silkscreen', cursive; }
+        .nothing-card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(0, 0, 0, 0.08); border-radius: 24px; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.02); }
+        .nothing-input { background: rgba(0, 0, 0, 0.03); border: 1px solid transparent; border-radius: 12px; transition: all 0.2s; }
         .nothing-input:focus { background: #fff; border-color: #000; outline: none; }
-
         .btn-black { background: #000; color: #fff; border-radius: 50px; transition: all 0.2s; }
-        .btn-black:hover { transform: translateY(-1px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
-
+        .btn-black:hover { transform: translateY(-1px); background: #333; }
+        .btn-clear { background: #e5e5e5; color: #666; border-radius: 50px; transition: all 0.2s; }
+        .btn-clear:hover { background: #d0d0d0; color: #000; }
         .tab-active { background: #000 !important; color: #fff !important; }
 
-        .btn-gray-copy {
-            background-color: rgba(0, 0, 0, 0.05);
-            color: #666;
-            border-radius: 10px;
-            font-size: 10px;
-            font-weight: 700;
-            padding: 8px 16px;
-            text-transform: uppercase;
-            transition: all 0.2s;
-        }
-        .btn-gray-copy:hover { background-color: #000; color: #fff; }
+        /* シネマモード（全画面風表示）用 */
+        .cinema-mode { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 50; background: #000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .cinema-close { position: absolute; top: 20px; right: 20px; color: white; background: rgba(255,255,255,0.2); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 
-        .slider-container { position: relative; width: 100%; overflow: hidden; border-radius: 18px; background: #000; }
+        .slider-container { position: relative; width: 100%; overflow: hidden; border-radius: 18px; background: #eee; }
         .slider-track { display: flex; transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1); }
         .slide-item { min-width: 100%; height: auto; display: block; }
-
-        .nav-btn {
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(8px);
-            color: white;
-            width: 36px; height: 36px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            position: absolute; top: 50%; transform: translateY(-50%);
-            z-index: 10; cursor: pointer; border: 1px solid rgba(255,255,255,0.3);
-            transition: all 0.2s;
-        }
-        .nav-btn:hover { background: rgba(255, 255, 255, 0.4); }
-
+        .nav-btn { background: rgba(255, 255, 255, 0.3); backdrop-filter: blur(4px); color: black; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: absolute; top: 50%; transform: translateY(-50%); z-index: 10; cursor: pointer; border: 1px solid rgba(0,0,0,0.05); }
         .slide-dot { width: 5px; height: 5px; border-radius: 50%; background: #ccc; transition: all 0.3s; cursor: pointer; }
         .slide-dot.active { background: #000; width: 20px; border-radius: 10px; }
+
+        .video-wrapper { position: relative; padding-bottom: 56.25%; height: 0; border-radius: 18px; background: #000; overflow: hidden; transition: all 0.3s; }
+        #player { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
     </style>
 </head>
 <body class="py-12 px-4">
 
     <div class="max-w-2xl mx-auto">
-        <header class="mb-16 text-center">
-            <h1 class="dot-font text-5xl mb-3 tracking-tighter">YT_EXTRACTOR</h1>
-            <div class="inline-block px-3 py-1 border border-black rounded-full">
-                <p class="text-[9px] uppercase tracking-[0.3em] font-bold">Grid System Protocol // v1.8</p>
+        <header class="mb-10 pl-2">
+            <h1 class="dot-font text-2xl mb-1 tracking-tighter">YT_EXTRACTOR // OPTIMIZED</h1>
+            <div class="inline-block px-2 py-0.5 border border-black rounded-full">
+                <p class="text-[8px] uppercase tracking-[0.2em] font-bold">Optimized Protocol // v1.9</p>
             </div>
         </header>
 
@@ -96,72 +55,86 @@
                     <input type="text" id="videoUrl" placeholder="INPUT_YOUTUBE_SOURCE" class="nothing-input w-full p-4 pr-24 text-sm font-mono uppercase tracking-tighter">
                     <button onclick="pasteFromClipboard()" class="absolute right-2 top-2 bottom-2 px-4 bg-black text-white rounded-lg text-[9px] font-bold uppercase hover:bg-red-600 transition-colors">Paste</button>
                 </div>
-                <button onclick="processVideo()" class="btn-black w-full py-5 font-bold text-sm tracking-[0.2em] uppercase">Start Extraction</button>
+                <div class="flex gap-2">
+                    <button onclick="processVideo()" class="btn-black flex-grow py-4 font-bold text-xs tracking-[0.1em] uppercase">Start Extraction</button>
+                    <button onclick="clearInput()" class="btn-clear px-8 py-4 font-bold text-xs uppercase">Clear</button>
+                </div>
             </div>
         </div>
 
-        <div id="resultArea" class="hidden space-y-8">
+        <div id="resultArea" class="hidden space-y-6">
             <div class="flex gap-2 justify-center">
-                <button id="tabThumb" onclick="switchTab('thumb')" class="nothing-card px-8 py-3 text-xs font-bold uppercase tab-active transition-all">Assets</button>
-                <button id="tabEmbed" onclick="switchTab('embed')" class="nothing-card px-8 py-3 text-xs font-bold uppercase text-gray-400 transition-all">Embed</button>
+                <button id="tabThumb" onclick="switchTab('thumb')" class="nothing-card px-8 py-2 text-[10px] font-bold uppercase tab-active transition-all">Assets</button>
+                <button id="tabEmbed" onclick="switchTab('embed')" class="nothing-card px-8 py-2 text-[10px] font-bold uppercase text-gray-400 transition-all">Embed</button>
             </div>
 
-            <div id="contentThumb" class="space-y-4 fade-in">
-                <div class="nothing-card p-2 relative shadow-xl">
+            <div id="contentThumb" class="space-y-4">
+                <div class="nothing-card p-2 relative">
                     <div class="slider-container">
                         <div class="nav-btn left-3" onclick="moveSlide(-1)">⟵</div>
                         <div class="nav-btn right-3" onclick="moveSlide(1)">⟶</div>
                         <div class="slider-track" id="sliderTrack"></div>
                     </div>
-                    <div class="flex justify-center gap-2 py-4" id="sliderDots"></div>
-                    <p class="text-[9px] text-center text-gray-400 uppercase font-bold mb-2" id="slideLabel">Buffer Ready</p>
+                    <div class="flex justify-center gap-2 py-3" id="sliderDots"></div>
                 </div>
 
-                <div class="grid gap-3">
-                    <div class="nothing-card p-5 flex items-center justify-between">
-                        <div class="flex-1 mr-4 text-[10px] font-mono"><span class="text-gray-400 block mb-1 uppercase font-bold">Markdown_Output</span><input type="text" id="outMd" readonly class="w-full bg-transparent outline-none"></div>
+                <div class="grid gap-2">
+                    <div class="nothing-card p-4 flex items-center justify-between">
+                        <div class="flex-1 mr-4 text-[10px] font-mono"><span class="text-gray-400 block mb-1 uppercase font-bold">Markdown</span><input type="text" id="outMd" readonly class="w-full bg-transparent outline-none"></div>
                         <button onclick="copy('outMd')" class="btn-gray-copy">Copy</button>
                     </div>
-                    <div class="nothing-card p-5 flex items-center justify-between">
-                        <div class="flex-1 mr-4 text-[10px] font-mono"><span class="text-gray-400 block mb-1 uppercase font-bold">HTML_Img_Tag</span><input type="text" id="outHtml" readonly class="w-full bg-transparent outline-none"></div>
+                    <div class="nothing-card p-4 flex items-center justify-between">
+                        <div class="flex-1 mr-4 text-[10px] font-mono"><span class="text-gray-400 block mb-1 uppercase font-bold">HTML Tag</span><input type="text" id="outHtml" readonly class="w-full bg-transparent outline-none"></div>
                         <button onclick="copy('outHtml')" class="btn-gray-copy">Copy</button>
-                    </div>
-                    <div class="nothing-card p-5 flex items-center justify-between">
-                        <div class="flex-1 mr-4 text-[10px] font-mono"><span class="text-gray-400 block mb-1 uppercase font-bold">Source_URL</span><input type="text" id="urlOutput" readonly class="w-full bg-transparent outline-none text-red-500/60"></div>
-                        <button onclick="copy('urlOutput')" class="btn-gray-copy">Copy</button>
                     </div>
                 </div>
             </div>
 
-            <div id="contentEmbed" class="hidden space-y-6 fade-in">
-                <div class="nothing-card p-2 shadow-xl overflow-hidden">
+            <div id="contentEmbed" class="hidden space-y-6">
+                <div id="playerContainer" class="nothing-card p-2 shadow-xl relative group">
                     <div class="video-wrapper"><div id="player"></div></div>
+                    <button onclick="toggleCinema()" class="absolute bottom-4 right-4 bg-white/80 backdrop-blur px-3 py-1.5 rounded-full text-[9px] font-bold uppercase opacity-0 group-hover:opacity-100 transition-opacity">Cinema Mode</button>
                 </div>
-                <div class="nothing-card p-8">
-                    <div class="grid grid-cols-3 gap-6 mb-8 text-center">
-                        <div><label class="text-[9px] font-bold text-gray-400 block mb-2 uppercase">Width_PX</label><input type="number" id="eWidth" value="560" oninput="updateEmbed()" class="nothing-input w-full p-3 text-center text-sm"></div>
-                        <div><label class="text-[9px] font-bold text-gray-400 block mb-2 uppercase">Height_PX</label><input type="number" id="eHeight" value="315" oninput="updateEmbed()" class="nothing-input w-full p-3 text-center text-sm"></div>
-                        <div class="relative"><label class="text-[9px] font-bold text-gray-400 block mb-2 uppercase">Timestamp</label><input type="number" id="eStart" value="0" oninput="updateEmbed()" class="nothing-input w-full p-3 text-center text-sm">
-                        <button onclick="syncTime()" class="absolute right-1 bottom-1 p-1.5 bg-black text-white rounded-md text-[8px] uppercase">Sync</button></div>
+                <div class="nothing-card p-6">
+                    <div class="grid grid-cols-3 gap-4 mb-6 text-center">
+                        <div><label class="text-[9px] font-bold text-gray-400 block mb-1 uppercase">Width</label><input type="number" id="eWidth" value="560" oninput="updateEmbed()" class="nothing-input w-full p-2 text-center text-sm"></div>
+                        <div><label class="text-[9px] font-bold text-gray-400 block mb-1 uppercase">Height</label><input type="number" id="eHeight" value="315" oninput="updateEmbed()" class="nothing-input w-full p-2 text-center text-sm"></div>
+                        <div class="relative"><label class="text-[9px] font-bold text-gray-400 block mb-1 uppercase">Start</label><input type="number" id="eStart" value="0" oninput="updateEmbed()" class="nothing-input w-full p-2 text-center text-sm">
+                        <button onclick="syncTime()" class="absolute right-1 bottom-1 p-1 bg-black text-white rounded-md text-[8px] uppercase">Sync</button></div>
                     </div>
-                    <textarea id="outIframe" readonly rows="3" class="nothing-input w-full p-5 text-[10px] font-mono mb-6 border-dashed border-gray-300" placeholder="Awaiting synchronization..."></textarea>
-                    <button onclick="copy('outIframe')" class="btn-black w-full py-4 text-xs font-bold uppercase">Copy IFrame Protocol</button>
+                    <textarea id="outIframe" readonly rows="2" class="nothing-input w-full p-4 text-[10px] font-mono mb-4 border-dashed border-gray-300"></textarea>
+                    <button onclick="copy('outIframe')" class="btn-black w-full py-3 text-xs font-bold uppercase">Copy IFrame</button>
                 </div>
             </div>
         </div>
     </div>
 
+    <div id="cinemaOverlay" class="hidden cinema-mode" onclick="toggleCinema()">
+        <div class="cinema-close">✕</div>
+        <div id="cinemaContent" class="w-full max-w-4xl aspect-video bg-black rounded-lg overflow-hidden shadow-2xl" onclick="event.stopPropagation()">
+            </div>
+    </div>
+
     <script>
-        // --- 以前のロジックを継承 ---
         let player, currentVideoId = "";
         let currentSlide = 0;
         let thumbSources = [];
+        let isCinema = false;
+
+        function onYouTubeIframeAPIReady() {}
 
         async function pasteFromClipboard() {
             try {
                 const text = await navigator.clipboard.readText();
                 if (text) { document.getElementById('videoUrl').value = text; processVideo(); }
             } catch (err) { alert("手動でペーストしてください"); }
+        }
+
+        // --- URLクリア機能 ---
+        function clearInput() {
+            document.getElementById('videoUrl').value = '';
+            document.getElementById('resultArea').classList.add('hidden');
+            if(player) player.stopVideo();
         }
 
         function extractVideoId(url) {
@@ -177,10 +150,10 @@
 
             document.getElementById('resultArea').classList.remove('hidden');
             thumbSources = [
-                { type: 'Primary_Source', url: `https://img.youtube.com/vi/${currentVideoId}/maxresdefault.jpg`, fallback: `https://img.youtube.com/vi/${currentVideoId}/hqdefault.jpg` },
-                { type: 'Sub_Frame_01', url: `https://img.youtube.com/vi/${currentVideoId}/1.jpg` },
-                { type: 'Sub_Frame_02', url: `https://img.youtube.com/vi/${currentVideoId}/2.jpg` },
-                { type: 'Sub_Frame_03', url: `https://img.youtube.com/vi/${currentVideoId}/3.jpg` }
+                { type: 'Main', url: `https://img.youtube.com/vi/${currentVideoId}/maxresdefault.jpg`, fallback: `https://img.youtube.com/vi/${currentVideoId}/hqdefault.jpg` },
+                { type: 'Scene 1', url: `https://img.youtube.com/vi/${currentVideoId}/1.jpg` },
+                { type: 'Scene 2', url: `https://img.youtube.com/vi/${currentVideoId}/2.jpg` },
+                { type: 'Scene 3', url: `https://img.youtube.com/vi/${currentVideoId}/3.jpg` }
             ];
 
             setupSlider();
@@ -190,6 +163,23 @@
             if (player && player.loadVideoById) { player.loadVideoById(currentVideoId); }
             else { player = new YT.Player('player', { videoId: currentVideoId, playerVars: { 'rel': 0 }, events: { 'onReady': updateEmbed } }); }
             updateEmbed();
+        }
+
+        // --- シネマモード（全画面風表示） ---
+        function toggleCinema() {
+            const overlay = document.getElementById('cinemaOverlay');
+            const wrapper = document.querySelector('.video-wrapper');
+            const cinemaContent = document.getElementById('cinemaContent');
+            const originalContainer = document.querySelector('.video-wrapper');
+
+            isCinema = !isCinema;
+            if (isCinema) {
+                overlay.classList.remove('hidden');
+                cinemaContent.appendChild(document.getElementById('player'));
+            } else {
+                overlay.classList.add('hidden');
+                document.querySelector('.video-wrapper').appendChild(document.getElementById('player'));
+            }
         }
 
         function setupSlider() {
@@ -213,7 +203,6 @@
             const track = document.getElementById('sliderTrack'), dots = document.querySelectorAll('.slide-dot');
             track.style.transform = `translateX(-${currentSlide * 100}%)`;
             dots.forEach((dot, i) => dot.classList.toggle('active', i === currentSlide));
-            document.getElementById('slideLabel').innerText = `Buffer_Type: ${thumbSources[currentSlide].type}`;
             updateOutputLinks();
         }
 
@@ -221,7 +210,6 @@
             const currentUrl = thumbSources[currentSlide].url;
             document.getElementById('outMd').value = `[![](${currentUrl})](https://www.youtube.com/watch?v=${currentVideoId})`;
             document.getElementById('outHtml').value = `<a href="https://www.youtube.com/watch?v=${currentVideoId}"><img src="${currentUrl}"></a>`;
-            document.getElementById('urlOutput').value = currentUrl;
         }
 
         function syncTime() {
@@ -250,7 +238,7 @@
             await navigator.clipboard.writeText(el.value);
             const btn = event.currentTarget;
             const originalText = btn.innerText;
-            btn.innerText = "COPIED"; btn.style.backgroundColor = "#000"; btn.style.color = "#fff";
+            btn.innerText = "DONE"; btn.style.backgroundColor = "#000"; btn.style.color = "#fff";
             setTimeout(() => { btn.innerText = originalText; btn.style.backgroundColor = ""; btn.style.color = ""; }, 800);
         }
     </script>
