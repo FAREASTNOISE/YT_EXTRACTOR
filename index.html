@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>YT_EXTRACTOR // PROTOCOL v4.9.1</title>
+    <title>YT_EXTRACTOR // PROTOCOL v5.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
     <script src="https://www.youtube.com/iframe_api"></script>
@@ -44,15 +44,17 @@
         #errorMsg { color: #ff4444; font-size: 10px; font-weight: bold; text-align: center; margin-top: 10px; display: none; }
         .support-badge { font-size: 8px; font-weight: 800; letter-spacing: 0.1em; color: #999; text-transform: uppercase; margin-top: 8px; display: flex; align-items: center; gap: 8px; justify-content: center; }
         .support-badge span { color: #000; }
+        footer { margin-top: 80px; text-align: center; }
+        .copyright { font-family: 'Silkscreen', cursive; font-size: 9px; letter-spacing: 0.2em; color: #bbb; }
     </style>
 </head>
-<body class="py-12 px-4 pb-48">
+<body class="py-12 px-4 pb-20">
 
     <div class="max-w-2xl mx-auto">
         <header id="top" class="mb-10 pl-2">
             <h1 class="dot-font text-2xl mb-1 tracking-tighter">YT_EXTRACTOR</h1>
             <div class="inline-block px-2 py-0.5 border border-black rounded-full">
-                <p class="text-[8px] uppercase tracking-[0.2em] font-bold">Version 4.9.1 // UI Optimized</p>
+                <p class="text-[8px] uppercase tracking-[0.2em] font-bold">Version 5.1 // Sync Fixed</p>
             </div>
         </header>
 
@@ -62,13 +64,8 @@
                     <input type="text" id="videoUrl" placeholder="PASTE VIDEO OR PLAYLIST URL..." class="nothing-input w-full p-4 pr-24 text-sm font-mono uppercase">
                     <button id="pasteBtn" class="absolute right-2 top-2 bottom-2 px-4 bg-black text-white rounded-lg text-[9px] font-bold uppercase">Paste</button>
                 </div>
-
-                <div class="support-badge">
-                    <span>Video</span> • <span>Playlist</span> • <span>Shorts</span> SUPPORTED
-                </div>
-
-                <div id="errorMsg" class="uppercase">Error: Please enter a valid YouTube Video or Playlist link.</div>
-
+                <div class="support-badge"><span>Video</span> • <span>Playlist</span> • <span>Shorts</span> SUPPORTED</div>
+                <div id="errorMsg" class="uppercase">Error: Invalid YouTube link.</div>
                 <div class="flex gap-2">
                     <button onclick="processInput()" class="btn-black flex-grow py-4 font-bold text-xs uppercase">Start Extraction</button>
                     <button onclick="clearInput()" class="bg-gray-200 text-gray-600 px-8 py-4 rounded-[50px] font-bold text-xs uppercase">Clear</button>
@@ -123,10 +120,10 @@
                         </div>
                     </div>
                     <div class="mt-8 pt-6 border-t border-black/5">
-                        <p class="text-[9px] font-bold text-gray-400 uppercase mb-3 text-center tracking-widest">Share on Social Media</p>
+                        <p class="text-[9px] font-bold text-gray-400 uppercase mb-3 text-center tracking-widest">Share Context</p>
                         <div class="grid grid-cols-2 gap-2">
-                            <button onclick="shareOnX()" class="btn-x">X Post (Step 1)</button>
-                            <button onclick="openCurrentImg()" class="btn-image-open">Save Image (Step 2)</button>
+                            <button onclick="shareOnX()" class="btn-x">X Post</button>
+                            <button onclick="openCurrentImg()" class="btn-image-open">Save Image</button>
                         </div>
                     </div>
                 </div>
@@ -148,13 +145,19 @@
             <h3 class="dot-font text-[10px] uppercase text-gray-400 mb-2 px-2 tracking-widest">My Recent History</h3>
             <div class="relative"><div class="nav-btn prev" onclick="scrollArea('historyList', -1)"><div class="arrow" style="transform:rotate(-135deg);"></div></div><div class="nav-btn next" onclick="scrollArea('historyList', 1)"><div class="arrow" style="transform:rotate(45deg);"></div></div><div id="historyList" class="horizontal-scroll"></div><div id="historyIndicator" class="indicator-container"></div></div>
         </div>
+
+        <footer>
+            <p class="copyright">© FAREASTNOISE // YT_EXTRACTOR PROTOCOL</p>
+        </footer>
     </div>
 
     <script>
         let player, currentVideoId = "", assetList = [], currentImgUrl = "";
 
+        function onYouTubeIframeAPIReady() { checkSharedLink(); }
+
         window.onload = () => {
-            loadHistory(); checkSharedLink();
+            loadHistory();
             switchTab(localStorage.getItem('yt_last_tab') || 'thumb');
             document.getElementById('mainSlider').addEventListener('scroll', () => updateDots('mainSlider', 'mainIndicator', 1));
             ['historyList', 'sharedList', 'playlistList'].forEach(id => {
@@ -186,27 +189,44 @@
             return m ? m[1] : null;
         }
 
-        async function fetchPlaylist(listId) {
+        function fetchPlaylist(listId) {
             const list = document.getElementById('playlistList');
             document.getElementById('playlistSection').classList.remove('hidden');
             list.innerHTML = `<div class="p-4 text-[10px] uppercase font-bold text-gray-400">Syncing...</div>`;
-            if (player) player.destroy();
-            player = new YT.Player('player', { height: '100%', width: '100%', playerVars: { listType:'playlist', list: listId },
-                events: { 'onReady': (e) => {
-                    const p = e.target.getPlaylist();
-                    if(p && p.length > 0) {
-                        list.innerHTML = p.slice(0, 30).map(id => `<div class="scroll-item-content scroll-item nothing-card" onclick="loadVideo('${id}', true)"><img src="https://img.youtube.com/vi/${id}/mqdefault.jpg"></div>`).join('');
-                        updateDots('playlistList', 'playlistIndicator', 0.42);
-                        if (!currentVideoId) loadVideo(p[0], false);
+
+            if (player) { player.destroy(); player = null; }
+            player = new YT.Player('player', {
+                height: '100%', width: '100%',
+                playerVars: { listType: 'playlist', list: listId },
+                events: {
+                    'onReady': (e) => {
+                        const p = e.target.getPlaylist();
+                        if(p && p.length > 0) {
+                            list.innerHTML = p.slice(0, 50).map(id => `<div class="scroll-item-content scroll-item nothing-card" onclick="loadVideo('${id}', true)"><img src="https://img.youtube.com/vi/${id}/mqdefault.jpg"></div>`).join('');
+                            updateDots('playlistList', 'playlistIndicator', 0.42);
+                            if (!currentVideoId) loadVideo(p[0], false);
+                        }
                     }
-                }}
+                }
             });
             document.getElementById('resultArea').classList.remove('hidden');
         }
 
+        // KEY FIX: ID SYNC LOGIC
         function loadVideo(id, shouldScroll) {
-            currentVideoId = id; saveHistory(id);
+            if (!id) return;
+            currentVideoId = id;
+            saveHistory(id);
             document.getElementById('resultArea').classList.remove('hidden');
+
+            // Sync Player
+            if (player && player.loadVideoById) {
+                player.loadVideoById(id);
+            } else {
+                player = new YT.Player('player', { height: '100%', width: '100%', videoId: id });
+            }
+
+            // Sync Assets
             assetList = [
                 { label: 'Max Res', res: '1280x720', url: `https://img.youtube.com/vi/${id}/maxresdefault.jpg` },
                 { label: 'HQ', res: '480x360', url: `https://img.youtube.com/vi/${id}/hqdefault.jpg` },
@@ -215,13 +235,17 @@
                 { label: 'Scene 2', res: '120x90', url: `https://img.youtube.com/vi/${id}/2.jpg` },
                 { label: 'Scene 3', res: '120x90', url: `https://img.youtube.com/vi/${id}/3.jpg` }
             ];
+
             const slider = document.getElementById('mainSlider');
             slider.innerHTML = assetList.map(a => `<img src="${a.url}" class="slide-item" onerror="this.src='https://img.youtube.com/vi/${id}/hqdefault.jpg'">`).join('');
+            slider.scrollTo(0, 0); // Reset slider position
+
             document.getElementById('mainIndicator').innerHTML = assetList.map((_, i) => `<div class="dot ${i===0?'active':''}" onclick="document.getElementById('mainSlider').scrollTo({left:${i*slider.clientWidth},behavior:'smooth'})"></div>`).join('');
-            if (player && player.loadVideoById) player.loadVideoById(id);
-            else player = new YT.Player('player', { height: '100%', width: '100%', videoId: id });
+
+            // Initial Output Update
             updateDots('mainSlider', 'mainIndicator', 1);
             updateEmbed();
+
             if (shouldScroll) document.getElementById('resultArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
@@ -249,19 +273,67 @@
 
         function scrollArea(id, dir) { document.getElementById(id).scrollBy({ left: dir * 300, behavior: 'smooth' }); }
         function moveMainSlide(dir) { const e = document.getElementById('mainSlider'); e.scrollBy({ left: dir * e.clientWidth, behavior: 'smooth' }); }
-        function shareOnX() { window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(document.getElementById('outShortUrl').value || 'https://youtu.be/'+currentVideoId)}`, '_blank'); }
+        function shareOnX() { window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(document.getElementById('outShortUrl').value)}`, '_blank'); }
         function openCurrentImg() { if (currentImgUrl) window.open(currentImgUrl, '_blank'); }
         async function copy(id) { const e = document.getElementById(id); await navigator.clipboard.writeText(e.value); const b = event.currentTarget; const o = b.innerText; b.innerText = "DONE"; setTimeout(() => b.innerText = o, 1000); }
-        function resizeEmbed(s) { const l = document.getElementById('aspectLock').checked; const w = document.getElementById('eWidth'), h = document.getElementById('eHeight'); if (l) s === 'w' ? h.value = Math.round(w.value * 9/16) : w.value = Math.round(h.value * 16/9); updateEmbed(); }
-        function updateEmbed() { if (!currentVideoId) return; const w = document.getElementById('eWidth').value, h = document.getElementById('eHeight').value, s = document.getElementById('eStart').value; document.getElementById('outIframe').value = `<iframe width="${w}" height="${h}" src="https://www.youtube.com/embed/${currentVideoId}?rel=0${s>0?'&start='+s:''}" frameborder="0" allowfullscreen></iframe>`; document.getElementById('outShortUrl').value = `https://youtu.be/${currentVideoId}${s>0?'?t='+s:''}`; }
+
+        function resizeEmbed(s) {
+            const l = document.getElementById('aspectLock').checked;
+            const w = document.getElementById('eWidth'), h = document.getElementById('eHeight');
+            if (l) s === 'w' ? h.value = Math.round(w.value * 9/16) : w.value = Math.round(h.value * 16/9);
+            updateEmbed();
+        }
+
+        function updateEmbed() {
+            if (!currentVideoId) return;
+            const w = document.getElementById('eWidth').value, h = document.getElementById('eHeight').value, s = document.getElementById('eStart').value;
+            document.getElementById('outIframe').value = `<iframe width="${w}" height="${h}" src="https://www.youtube.com/embed/${currentVideoId}?rel=0${s>0?'&start='+s:''}" frameborder="0" allowfullscreen></iframe>`;
+            document.getElementById('outShortUrl').value = `https://youtu.be/${currentVideoId}${s>0?'?t='+s:''}`;
+        }
+
         function syncTime() { if (player && player.getCurrentTime) { document.getElementById('eStart').value = Math.floor(player.getCurrentTime()); updateEmbed(); } }
         function clearInput() { document.getElementById('videoUrl').value = ''; document.getElementById('resultArea').classList.add('hidden'); document.getElementById('errorMsg').style.display = 'none'; }
         function shareCurrentList() { const h = JSON.parse(localStorage.getItem('yt_history') || '[]'); if (h.length) navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?list=${h.join(',')}`).then(() => alert("History Link Copied!")); }
-        function checkSharedLink() { const p = new URLSearchParams(window.location.search); const l = p.get('list'); if (l) { const ids = l.split(','); document.getElementById('sharedSection').classList.remove('hidden'); document.getElementById('sharedList').innerHTML = ids.map(id => `<div class="scroll-item-content scroll-item nothing-card" onclick="loadVideo('${id}', true)"><img src="https://img.youtube.com/vi/${id}/mqdefault.jpg"></div>`).join(''); document.getElementById('sharedIndicator').innerHTML = ids.map((_, i) => `<div class="dot ${i===0?'active':''}"></div>`).join(''); } }
-        function updateDots(sId, iId, r) { const l = document.getElementById(sId); const d = document.querySelectorAll(`#${iId} .dot`); if(!d.length || !l) return; const idx = Math.round(l.scrollLeft / (l.clientWidth * r)); d.forEach((dot, i) => dot.classList.toggle('active', i === idx)); if(sId === 'mainSlider' && assetList[idx]) { currentImgUrl = assetList[idx].url; document.getElementById('assetMeta').innerText = `${assetList[idx].label} // ${assetList[idx].res}`; updateOutputs(assetList[idx].url); } }
-        function updateOutputs(u) { document.getElementById('thumbOutputs').innerHTML = `${createCopyRow('Markdown', `[![](${u})](https://www.youtube.com/watch?v=${currentVideoId})`, 'outMd')}${createCopyRow('HTML Tag', `<a href="https://www.youtube.com/watch?v=${currentVideoId}"><img src="${u}"></a>`, 'outHtml')}${createCopyRow('Image URL', u, 'outUrl')}`; }
+
+        function checkSharedLink() {
+            const p = new URLSearchParams(window.location.search); const l = p.get('list');
+            if (l) {
+                const ids = l.split(',');
+                document.getElementById('sharedSection').classList.remove('hidden');
+                document.getElementById('sharedList').innerHTML = ids.map(id => `<div class="scroll-item-content scroll-item nothing-card" onclick="loadVideo('${id}', true)"><img src="https://img.youtube.com/vi/${id}/mqdefault.jpg"></div>`).join('');
+                updateDots('sharedList', 'sharedIndicator', 0.42);
+            }
+        }
+
+        function updateDots(sId, iId, r) {
+            const l = document.getElementById(sId);
+            const d = document.querySelectorAll(`#${iId} .dot`);
+            if(!d.length || !l) return;
+            const idx = Math.min(Math.round(l.scrollLeft / (l.clientWidth * r)), d.length - 1);
+            d.forEach((dot, i) => dot.classList.toggle('active', i === idx));
+
+            if(sId === 'mainSlider' && assetList[idx]) {
+                currentImgUrl = assetList[idx].url;
+                document.getElementById('assetMeta').innerText = `${assetList[idx].label} // ${assetList[idx].res}`;
+                updateOutputs(assetList[idx].url);
+            }
+        }
+
+        function updateOutputs(u) {
+            document.getElementById('thumbOutputs').innerHTML = `${createCopyRow('Markdown', `[![](${u})](https://www.youtube.com/watch?v=${currentVideoId})`, 'outMd')}${createCopyRow('HTML Tag', `<a href="https://www.youtube.com/watch?v=${currentVideoId}"><img src="${u}"></a>`, 'outHtml')}${createCopyRow('Image URL', u, 'outUrl')}`;
+        }
+
         function createCopyRow(l, v, id) { return `<div class="nothing-card p-4 flex items-center justify-between"><div class="flex-1 mr-4 text-[10px] font-mono"><span class="text-gray-400 block mb-1 uppercase font-bold">${l}</span><input type="text" id="${id}" value='${v}' readonly class="w-full bg-transparent outline-none"></div><button onclick="copy('${id}')" class="btn-gray-copy">Copy</button></div>`; }
-        function switchTab(t) { const isT = t === 'thumb'; document.getElementById('tabThumb').className = `nothing-card px-8 py-2 text-[10px] font-bold uppercase ${isT?'tab-active':'text-gray-400'}`; document.getElementById('tabEmbed').className = `nothing-card px-8 py-2 text-[10px] font-bold uppercase ${!isT?'tab-active':'text-gray-400'}`; document.getElementById('contentThumb').classList.toggle('hidden', !isT); document.getElementById('contentEmbed').classList.toggle('hidden', isT); localStorage.setItem('yt_last_tab', t); }
+
+        function switchTab(t) {
+            const isT = t === 'thumb';
+            document.getElementById('tabThumb').className = `nothing-card px-8 py-2 text-[10px] font-bold uppercase ${isT?'tab-active':'text-gray-400'}`;
+            document.getElementById('tabEmbed').className = `nothing-card px-8 py-2 text-[10px] font-bold uppercase ${!isT?'tab-active':'text-gray-400'}`;
+            document.getElementById('contentThumb').classList.toggle('hidden', !isT);
+            document.getElementById('contentEmbed').classList.toggle('hidden', isT);
+            localStorage.setItem('yt_last_tab', t);
+            if (!isT) updateEmbed(); // Force update embed code when switching to embed tab
+        }
     </script>
 </body>
 </html>
