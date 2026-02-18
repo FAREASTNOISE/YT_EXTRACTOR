@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>YT_EXTRACTOR // PROTOCOL v3.8</title>
+    <title>YT_EXTRACTOR // PROTOCOL v3.9</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
     <script src="https://www.youtube.com/iframe_api"></script>
@@ -26,26 +26,22 @@
 
         .fixed-aspect { width: 100%; aspect-ratio: 16 / 9; border-radius: 18px; overflow: hidden; background: #000; position: relative; }
 
-        /* --- メインスライダー (スワイプ対応) --- */
         .slider-viewport { width: 100%; height: 100%; overflow-x: auto; display: flex; scroll-snap-type: x mandatory; scroll-behavior: smooth; -ms-overflow-style: none; scrollbar-width: none; }
         .slider-viewport::-webkit-scrollbar { display: none; }
         .slide-item { flex: 0 0 100%; width: 100%; height: 100%; scroll-snap-align: start; object-fit: cover; }
 
-        /* PC用ナビボタン (Hover時表示) */
-        .main-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 40px; height: 40px; background: rgba(255,255,255,0.8); border-radius: 50%; display: none; align-items: center; justify-content: center; z-index: 20; cursor: pointer; }
-        @media (hover: hover) { .fixed-aspect:hover .main-nav { display: flex; } }
-        .main-nav.prev { left: 10px; } .main-nav.next { right: 10px; }
+        .nav-btn { position: absolute; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 20; box-shadow: 0 2px 8px rgba(0,0,0,0.1); cursor: pointer; border: 1px solid rgba(0,0,0,0.05); }
+        .nav-btn.prev { left: -10px; } .nav-btn.next { right: -10px; }
+        .arrow { width: 6px; height: 6px; border-top: 2px solid #000; border-right: 2px solid #000; }
 
-        /* インジケーター (Nothing Style Line) */
         .indicator-container { display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 12px; height: 10px; }
         .dot { width: 6px; height: 6px; background: #ccc; border-radius: 3px; transition: all 0.3s; cursor: pointer; }
         .dot.active { width: 24px; background: #000; }
 
-        /* --- 履歴 --- */
-        .history-scroll { display: flex; overflow-x: auto; gap: 10px; padding: 10px 0; scroll-behavior: smooth; scroll-snap-type: x proximity; -ms-overflow-style: none; scrollbar-width: none; }
-        .history-scroll::-webkit-scrollbar { display: none; }
-        .history-item { flex: 0 0 calc((100% - 20px) / 2.2); scroll-snap-align: start; cursor: pointer; }
-        .history-item img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 7px; }
+        .horizontal-scroll { display: flex; overflow-x: auto; gap: 10px; padding: 10px 0; scroll-behavior: smooth; scroll-snap-type: x proximity; -ms-overflow-style: none; scrollbar-width: none; }
+        .horizontal-scroll::-webkit-scrollbar { display: none; }
+        .scroll-item { flex: 0 0 calc((100% - 20px) / 2.2); scroll-snap-align: start; cursor: pointer; }
+        .scroll-item img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 7px; }
 
         .checkbox-container { display: flex; align-items: center; cursor: pointer; font-size: 10px; font-weight: 700; text-transform: uppercase; color: #666; }
         .checkbox-container input { display: none; }
@@ -60,7 +56,7 @@
         <header class="mb-10 pl-2">
             <h1 class="dot-font text-2xl mb-1 tracking-tighter">YT_EXTRACTOR</h1>
             <div class="inline-block px-2 py-0.5 border border-black rounded-full">
-                <p class="text-[8px] uppercase tracking-[0.2em] font-bold">Version 3.8 // Scene & Motion assets</p>
+                <p class="text-[8px] uppercase tracking-[0.2em] font-bold">Version 3.9 // Recommendations Protocol</p>
             </div>
         </header>
 
@@ -86,8 +82,8 @@
             <div id="contentThumb" class="space-y-4">
                 <div class="nothing-card p-2 relative">
                     <div class="fixed-aspect">
-                        <div class="main-nav prev" onclick="moveMainSlide(-1)"><div class="arrow arrow-left" style="transform:rotate(-135deg); width:8px; height:8px; border-top:2px solid #000; border-right:2px solid #000;"></div></div>
-                        <div class="main-nav next" onclick="moveMainSlide(1)"><div class="arrow arrow-right" style="transform:rotate(45deg); width:8px; height:8px; border-top:2px solid #000; border-right:2px solid #000;"></div></div>
+                        <div class="nav-btn prev" style="left:10px;" onclick="moveMainSlide(-1)"><div class="arrow" style="transform:rotate(-135deg); margin-left:2px;"></div></div>
+                        <div class="nav-btn next" style="right:10px;" onclick="moveMainSlide(1)"><div class="arrow" style="transform:rotate(45deg); margin-right:2px;"></div></div>
                         <div class="slider-viewport" id="mainSlider"></div>
                     </div>
                     <div id="mainIndicator" class="indicator-container"></div>
@@ -118,10 +114,23 @@
         <div id="historySection" class="mt-12 hidden border-t border-black/5 pt-8">
             <h3 class="dot-font text-[10px] uppercase text-gray-400 mb-2 px-2 tracking-widest">Recent History</h3>
             <div class="history-container relative">
-                <div id="historyList" class="history-scroll"></div>
+                <div class="nav-btn prev" onclick="scrollArea('historyList', -1)"><div class="arrow" style="transform:rotate(-135deg); margin-left:2px;"></div></div>
+                <div class="nav-btn next" onclick="scrollArea('historyList', 1)"><div class="arrow" style="transform:rotate(45deg); margin-right:2px;"></div></div>
+                <div id="historyList" class="horizontal-scroll"></div>
                 <div id="historyIndicator" class="indicator-container"></div>
             </div>
         </div>
+
+        <div id="recommendSection" class="mt-12 hidden border-t border-black/5 pt-8">
+            <h3 class="dot-font text-[10px] uppercase text-gray-400 mb-2 px-2 tracking-widest">Related Videos</h3>
+            <div class="history-container relative">
+                <div class="nav-btn prev" onclick="scrollArea('recommendList', -1)"><div class="arrow" style="transform:rotate(-135deg); margin-left:2px;"></div></div>
+                <div class="nav-btn next" onclick="scrollArea('recommendList', 1)"><div class="arrow" style="transform:rotate(45deg); margin-right:2px;"></div></div>
+                <div id="recommendList" class="horizontal-scroll"></div>
+                <div id="recommendIndicator" class="indicator-container"></div>
+            </div>
+        </div>
+
     </div>
 
     <script>
@@ -134,14 +143,18 @@
 
             document.getElementById('mainSlider').addEventListener('scroll', () => updateDots('mainSlider', 'mainIndicator', 1));
             document.getElementById('historyList').addEventListener('scroll', () => updateDots('historyList', 'historyIndicator', 0.42));
+            document.getElementById('recommendList').addEventListener('scroll', () => updateDots('recommendList', 'recommendIndicator', 0.42));
 
             document.getElementById('pasteBtn').addEventListener('click', async () => {
-                try {
-                    const text = await navigator.clipboard.readText();
-                    if (text) { document.getElementById('videoUrl').value = text; processVideo(); }
-                } catch (err) { console.log("Clipboard Error"); }
+                const text = await navigator.clipboard.readText();
+                if (text) { document.getElementById('videoUrl').value = text; processVideo(); }
             });
         };
+
+        function scrollArea(id, dir) {
+            const el = document.getElementById(id);
+            el.scrollBy({ left: dir * (el.clientWidth * 0.5), behavior: 'smooth' });
+        }
 
         function moveMainSlide(dir) {
             const el = document.getElementById('mainSlider');
@@ -173,6 +186,7 @@
             currentVideoId = vid || extractVideoId(document.getElementById('videoUrl').value);
             if (!currentVideoId) return;
             saveHistory(currentVideoId);
+            loadRecommendations(currentVideoId);
             document.getElementById('resultArea').classList.remove('hidden');
 
             assetList = [
@@ -186,9 +200,7 @@
 
             const slider = document.getElementById('mainSlider');
             slider.innerHTML = assetList.map(a => `<img src="${a.url}" class="slide-item" onerror="this.src='https://img.youtube.com/vi/${currentVideoId}/hqdefault.jpg'">`).join('');
-
-            const indicator = document.getElementById('mainIndicator');
-            indicator.innerHTML = assetList.map((_, i) => `<div class="dot ${i===0?'active':''}" onclick="document.getElementById('mainSlider').scrollTo({left:${i*slider.clientWidth},behavior:'smooth'})"></div>`).join('');
+            document.getElementById('mainIndicator').innerHTML = assetList.map((_, i) => `<div class="dot ${i===0?'active':''}" onclick="document.getElementById('mainSlider').scrollTo({left:${i*slider.clientWidth},behavior:'smooth'})"></div>`).join('');
 
             if (player && player.loadVideoById) player.loadVideoById(currentVideoId);
             else player = new YT.Player('player', { height: '100%', width: '100%', videoId: currentVideoId });
@@ -212,6 +224,23 @@
             </div>`;
         }
 
+        function loadRecommendations(id) {
+            const section = document.getElementById('recommendSection');
+            const list = document.getElementById('recommendList');
+            const indicator = document.getElementById('recommendIndicator');
+            section.classList.remove('hidden');
+
+            // 関連動画のシミュレーション（YouTubeの一般的な動画IDパターンなどを活用）
+            const dummySuffix = ['-XjS6eU0Y_E', 'dQw4w9WgXcQ', '3JZ_D3ELwOQ', '2Vv-BfVoq4g', 'YykjpeuMNEk', 'JGwWNGJdvx8', '9bZkp7q19f0', 'L_jWHffIx5E', 'tVlcKp3bWH8', '09R8_2nJtjg'];
+
+            list.innerHTML = dummySuffix.map(sid => `
+                <div class="scroll-item nothing-card p-1.5" onclick="loadFromRec('${sid}')">
+                    <img src="https://img.youtube.com/vi/${sid}/mqdefault.jpg">
+                </div>`).join('');
+
+            indicator.innerHTML = dummySuffix.map((_, i) => `<div class="dot ${i===0?'active':''}"></div>`).join('');
+        }
+
         function saveHistory(id) {
             let history = JSON.parse(localStorage.getItem('yt_history') || '[]');
             history = [id, ...history.filter(x => x !== id)].slice(0, 10);
@@ -224,15 +253,12 @@
             const list = document.getElementById('historyList');
             if (history.length === 0) return;
             document.getElementById('historySection').classList.remove('hidden');
-            list.innerHTML = history.map(id => `<div class="history-item nothing-card p-1.5" onclick="loadFromHistory('${id}')"><img src="https://img.youtube.com/vi/${id}/mqdefault.jpg"></div>`).join('');
-            document.getElementById('historyIndicator').innerHTML = history.map((_, i) => `<div class="dot ${i===0?'active':''}" onclick="document.getElementById('historyList').scrollTo({left:${i*(list.clientWidth*0.42)},behavior:'smooth'})"></div>`).join('');
+            list.innerHTML = history.map(id => `<div class="scroll-item nothing-card p-1.5" onclick="loadFromHistory('${id}')"><img src="https://img.youtube.com/vi/${id}/mqdefault.jpg"></div>`).join('');
+            document.getElementById('historyIndicator').innerHTML = history.map((_, i) => `<div class="dot ${i===0?'active':''}"></div>`).join('');
         }
 
-        function loadFromHistory(id) {
-            document.getElementById('videoUrl').value = `https://www.youtube.com/watch?v=${id}`;
-            processVideo(id);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+        function loadFromHistory(id) { document.getElementById('videoUrl').value = `https://www.youtube.com/watch?v=${id}`; processVideo(id); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+        function loadFromRec(id) { document.getElementById('videoUrl').value = `https://www.youtube.com/watch?v=${id}`; processVideo(id); window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
         function extractVideoId(url) {
             const match = url.match(/^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);
@@ -241,7 +267,7 @@
 
         async function copy(id) {
             const el = document.getElementById(id);
-            await navigator.clipboard.readText(el.value);
+            await navigator.clipboard.writeText(el.value);
             const btn = event.currentTarget;
             const old = btn.innerText; btn.innerText = "DONE";
             setTimeout(() => btn.innerText = old, 1000);
