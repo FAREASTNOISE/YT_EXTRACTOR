@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>YT_EXTRACTOR // PROTOCOL v5.9</title>
+    <title>YT_EXTRACTOR // PROTOCOL v6.2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
     <script src="https://www.youtube.com/iframe_api"></script>
@@ -18,9 +18,10 @@
         .dot-font { font-family: 'Silkscreen', cursive; }
         .nothing-card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(0, 0, 0, 0.08); border-radius: 24px; position: relative; }
         .nothing-input { background: rgba(0, 0, 0, 0.03); border: 1px solid transparent; border-radius: 12px; transition: all 0.2s; -webkit-appearance: none; }
-        .del-btn { position: absolute; top: -5px; right: -5px; width: 22px; height: 22px; background: #ff4444; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; cursor: pointer; z-index: 30; border: 2px solid white; }
+        .del-btn { position: absolute; top: -5px; right: -5px; width: 22px; height: 22px; background: #ff4444; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; cursor: pointer; z-index: 50; border: 2px solid white; }
         .btn-gray-copy { background-color: #eeeeee; color: #666; border-radius: 10px; font-size: 10px; font-weight: 700; padding: 8px 16px; text-transform: uppercase; border: none; cursor: pointer; }
         .btn-black { background: #000; color: #fff; border-radius: 50px; transition: all 0.2s; }
+        .btn-black-rect { background: #000; color: #fff; border-radius: 12px; font-size: 11px; font-weight: 700; padding: 16px; width: 100%; text-transform: uppercase; transition: opacity 0.2s; }
         .btn-x { background: #000; color: #fff; border-radius: 10px; font-size: 10px; font-weight: 700; padding: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; text-transform: uppercase; }
         .btn-image-open { background: #fff; color: #000; border: 1px solid #000; border-radius: 10px; font-size: 10px; font-weight: 700; padding: 14px; width: 100%; text-transform: uppercase; }
         .tab-active { background: #000 !important; color: #fff !important; }
@@ -28,9 +29,9 @@
         .slider-viewport { width: 100%; height: 100%; overflow-x: auto; display: flex; scroll-snap-type: x mandatory; scroll-behavior: smooth; -ms-overflow-style: none; scrollbar-width: none; }
         .slider-viewport::-webkit-scrollbar { display: none; }
         .slide-item { flex: 0 0 100%; width: 100%; height: 100%; scroll-snap-align: start; object-fit: cover; }
-        .nav-btn { position: absolute; top: 50%; transform: translateY(-50%); width: 36px; height: 36px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 40; box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer; border: 1px solid rgba(0,0,0,0.05); }
-        .nav-btn.prev { left: -14px; } .nav-btn.next { right: -14px; }
-        .arrow { width: 7px; height: 7px; border-top: 2px solid #000; border-right: 2px solid #000; }
+        .nav-btn { position: absolute; top: 50%; transform: translateY(-50%); width: 40px; height: 40px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 40; box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer; border: 1px solid rgba(0,0,0,0.05); }
+        .nav-btn.prev { left: 10px; } .nav-btn.next { right: 10px; }
+        .arrow { width: 8px; height: 8px; border-top: 2.5px solid #000; border-right: 2.5px solid #000; }
         .indicator-container { display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 12px; height: 10px; }
         .dot { width: 6px; height: 6px; background: #ccc; border-radius: 3px; transition: all 0.3s; cursor: pointer; }
         .dot.active { width: 24px; background: #000; }
@@ -39,9 +40,6 @@
         .scroll-item-content { flex: 0 0 calc((100% - 24px) / 2.2); scroll-snap-align: start; position: relative; }
         footer { margin-top: 80px; text-align: center; padding-bottom: 40px; }
         .copyright { font-family: 'Silkscreen', cursive; font-size: 9px; letter-spacing: 0.2em; color: #bbb; }
-        .reset-trigger { cursor: pointer; transition: opacity 0.2s; }
-        .reset-trigger:active { opacity: 0.5; }
-        /* Loading Styles */
         #loader-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #000; color: #fff; z-index: 20; }
         .loading-text { font-family: 'Silkscreen'; font-size: 10px; letter-spacing: 0.2em; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
@@ -50,10 +48,10 @@
 <body class="py-12 px-4">
 
     <div class="max-w-2xl mx-auto">
-        <header id="top" class="mb-10 pl-2">
-            <h1 onclick="clearInput()" class="dot-font text-2xl mb-1 tracking-tighter reset-trigger">YT_EXTRACTOR</h1>
+        <header class="mb-10 pl-2">
+            <h1 onclick="clearInput()" class="dot-font text-2xl mb-1 tracking-tighter cursor-pointer">YT_EXTRACTOR</h1>
             <div class="inline-block px-2 py-0.5 border border-black rounded-full">
-                <p class="text-[8px] uppercase tracking-[0.2em] font-bold">Version 5.9 // Smart Asset Sync</p>
+                <p class="text-[8px] uppercase tracking-[0.2em] font-bold">Version 6.2 // Aspect & Copy Fixed</p>
             </div>
         </header>
 
@@ -79,14 +77,14 @@
             <div id="contentThumb" class="space-y-4">
                 <div class="nothing-card p-2 relative">
                     <div class="fixed-aspect">
-                        <div class="nav-btn prev" style="left:10px;" onclick="moveMainSlide(-1)"><div class="arrow" style="transform:rotate(-135deg);"></div></div>
-                        <div class="nav-btn next" style="right:10px;" onclick="moveMainSlide(1)"><div class="arrow" style="transform:rotate(45deg);"></div></div>
+                        <div class="nav-btn prev" onclick="moveMainSlide(-1)"><div class="arrow" style="transform:rotate(-135deg);"></div></div>
+                        <div class="nav-btn next" onclick="moveMainSlide(1)"><div class="arrow" style="transform:rotate(45deg);"></div></div>
                         <div class="slider-viewport" id="mainSlider"></div>
                     </div>
                     <div id="mainIndicator" class="indicator-container"></div>
                     <div id="assetMeta" class="text-center text-[9px] font-bold text-gray-400 uppercase mt-1"></div>
                 </div>
-                <div class="grid gap-2" id="thumbOutputs"></div>
+                <div id="thumbOutputs" class="space-y-2"></div>
             </div>
 
             <div id="contentEmbed" class="hidden space-y-6">
@@ -98,18 +96,18 @@
                 </div>
                 <div class="nothing-card p-6">
                     <div class="grid grid-cols-3 gap-3 mb-6">
-                        <div><label class="text-[9px] font-bold text-gray-400 block mb-1 uppercase">Width</label><input type="number" id="eWidth" value="560" oninput="resizeEmbed('w')" class="nothing-input w-full p-2 text-center text-xs"></div>
-                        <div><label class="text-[9px] font-bold text-gray-400 block mb-1 uppercase">Height</label><input type="number" id="eHeight" value="315" oninput="resizeEmbed('h')" class="nothing-input w-full p-2 text-center text-xs"></div>
-                        <div class="relative"><label class="text-[9px] font-bold text-gray-400 block mb-1 uppercase">Start (s)</label><input type="number" id="eStart" value="0" oninput="updateEmbedOutputs()" class="nothing-input w-full p-2 text-center text-xs"><button onclick="syncTime()" class="absolute right-1 bottom-1 p-1 bg-black text-white rounded-md text-[7px] uppercase">Sync</button></div>
+                        <div><label class="text-[9px] font-bold text-gray-400 block mb-1 uppercase text-center">Width</label><input type="number" id="eWidth" value="560" oninput="resizeEmbed('w')" class="nothing-input w-full p-2 text-center text-xs"></div>
+                        <div><label class="text-[9px] font-bold text-gray-400 block mb-1 uppercase text-center">Height</label><input type="number" id="eHeight" value="315" oninput="resizeEmbed('h')" class="nothing-input w-full p-2 text-center text-xs"></div>
+                        <div class="relative"><label class="text-[9px] font-bold text-gray-400 block mb-1 uppercase text-center">Start (s)</label><input type="number" id="eStart" value="0" oninput="updateEmbedOutputs()" class="nothing-input w-full p-2 text-center text-xs"><button onclick="syncTime()" class="absolute right-1 bottom-1 p-1 bg-black text-white rounded-md text-[7px] uppercase">Sync</button></div>
                     </div>
                     <div class="space-y-4">
                         <div class="nothing-card p-4 bg-transparent border-dashed">
-                            <label class="text-[9px] font-bold text-gray-400 block mb-2 uppercase">IFrame Code</label>
-                            <textarea id="outIframe" readonly class="nothing-input w-full p-3 text-[10px] font-mono h-16 mb-2"></textarea>
-                            <button onclick="copy('outIframe')" class="btn-gray-copy w-full">Copy IFrame</button>
+                            <label class="text-[9px] font-bold text-gray-400 block mb-2 uppercase tracking-widest">iframe embed tag</label>
+                            <textarea id="outIframe" readonly class="nothing-input w-full p-3 text-[10px] font-mono h-16 mb-4"></textarea>
+                            <button onclick="copy('outIframe')" class="btn-black-rect">Copy IFrame Tag</button>
                         </div>
                         <div class="nothing-card p-4 bg-transparent border-dashed">
-                            <label class="text-[9px] font-bold text-gray-400 block mb-2 uppercase">Short URL</label>
+                            <label class="text-[9px] font-bold text-gray-400 block mb-2 uppercase tracking-widest">Short URL</label>
                             <div class="flex gap-2">
                                 <input type="text" id="outShortUrl" readonly class="nothing-input flex-grow p-3 text-[11px] font-mono">
                                 <button onclick="copy('outShortUrl')" class="btn-gray-copy px-6">Copy URL</button>
@@ -126,17 +124,16 @@
 
         <div id="playlistSection" class="mt-12 hidden border-t border-black pt-8">
             <h3 class="dot-font text-[10px] uppercase text-black mb-2 px-2 tracking-widest font-bold">Playlist Items</h3>
-            <div class="relative">
-                <div id="playlistList" class="horizontal-scroll"></div>
-                <div id="playlistIndicator" class="indicator-container"></div>
-            </div>
+            <div id="playlistList" class="horizontal-scroll"></div>
+            <div id="playlistIndicator" class="indicator-container"></div>
         </div>
 
         <div id="historySection" class="mt-12 hidden border-t border-black/5 pt-8">
             <h3 class="dot-font text-[10px] uppercase text-gray-400 mb-2 px-2 tracking-widest">Recent History</h3>
-            <div class="relative">
-                <div id="historyList" class="horizontal-scroll"></div>
-                <div id="historyIndicator" class="indicator-container"></div>
+            <div id="historyList" class="horizontal-scroll"></div>
+            <div id="historyIndicator" class="indicator-container"></div>
+            <div class="mt-6 flex justify-center">
+                <button onclick="copyAllHistory()" class="btn-black-rect !w-auto px-10">Copy All History Links</button>
             </div>
         </div>
 
@@ -182,7 +179,7 @@
         async function checkImage(url) {
             return new Promise(resolve => {
                 const img = new Image();
-                img.onload = () => resolve(img.width !== 120); // YouTubeのダミー画像は幅120
+                img.onload = () => resolve(img.width > 120);
                 img.onerror = () => resolve(false);
                 img.src = url;
             });
@@ -191,7 +188,7 @@
         function fetchPlaylist(listId) {
             const list = document.getElementById('playlistList');
             document.getElementById('playlistSection').classList.remove('hidden');
-            list.innerHTML = `<div class="p-4 text-[10px] uppercase font-bold text-gray-400 text-center w-full">Refreshing...</div>`;
+            list.innerHTML = `<div class="p-4 text-[10px] uppercase font-bold text-gray-400 text-center w-full">Loading...</div>`;
             resetPlayerElement();
             showLoader(true);
             player = new YT.Player('player', {
@@ -202,15 +199,9 @@
                         showLoader(false);
                         const p = e.target.getPlaylist();
                         if(p && p.length > 0) {
-                            list.innerHTML = p.slice(0, 50).map(id => `<div class="scroll-item-content nothing-card" onclick="loadVideo('${id}', true)"><img src="https://img.youtube.com/vi/${id}/mqdefault.jpg"></div>`).join('');
+                            list.innerHTML = p.slice(0, 50).map(id => `<div class="scroll-item-content nothing-card" onclick="loadVideo('${id}', true)"><img src="https://img.youtube.com/vi/${id}/mqdefault.jpg" class="rounded-2xl"></div>`).join('');
                             updateDots('playlistList', 'playlistIndicator', 0.42);
                             loadVideo(p[0], false);
-                        }
-                    },
-                    'onStateChange': (e) => {
-                        if (e.data === YT.PlayerState.PLAYING) {
-                            const newId = e.target.getVideoData().video_id;
-                            if (newId && newId !== currentVideoId) loadVideo(newId, false);
                         }
                     }
                 }
@@ -224,29 +215,22 @@
             document.getElementById('resultArea').classList.remove('hidden');
 
             if (player && player.loadVideoById) {
-                const data = player.getVideoData();
-                if(!data || data.video_id !== id) player.loadVideoById(id);
+                player.loadVideoById(id);
             } else if (apiReady) {
                 resetPlayerElement();
                 showLoader(true);
-                player = new YT.Player('player', {
-                    height: '100%', width: '100%', videoId: id,
-                    events: { 'onReady': () => showLoader(false) }
-                });
+                player = new YT.Player('player', { height: '100%', width: '100%', videoId: id, events: { 'onReady': () => showLoader(false) } });
             }
 
             const candidates = [
                 { label: 'Max Res', res: '1280x720', url: `https://img.youtube.com/vi/${id}/maxresdefault.jpg` },
                 { label: 'HQ', res: '480x360', url: `https://img.youtube.com/vi/${id}/hqdefault.jpg` },
                 { label: 'MQ', res: '320x180', url: `https://img.youtube.com/vi/${id}/mqdefault.jpg` },
-                { label: 'Scene 1', res: '120x90', url: `https://img.youtube.com/vi/${id}/1.jpg` }
+                { label: 'SD', res: '640x480', url: `https://img.youtube.com/vi/${id}/sddefault.jpg` }
             ];
 
-            // 画質の存在チェック
             assetList = [];
-            for (const item of candidates) {
-                if (await checkImage(item.url)) assetList.push(item);
-            }
+            for (const item of candidates) { if (await checkImage(item.url)) assetList.push(item); }
 
             const slider = document.getElementById('mainSlider');
             slider.innerHTML = assetList.map(a => `<img src="${a.url}" class="slide-item">`).join('');
@@ -256,6 +240,31 @@
             updateDots('mainSlider', 'mainIndicator', 1);
             updateEmbedOutputs();
             if (shouldScroll) document.getElementById('resultArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function updateDots(sId, iId, r) {
+            const l = document.getElementById(sId);
+            const d = document.querySelectorAll(`#${iId} .dot`);
+            if(!d.length || !l) return;
+            const idx = Math.min(Math.round(l.scrollLeft / (l.clientWidth * (r || 1))), d.length - 1);
+            d.forEach((dot, i) => dot.classList.toggle('active', i === idx));
+
+            if(sId === 'mainSlider' && assetList[idx]) {
+                currentImgUrl = assetList[idx].url;
+                document.getElementById('assetMeta').innerText = `${assetList[idx].label} // ${assetList[idx].res}`;
+
+                // コピーボタン生成（スライダー連動）
+                const md = `[![](${currentImgUrl})](https://www.youtube.com/watch?v=${currentVideoId})`;
+                const tag = `<a href="https://www.youtube.com/watch?v=${currentVideoId}"><img src="${currentImgUrl}"></a>`;
+
+                document.getElementById('thumbOutputs').innerHTML = `
+                    <div class="nothing-card p-4 space-y-4">
+                        <div><label class="text-[9px] font-bold text-gray-400 block mb-1 uppercase">Markdown</label><div class="flex gap-2"><input type="text" value='${md}' readonly class="nothing-input flex-grow p-2 text-[10px] font-mono"><button onclick="copyRaw('${md}')" class="btn-gray-copy">Copy</button></div></div>
+                        <div><label class="text-[9px] font-bold text-gray-400 block mb-1 uppercase">HTML Tag</label><div class="flex gap-2"><input type="text" value='${tag}' readonly class="nothing-input flex-grow p-2 text-[10px] font-mono"><button onclick="copyRaw('${tag}')" class="btn-gray-copy">Copy</button></div></div>
+                        <div><label class="text-[9px] font-bold text-gray-400 block mb-1 uppercase">Direct URL</label><div class="flex gap-2"><input type="text" value='${currentImgUrl}' readonly class="nothing-input flex-grow p-2 text-[10px] font-mono"><button onclick="copyRaw('${currentImgUrl}')" class="btn-gray-copy">Copy</button></div></div>
+                    </div>
+                `;
+            }
         }
 
         function resetPlayerElement() {
@@ -270,6 +279,7 @@
             document.getElementById('videoUrl').value = '';
             document.getElementById('resultArea').classList.add('hidden');
             document.getElementById('playlistSection').classList.add('hidden');
+            document.getElementById('thumbOutputs').innerHTML = '';
         }
 
         function updateEmbedOutputs() {
@@ -279,17 +289,10 @@
             document.getElementById('outShortUrl').value = `https://youtu.be/${currentVideoId}${s>0?'?t='+s:''}`;
         }
 
-        function updateDots(sId, iId, r) {
-            const l = document.getElementById(sId);
-            const d = document.querySelectorAll(`#${iId} .dot`);
-            if(!d.length || !l) return;
-            const idx = Math.min(Math.round(l.scrollLeft / (l.clientWidth * (r || 1))), d.length - 1);
-            d.forEach((dot, i) => dot.classList.toggle('active', i === idx));
-            if(sId === 'mainSlider' && assetList[idx]) {
-                currentImgUrl = assetList[idx].url;
-                document.getElementById('assetMeta').innerText = `${assetList[idx].label} // ${assetList[idx].res}`;
-                document.getElementById('thumbOutputs').innerHTML = `${createCopyRow('Markdown', `[![](${currentImgUrl})](https://www.youtube.com/watch?v=${currentVideoId})`, 'outMd')}${createCopyRow('HTML Tag', `<a href="https://www.youtube.com/watch?v=${currentVideoId}"><img src="${currentImgUrl}"></a>`, 'outHtml')}`;
-            }
+        function resizeEmbed(s) {
+            const l = document.getElementById('eWidth'), r = document.getElementById('eHeight');
+            if(s === 'w') r.value = Math.round(l.value * 9/16); else l.value = Math.round(r.value * 16/9);
+            updateEmbedOutputs();
         }
 
         function saveHistory(id) {
@@ -303,7 +306,7 @@
             const list = document.getElementById('historyList');
             if (!h.length) return document.getElementById('historySection').classList.add('hidden');
             document.getElementById('historySection').classList.remove('hidden');
-            list.innerHTML = h.map(id => `<div class="scroll-item-content nothing-card"><div class="del-btn" onclick="removeHistory('${id}', event)">×</div><img src="https://img.youtube.com/vi/${id}/mqdefault.jpg" onclick="loadVideo('${id}', true)"></div>`).join('');
+            list.innerHTML = h.map(id => `<div class="scroll-item-content nothing-card"><div class="del-btn" onclick="removeHistory('${id}', event)">×</div><img src="https://img.youtube.com/vi/${id}/mqdefault.jpg" onclick="loadVideo('${id}', true)" class="rounded-2xl"></div>`).join('');
             document.getElementById('historyIndicator').innerHTML = h.map((_, i) => `<div class="dot ${i===0?'active':''}"></div>`).join('');
         }
 
@@ -313,14 +316,13 @@
             localStorage.setItem('yt_history', JSON.stringify(h.filter(x => x !== id))); loadHistory();
         }
 
-        function scrollArea(id, dir) { document.getElementById(id).scrollBy({ left: dir * 300, behavior: 'smooth' }); }
         function moveMainSlide(dir) { const e = document.getElementById('mainSlider'); e.scrollBy({ left: dir * e.clientWidth, behavior: 'smooth' }); }
         function shareOnX() { window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(document.getElementById('outShortUrl').value)}`, '_blank'); }
         function openCurrentImg() { if (currentImgUrl) window.open(currentImgUrl, '_blank'); }
-        async function copy(id) { const e = document.getElementById(id); await navigator.clipboard.writeText(e.value); const b = event.currentTarget; b.innerText = "DONE"; setTimeout(() => b.innerText = "COPY", 1000); }
-        function resizeEmbed(s) { const l = document.getElementById('eWidth'), r = document.getElementById('eHeight'); s === 'w' ? r.value = Math.round(l.value * 9/16) : l.value = Math.round(r.value * 16/9); updateEmbedOutputs(); }
+        async function copy(id) { await navigator.clipboard.writeText(document.getElementById(id).value); alertCopy(event.currentTarget); }
+        async function copyRaw(text) { await navigator.clipboard.writeText(text); alertCopy(event.currentTarget); }
+        function alertCopy(el) { const old = el.innerText; el.innerText = "COPIED"; setTimeout(() => el.innerText = old, 1000); }
         function syncTime() { if (player && player.getCurrentTime) { document.getElementById('eStart').value = Math.floor(player.getCurrentTime()); updateEmbedOutputs(); } }
-        function createCopyRow(l, v, id) { return `<div class="nothing-card p-4 flex items-center justify-between mb-2"><div class="flex-1 mr-4 text-[10px] font-mono"><span class="text-gray-400 block mb-1 uppercase font-bold">${l}</span><input type="text" id="${id}" value='${v}' readonly class="w-full bg-transparent outline-none"></div><button onclick="copy('${id}')" class="btn-gray-copy">Copy</button></div>`; }
         function switchTab(t) {
             const isT = t === 'thumb';
             document.getElementById('tabThumb').className = `nothing-card px-8 py-2 text-[10px] font-bold uppercase ${isT?'tab-active':'text-gray-400'}`;
@@ -328,6 +330,11 @@
             document.getElementById('contentThumb').classList.toggle('hidden', !isT);
             document.getElementById('contentEmbed').classList.toggle('hidden', isT);
             localStorage.setItem('yt_last_tab', t);
+        }
+        function copyAllHistory() {
+            const h = JSON.parse(localStorage.getItem('yt_history') || []);
+            navigator.clipboard.writeText(h.map(id => `https://youtu.be/${id}`).join('\n'));
+            alertCopy(event.currentTarget);
         }
     </script>
 </body>
