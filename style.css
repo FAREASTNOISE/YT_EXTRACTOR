@@ -1,3 +1,18 @@
+/* Coral Pixels の読み込み */
+@import url('https://fonts.googleapis.com/css2?family=Coral+Pixels&display=swap');
+
+/* タイトルのスタイル */
+.nothing-title {
+    font-family: 'Coral Pixels', sans-serif;
+    color: #FF2F2F; /* Nothing OS の象徴的な赤 */
+    font-size: 32px;
+    letter-spacing: 0.02em; /* ドットの重なりを防ぐため少しだけ広げる */
+    text-align: center;
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+    text-transform: uppercase;
+}
+
 /* --- NOTHING OS DESIGN SYSTEM --- */
 
 :root {
@@ -127,7 +142,14 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 20px;
+}
+/* メイン画像（エッジまで見せるなら角丸を消す、または調整） */
+.slide-item-container.is-main .slide-item-fit {
+	border-radius: 0; /* 端までピッタリ派ならこれ */
+}
+/* Sceneの時だけ、背景に少し「深み」を出す */
+.slide-item-container.is-scene {
+	background: radial-gradient(circle at center, rgba(255,255,255,0.05) 0%, transparent 70%);
 }
 
 /* 高画質画像（全画面） */
