@@ -460,3 +460,38 @@ button:not(.tab-active) .tab-icon {
     opacity: 1;
     filter: invert(1); /* 黒いSVGを白に反転させる */
 }
+
+
+
+
+
+/* Plyr全体のテーマカラーを「赤」に変更 */
+:root {
+    --plyr-color-main: #ff0000; /* Nothing Red */
+    --plyr-video-control-background-hover: rgba(255, 0, 0, 0.1);
+}
+
+/* プレイヤーの角を落として、影を消す（ミニマルにする） */
+.plyr {
+    border-radius: 4px; /* Nothingは極端に丸めない */
+    box-shadow: none;
+    border: 1px solid #333; /* 控えめな境界線 */
+}
+
+/* コントロールバーを浮かさず、背景に馴染ませる */
+.plyr--video .plyr__controls {
+    background: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0.7)) !important;
+    padding-bottom: 10px;
+}
+
+/* 再生ボタンなどを「ドット絵」っぽく見せるための工夫（オプション） */
+.plyr__control svg {
+    filter: drop-shadow(0 0 2px rgba(255, 0, 0, 0.5));
+}
+
+.video-section {
+    max-width: 900px; /* 広がりすぎ防止 */
+    margin: 0 auto;   /* 真ん中に寄せる */
+    padding: 20px;
+    background: #000; /* 背景を黒にするとNothing感アップ */
+}

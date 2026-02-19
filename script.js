@@ -553,3 +553,19 @@ if (mainSlider) {
     }, { passive: false });
 }
 
+
+
+// Plyrのインスタンスを格納する変数
+let playerInstance;
+
+function initPlyr() {
+    playerInstance = new Plyr('#player-container', {
+        // 設定をNothing風に絞り込む
+        controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen'],
+        youtube: { noCookie: true, rel: 0, showinfo: 0, iv_load_policy: 3, modestbranding: 1 }
+    });
+}
+// スクリプトの最後の方
+document.addEventListener('DOMContentLoaded', () => {
+    initPlyr();
+});
