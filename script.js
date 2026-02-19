@@ -151,6 +151,7 @@ async function loadVideo(id, shouldScroll = false) {
 	// ];
 
 	const candidates = [
+
 		// メイン画像（高画質狙い）
 		{ label: 'Max Res', res: '1280x720', url: `https://img.youtube.com/vi/${id}/maxresdefault.jpg`, isScene: false },
 		{ label: 'Ultra HQ', res: '720p', url: `https://img.youtube.com/vi/${id}/hq720.jpg`, isScene: false },
@@ -178,6 +179,7 @@ async function loadVideo(id, shouldScroll = false) {
 		// 予備・レア枠
 		{ label: 'Alt Thumb', res: '0.jpg', url: `https://img.youtube.com/vi/${id}/0.jpg`, isScene: true },
 		{ label: 'Legacy 1', res: '1.jpg', url: `https://img.youtube.com/vi/${id}/1.jpg`, isScene: true }
+
 	];
 
 
@@ -211,6 +213,71 @@ async function loadVideo(id, shouldScroll = false) {
 	}
 }
 
+
+// /**
+//  * 画像の存在チェックをスキップして、すべての候補を表示する
+//  * @param {string} id - YouTube動画ID
+//  * @param {boolean} [shouldScroll=false] - スクロール設定
+//  */
+// async function loadVideo(id, shouldScroll = false) {
+// 	if (!id || id === currentVideoId) return;
+// 	currentVideoId = id;
+// 	saveHistory(id);
+
+// 	document.getElementById('resultArea').classList.remove('hidden');
+// 	resetPlayer();
+
+// 	// プレイヤー生成（rel=0 設定済み）
+// 	player = new YT.Player('player', {
+// 		height: '100%', width: '100%', videoId: id,
+// 		playerVars: { 'rel': 0, 'playsinline': 1 },
+// 		events: { 'onReady': () => updateEmbedOutputs() }
+// 	});
+
+// 	// WebPを含めたフルリスト
+// 	const candidates = [
+// // プレビュー専用のURL（これが一番動く可能性が高い！）
+// { label: 'Live Preview', res: 'WebP', url: `https://i.ytimg.com/an_webp/${id}/mqdefault_6s.webp?du=3000&sqp=CLz9_7MG&rs=AOn4CLBT`, isScene: true },
+
+// 		{ label: 'Max Res', res: '1280x720', url: `https://img.youtube.com/vi/${id}/maxresdefault.jpg`, isScene: false },
+// 		{ label: 'Motion', res: 'WebP', url: `https://img.youtube.com/vi_webp/${id}/preview.webp`, isScene: true },
+// 		{ label: 'Animated 1', res: 'WebP', url: `https://img.youtube.com/vi_webp/${id}/1.webp`, isScene: true },
+// 		{ label: 'High Scene 1', res: 'HQ', url: `https://img.youtube.com/vi/${id}/hq1.jpg`, isScene: true },
+// 		{ label: 'Wide Scene 1', res: 'MQ', url: `https://img.youtube.com/vi/${id}/mq1.jpg`, isScene: true },
+
+// 		// 1. preview.webp (これが本命。数秒間のループアニメーション)
+// { label: 'True Motion', res: 'WebP', url: `https://i.ytimg.com/vi_webp/${id}/preview.webp`, isScene: true },
+
+// // 2. tiny.webp (モバイルプレビュー用。これも動くことがある)
+// { label: 'Tiny Motion', res: 'WebP', url: `https://i.ytimg.com/vi_webp/${id}/tiny.webp`, isScene: true }
+// 	];
+
+// 	// チェックをせずにそのままリスト化
+// 	assetList = candidates;
+
+// 	const slider = document.getElementById('mainSlider');
+// 	slider.innerHTML = assetList.map(a => `
+// 		<div class="slide-item-container ${a.isScene ? 'is-scene' : 'is-main'}">
+// 			<img src="${a.url}" class="${a.isScene ? 'slide-item-natural' : 'slide-item-fit'}"
+// 				 onerror="this.parentElement.style.display='none'">
+// 		</div>
+// 	`).join('');
+// 	// ↑ onerror を入れておけば、読み込めなかった画像枠だけ勝手に消えてくれるよ！
+
+// 	slider.scrollTo(0, 0);
+// 	updateDots('mainSlider', 'mainIndicator', 1);
+
+// 	if (shouldScroll) {
+// 		window.scrollTo({
+// 			top: document.getElementById('resultArea').offsetTop - 20,
+// 			behavior: 'smooth'
+// 		});
+// 	}
+// }
+
+
+
+
 // プレイリストメタデータの取得
 async function fetchPlaylist(listId) {
 		try {
@@ -228,27 +295,50 @@ async function fetchPlaylist(listId) {
 }
 
 /**
- * スライダーのインジケーター（ドット）を生成・更新する
- * @param {string} sId - スライダー要素のID
- * @param {string} iId - インジケーター（ドット）を格納する要素のID
- * @param {number} idx - 現在表示中のアクティブなインデックス
+ * インジケーターのドットを更新し、クリック可能にする
+ * @param {string} sId - スライダーのID
+ * @param {string} iId - インジケーターのID
+ * @param {number} ratio - 計算用比率
  */
 function updateDots(sId, iId, ratio) {
-		const container = document.getElementById(sId);
-		if (!container) return;
-		const idx = Math.round(container.scrollLeft / (container.clientWidth / ratio));
+	const container = document.getElementById(sId);
+	if (!container) return;
 
-		if (sId === 'mainSlider') {
-				document.getElementById(iId).innerHTML = assetList.map((_, i) => `<div class="dot ${i === idx ? 'active' : ''}"></div>`).join('');
-				if (assetList[idx]) {
-						currentImgUrl = assetList[idx].url;
-						document.getElementById('assetMeta').innerText = `${assetList[idx].label} // ${assetList[idx].res}`;
-						updateThumbOutputs();
-				}
-		} else {
-				const dotsCount = container.children.length;
-				document.getElementById(iId).innerHTML = Array.from({ length: dotsCount }).map((_, i) => `<div class="dot ${i === idx ? 'active' : ''}"></div>`).join('');
+	// 現在のインデックスを計算
+	const idx = Math.round(container.scrollLeft / (container.clientWidth / ratio));
+
+	if (sId === 'mainSlider') {
+		// クリックイベント (onclick) を追加！
+		document.getElementById(iId).innerHTML = assetList.map((_, i) => `
+			<div class="dot ${i === idx ? 'active' : ''}" onclick="scrollToIndex('${sId}', ${i})"></div>
+		`).join('');
+
+		if (assetList[idx]) {
+			currentImgUrl = assetList[idx].url;
+			document.getElementById('assetMeta').innerText = `${assetList[idx].label} // ${assetList[idx].res}`;
+			updateThumbOutputs();
 		}
+	} else {
+		const dotsCount = container.children.length;
+		document.getElementById(iId).innerHTML = Array.from({ length: dotsCount }).map((_, i) => `
+			<div class="dot ${i === idx ? 'active' : ''}" onclick="scrollToIndex('${sId}', ${i})"></div>
+		`).join('');
+	}
+}
+
+/**
+ * ドットをクリックしたときに指定の画像までスクロールさせる
+ */
+function scrollToIndex(sId, index) {
+	const container = document.getElementById(sId);
+	if (!container) return;
+
+	// 画像1枚分の幅を計算してスクロール
+	const slideWidth = container.clientWidth;
+	container.scrollTo({
+		left: slideWidth * index,
+		behavior: 'smooth'
+	});
 }
 
 // 画像系出力タグの生成（ボタン統一版）
@@ -414,7 +504,9 @@ function updateDots(sId, iId, ratio) {
 		const idx = Math.round(container.scrollLeft / itemWidth);
 
 		if (sId === 'mainSlider') {
-				indicator.innerHTML = assetList.map((_, i) => `<div class="dot ${i === idx ? 'active' : ''}"></div>`).join('');
+				// indicator.innerHTML = assetList.map((_, i) => `<div class="dot ${i === idx ? 'active' : ''}"></div>`).join('');
+				document.getElementById(iId).innerHTML = assetList.map((_, i) => `<div class="dot ${i === idx ? 'active' : ''}" onclick="scrollToIndex('${sId}', ${i})"></div>`).join('');
+
 				if (assetList[idx]) {
 						currentImgUrl = assetList[idx].url;
 						document.getElementById('assetMeta').innerText = `${assetList[idx].label} // ${assetList[idx].res}`;
@@ -422,8 +514,8 @@ function updateDots(sId, iId, ratio) {
 				}
 		} else {
 				// 履歴など
-				const count = container.children.length;
-				indicator.innerHTML = Array.from({ length: count }).map((_, i) => `<div class="dot ${i === idx ? 'active' : ''}"></div>`).join('');
+				const dotsCount = container.children.length;
+				document.getElementById(iId).innerHTML = Array.from({ length: dotsCount }).map((_, i) => `<div class="dot ${i === idx ? 'active' : ''}" onclick="scrollToIndex('${sId}', ${i})"></div>`).join('');
 		}
 }
 
@@ -441,3 +533,23 @@ function share(platform) {
 		else if (platform === 'facebook') window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank');
 		else if (platform === 'line') window.open(`https://line.me/R/msg/text/?${url}`, '_blank');
 }
+
+
+// 他の関数（loadVideo, updateDotsなど）が全部終わったあとの場所に...
+
+const mainSlider = document.getElementById('mainSlider');
+
+if (mainSlider) {
+    mainSlider.addEventListener('wheel', (e) => {
+        if (e.deltaY !== 0) {
+            e.preventDefault();
+            // scrollLeft += e.deltaY だと少し動きがカクつくので
+            // scrollBy を使うと behavior: 'smooth' が効きやすくなるよ
+            mainSlider.scrollBy({
+                left: e.deltaY,
+                behavior: 'auto' // ホイールは 'auto' の方が直感的かも
+            });
+        }
+    }, { passive: false });
+}
+

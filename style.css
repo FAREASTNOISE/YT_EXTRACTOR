@@ -107,6 +107,13 @@ body {
     background-color: #d8d8d8;
 }
 
+#mainSlider {
+    display: flex;
+    overflow-x: auto;          /* または scroll */
+    scroll-behavior: smooth;    /* これがあるとJS側が楽になる */
+    -webkit-overflow-scrolling: touch; /* iOS用 */
+}
+
 /* --- ビジュアルコンテナ（透過グレー & 影） --- */
 .fixed-aspect {
     width: 100%;
@@ -207,7 +214,7 @@ body {
     height: 12px;
 }
 
-.dot {
+/* .dot {
     width: 6px;
     height: 6px;
     background: #d1d1d1;
@@ -219,7 +226,30 @@ body {
     width: 24px;
     background: #000;
     border-radius: 10px;
+} */
+
+.dot {
+	width: 6px;
+	height: 6px;
+	background: #444; /* 消灯時：ダークグレー */
+	border-radius: 50%;
+	cursor: pointer;
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Nothingらしい滑らかな動き */
 }
+
+/* アクティブ：Nothing Red & 横長 */
+.dot.active {
+	background: #ff0000;
+	width: 20px;         /* びよんと伸びる */
+	border-radius: 10px; /* 長丸にする */
+}
+
+.dot:hover:not(.active) {
+	background: #888; /* ホバーで少し明るく */
+}
+
+
+
 
 /* タブ切り替え */
 .tab-active {
