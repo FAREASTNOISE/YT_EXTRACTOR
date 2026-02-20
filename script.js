@@ -281,87 +281,88 @@ async function loadVideo(id, shouldScroll = false) {
 /**
  * プレイリストの中身を履歴風のカードで表示する
  */
-/**
- * プレイリストの中身をAPIなしで（以前のように）表示する
- */
+const YOUTUBE_API_KEY = 'AIzaSyCF-UgP-QcnEOmWeDzaHTHPOVoaMuagliM';
+
 async function fetchPlaylist(listId) {
+    const section = document.getElementById('playlistSection');
+    const list = document.getElementById('playlistList');
+    const indicator = document.getElementById('playlistIndicator');
+
+    if (!section || !list) return;
+
+    section.classList.remove('hidden');
+    // 親要素に relative をつけて、ボタンを左右に固定する準備
+    section.className = "mt-12 border-t border-black/10 pt-8 relative group";
+
+    list.innerHTML = `<p class="text-[10px] animate-pulse p-4 font-bold tracking-widest">SYNCHRONIZING...</p>`;
+
     try {
-        const section = document.getElementById('playlistSection');
-        const list = document.getElementById('playlistList');
-        section.classList.remove('hidden');
-
-        // 枠組みを即座に表示
-        list.innerHTML = `
-            <div class="mb-6 px-2">
-                <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 mb-1">Playlist Assets</p>
-                <h2 id="plTitle" class="text-lg font-bold uppercase leading-tight">Loading...</h2>
-            </div>
-            <div id="playlistItems" class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <p class="col-span-full text-[10px] text-center py-8 animate-pulse">SYNCHRONIZING...</p>
-            </div>
-        `;
-
-        // 【復活の切り札】RSSフィードをJSONに変換して読み込む
-        // これなら「ロボット判定」を回避して、最新の15本くらいを確実に取れるよ
-        const rssUrl = encodeURIComponent(`https://www.youtube.com/feeds/videos.xml?playlist_id=${listId}`);
-        const response = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${rssUrl}`);
+        const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=10&playlistId=${listId}&key=${YOUTUBE_API_KEY}`;
+        const response = await fetch(url);
         const data = await response.json();
 
-        if (data.status === 'ok' && data.items.length > 0) {
-            // タイトルを更新
-            document.getElementById('plTitle').innerText = data.feed.title || "PLAYLIST";
-
-            // 履歴と同じデザインでカードを並べる
-            const itemsContainer = document.getElementById('playlistItems');
-            itemsContainer.innerHTML = data.items.map(item => {
-                // URLから動画IDを抽出（v=XXXXXXXXXXX）
-                const id = item.link.match(/v=([^&]+)/)[1];
-                return `
-                    <div class="item-card" onclick="loadVideo('${id}', true)">
-                        <div class="relative group">
-                            <img src="https://img.youtube.com/vi/${id}/mqdefault.jpg"
-                                 class="w-full aspect-video object-cover rounded-xl shadow-sm hover:brightness-110 transition-all">
-                        </div>
-                        <div class="mt-2 px-1">
-                            <p class="text-[9px] font-bold text-gray-500 line-clamp-1 uppercase">${item.title}</p>
-                        </div>
+        if (data.items) {
+            // 1. カードの生成
+            list.innerHTML = data.items.map(item => `
+                <div class="item-card flex-shrink-0 w-[180px] snap-start cursor-pointer group/item">
+                    <div class="relative overflow-hidden rounded-xl bg-black/5" onclick="loadVideo('${item.snippet.resourceId.videoId}', true)">
+                        <img src="https://img.youtube.com/vi/${item.snippet.resourceId.videoId}/mqdefault.jpg" class="w-full aspect-video object-cover transition-all group-hover/item:scale-105">
                     </div>
-                `;
-            }).join('');
-        } else {
-            throw new Error("No items found");
-        }
+                    <p class="text-[9px] mt-3 font-bold text-black/40 line-clamp-2 uppercase tracking-widest">${item.snippet.title}</p>
+                </div>
+            `).join('');
 
+            // 2. ボタンの生成（Historyと全く同じ構造）
+            // 二重に作られないように一度消してから追加
+ // 2. ボタンの生成（Historyと完全に一致、矢印の色をblackへ）
+            section.querySelectorAll('.nav-btn').forEach(btn => btn.remove());
+
+            const prevBtn = `
+                <div class="nav-btn !w-8 !h-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                     style="left:-10px; top:45%; position:absolute; z-index:50;"
+                     onclick="moveSlide('playlistList', -1)">
+                    <div class="arrow !w-1.5 !h-1.5"
+                         style="transform:rotate(-135deg); border-top:2px solid black; border-right:2px solid black;"></div>
+                </div>`;
+
+            const nextBtn = `
+                <div class="nav-btn !w-8 !h-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                     style="right:-10px; top:45%; position:absolute; z-index:50;"
+                     onclick="moveSlide('playlistList', 1)">
+                    <div class="arrow !w-1.5 !h-1.5"
+                         style="transform:rotate(45deg); border-top:2px solid black; border-right:2px solid black;"></div>
+                </div>`;
+
+            section.insertAdjacentHTML('beforeend', prevBtn);
+            section.insertAdjacentHTML('beforeend', nextBtn);
+
+            // 3. ドットの連動
+            list.onscroll = () => updateDots('playlistList', 'playlistIndicator', 1);
+            updateDots('playlistList', 'playlistIndicator', 1);
+        }
     } catch (e) {
-        console.error("Playlist loading failed", e);
-        document.getElementById('playlistItems').innerHTML = `
-            <p class="col-span-full text-[10px] text-center py-8 text-gray-400">
-                PRIVATE OR EMPTY PLAYLIST.<br>
-                <a href="https://www.youtube.com/playlist?list=${listId}" target="_blank" class="underline mt-2 inline-block">OPEN IN YOUTUBE</a>
-            </p>`;
+        console.error("Playlist render error", e);
     }
 }
 
 /**
- * プレイリストのアイテムを生成する
+ * 実際にカードとドットを描画する共通関数
  */
-function renderPlaylistItems(listId) {
-    const itemsContainer = document.getElementById('playlistItems');
+function renderPlaylistCards(items) {
+    const listContainer = document.getElementById('playlistList');
+    const indicator = document.getElementById('playlistIndicator');
 
-    // 仮に動画がある場合のループ処理（履歴の loadHistory と同じデザイン）
-    // 実際にはAPIで取得した動画IDの配列を回す
-    const sampleIds = [currentVideoId]; // とりあえず今の動画を入れる
-
-    itemsContainer.innerHTML = sampleIds.map(id => `
-        <div class="item-card" onclick="loadVideo('${id}', true)">
-            <img src="https://img.youtube.com/vi/${id}/mqdefault.jpg"
-                 class="w-full aspect-video object-cover rounded-xl shadow-sm hover:scale-105 transition-transform">
-            <div class="mt-2 px-1">
-                <p class="text-[9px] font-bold text-gray-500 uppercase">Video Item</p>
-            </div>
+    listContainer.innerHTML = items.map(item => `
+        <div class="item-card flex-shrink-0 w-[160px]" onclick="loadVideo('${item.id}', true)">
+            <img src="https://img.youtube.com/vi/${item.id}/mqdefault.jpg" class="rounded-xl">
+            <p class="text-[9px] mt-2 font-bold text-black/40 uppercase">${item.title}</p>
         </div>
     `).join('');
+
+    // ドットの更新
+    updateDots('playlistList', 'playlistIndicator', 1);
 }
+
 
 
 
