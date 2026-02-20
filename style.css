@@ -516,3 +516,17 @@ button:not(.tab-active) .tab-icon {
 	padding: 20px;
 	background: #000; /* 背景を黒にするとNothing感アップ */
 }
+
+
+/* ビデオタイトルの質感を高める */
+.item-card p {
+    font-family: "JetBrains Mono", monospace;
+    font-weight: 500;
+    letter-spacing: 0.05em; /* 少し字間を広げるとNothingっぽくなる */
+}
+
+/* セクションの見出し */
+h3.dot-font {
+    font-family: "JetBrains Mono", monospace;
+    /* ドットフォントと混ぜるなら、ここはあえてMonoのままでもカッコいい */
+}
