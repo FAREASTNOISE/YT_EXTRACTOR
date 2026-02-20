@@ -529,4 +529,15 @@ button:not(.tab-active) .tab-icon {
 h3.dot-font {
     font-family: "JetBrains Mono", monospace;
     /* ドットフォントと混ぜるなら、ここはあえてMonoのままでもカッコいい */
+    letter-spacing: 0.05em; /* 少し字間を広げるとNothingっぽくなる */
+}
+
+label {
+    font-family: "JetBrains Mono", monospace;
+    letter-spacing: 0.05em; /* 少し字間を広げるとNothingっぽくなる */
+
+}
+#assetMeta{
+	    font-family: "JetBrains Mono", monospace;
+    letter-spacing: 0.05em; /* 少し字間を広げるとNothingっぽくなる */
 }
