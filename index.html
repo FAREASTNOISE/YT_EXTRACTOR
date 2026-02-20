@@ -9,9 +9,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <script src="https://www.youtube.com/iframe_api"></script>
 
-    <!-- plyr -->
-    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
-    <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
 
     <link rel="stylesheet" href="style.css">
 </head>
@@ -120,34 +117,7 @@
         </footer>
     </div>
 
-<div id="player-container" data-plyr-provider="youtube" data-plyr-embed-id="T5w8cMEWrwo"></div>
 
-<script>
-    // 他の YT.Player 関連のコードをコメントアウトして、これだけ試す
-const playerInstance = new Plyr('#player-container', {
-    // 必要なものだけに絞る。これがNothing流のミニマリズム
-    controls: ['play', 'progress', 'current-time', 'mute', 'fullscreen'],
-    youtube: {
-        noCookie: true,
-        rel: 0,
-        showinfo: 0,
-        iv_load_policy: 3,
-        modestbranding: 1
-    }
-});
-
-function changeVideo(newId) {
-    playerInstance.source = {
-        type: 'video',
-        sources: [{ src: newId, provider: 'youtube' }]
-    };
-}
-
-// 動いているか確認するためのログ
-playerInstance.on('ready', (event) => {
-    console.log('Plyr is READY!');
-});
-</script>
 
     <script src="script.js"></script>
 </body>
