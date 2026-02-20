@@ -281,7 +281,7 @@ async function loadVideo(id, shouldScroll = false) {
 /**
  * プレイリストの中身を履歴風のカードで表示する
  */
-const YOUTUBE_API_KEY = 'AIzaSyCF-UgP-QcnEOmWeDzaHTHPOVoaMuagliM';
+const YOUTUBE_API_KEY = '';
 
 async function fetchPlaylist(listId) {
     const section = document.getElementById('playlistSection');
