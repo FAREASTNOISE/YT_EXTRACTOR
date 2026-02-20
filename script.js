@@ -278,21 +278,93 @@ async function loadVideo(id, shouldScroll = false) {
 
 
 
-// プレイリストメタデータの取得
+/**
+ * プレイリストの中身を履歴風のカードで表示する
+ */
+/**
+ * プレイリストの中身をAPIなしで（以前のように）表示する
+ */
 async function fetchPlaylist(listId) {
-		try {
-				const response = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/playlist?list=${listId}&format=json`);
-				const data = await response.json();
-				const section = document.getElementById('playlistSection');
-				section.classList.remove('hidden');
-				document.getElementById('playlistList').innerHTML = `
-						<div class="p-8 bg-white/60 backdrop-blur-md rounded-[32px] w-full border border-black/5">
-								<p class="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 mb-2">Playlist Meta</p>
-								<p class="text-lg font-bold uppercase leading-tight">${data.title}</p>
-								<p class="text-[10px] mt-4 font-bold text-black uppercase">Author: ${data.author_name}</p>
-						</div>`;
-		} catch (e) { console.error("Playlist error"); }
+    try {
+        const section = document.getElementById('playlistSection');
+        const list = document.getElementById('playlistList');
+        section.classList.remove('hidden');
+
+        // 枠組みを即座に表示
+        list.innerHTML = `
+            <div class="mb-6 px-2">
+                <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 mb-1">Playlist Assets</p>
+                <h2 id="plTitle" class="text-lg font-bold uppercase leading-tight">Loading...</h2>
+            </div>
+            <div id="playlistItems" class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <p class="col-span-full text-[10px] text-center py-8 animate-pulse">SYNCHRONIZING...</p>
+            </div>
+        `;
+
+        // 【復活の切り札】RSSフィードをJSONに変換して読み込む
+        // これなら「ロボット判定」を回避して、最新の15本くらいを確実に取れるよ
+        const rssUrl = encodeURIComponent(`https://www.youtube.com/feeds/videos.xml?playlist_id=${listId}`);
+        const response = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${rssUrl}`);
+        const data = await response.json();
+
+        if (data.status === 'ok' && data.items.length > 0) {
+            // タイトルを更新
+            document.getElementById('plTitle').innerText = data.feed.title || "PLAYLIST";
+
+            // 履歴と同じデザインでカードを並べる
+            const itemsContainer = document.getElementById('playlistItems');
+            itemsContainer.innerHTML = data.items.map(item => {
+                // URLから動画IDを抽出（v=XXXXXXXXXXX）
+                const id = item.link.match(/v=([^&]+)/)[1];
+                return `
+                    <div class="item-card" onclick="loadVideo('${id}', true)">
+                        <div class="relative group">
+                            <img src="https://img.youtube.com/vi/${id}/mqdefault.jpg"
+                                 class="w-full aspect-video object-cover rounded-xl shadow-sm hover:brightness-110 transition-all">
+                        </div>
+                        <div class="mt-2 px-1">
+                            <p class="text-[9px] font-bold text-gray-500 line-clamp-1 uppercase">${item.title}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } else {
+            throw new Error("No items found");
+        }
+
+    } catch (e) {
+        console.error("Playlist loading failed", e);
+        document.getElementById('playlistItems').innerHTML = `
+            <p class="col-span-full text-[10px] text-center py-8 text-gray-400">
+                PRIVATE OR EMPTY PLAYLIST.<br>
+                <a href="https://www.youtube.com/playlist?list=${listId}" target="_blank" class="underline mt-2 inline-block">OPEN IN YOUTUBE</a>
+            </p>`;
+    }
 }
+
+/**
+ * プレイリストのアイテムを生成する
+ */
+function renderPlaylistItems(listId) {
+    const itemsContainer = document.getElementById('playlistItems');
+
+    // 仮に動画がある場合のループ処理（履歴の loadHistory と同じデザイン）
+    // 実際にはAPIで取得した動画IDの配列を回す
+    const sampleIds = [currentVideoId]; // とりあえず今の動画を入れる
+
+    itemsContainer.innerHTML = sampleIds.map(id => `
+        <div class="item-card" onclick="loadVideo('${id}', true)">
+            <img src="https://img.youtube.com/vi/${id}/mqdefault.jpg"
+                 class="w-full aspect-video object-cover rounded-xl shadow-sm hover:scale-105 transition-transform">
+            <div class="mt-2 px-1">
+                <p class="text-[9px] font-bold text-gray-500 uppercase">Video Item</p>
+            </div>
+        </div>
+    `).join('');
+}
+
+
+
 
 /**
  * インジケーターのドットを更新し、クリック可能にする
@@ -301,46 +373,59 @@ async function fetchPlaylist(listId) {
  * @param {number} ratio - 計算用比率
  */
 function updateDots(sId, iId, ratio) {
-	const container = document.getElementById(sId);
-	if (!container) return;
+    const container = document.getElementById(sId);
+    const indicator = document.getElementById(iId);
+    if (!container || !indicator) return;
 
-	// 現在のインデックスを計算
-	const idx = Math.round(container.scrollLeft / (container.clientWidth / ratio));
+    const childrenCount = (sId === 'mainSlider') ? assetList.length : container.children.length;
+    const itemWidth = container.scrollWidth / childrenCount;
+    const idx = Math.round(container.scrollLeft / itemWidth);
 
-	if (sId === 'mainSlider') {
-		// クリックイベント (onclick) を追加！
-		document.getElementById(iId).innerHTML = assetList.map((_, i) => `
-			<div class="dot ${i === idx ? 'active' : ''}" onclick="scrollToIndex('${sId}', ${i})"></div>
-		`).join('');
+    // onclickを復活させ、thisを渡すことで即座に操作できるようにする
+    indicator.innerHTML = Array.from({ length: childrenCount }).map((_, i) => `
+        <div class="dot ${i === idx ? 'active' : ''}"
+             onclick="handleDotClick(this, '${sId}', ${i})"></div>
+    `).join('');
 
-		if (assetList[idx]) {
-			currentImgUrl = assetList[idx].url;
-			document.getElementById('assetMeta').innerText = `${assetList[idx].label} // ${assetList[idx].res}`;
-			updateThumbOutputs();
-		}
-	} else {
-		const dotsCount = container.children.length;
-		document.getElementById(iId).innerHTML = Array.from({ length: dotsCount }).map((_, i) => `
-			<div class="dot ${i === idx ? 'active' : ''}" onclick="scrollToIndex('${sId}', ${i})"></div>
-		`).join('');
-	}
+    if (sId === 'mainSlider' && assetList[idx]) {
+        currentImgUrl = assetList[idx].url;
+        document.getElementById('assetMeta').innerText = `${assetList[idx].label} // ${assetList[idx].res}`;
+        updateThumbOutputs();
+    }
 }
+
+/**
+ * ドットがクリックされた時の処理
+ * @param {HTMLElement} el - クリックされたドット自身
+ * @param {string} sId - スライダーのID
+ * @param {number} index - 何番目か
+ */
+function handleDotClick(el, sId, index) {
+    // 1. 【即座に反応】クリックされたドットをその場で光らせる
+    const parent = el.parentElement;
+    parent.querySelectorAll('.dot').forEach(d => d.classList.remove('active'));
+    el.classList.add('active'); // これで CSS の .active::before が走る！
+
+    // 2. 【移動】スライダーを動かす
+    scrollToIndex(sId, index);
+}
+
 
 /**
  * ドットをクリックしたときに指定の画像までスクロールさせる
  */
 function scrollToIndex(sId, index) {
-	const container = document.getElementById(sId);
-	if (!container) return;
+    const container = document.getElementById(sId);
+    if (!container) return;
 
-	// 画像1枚分の幅を計算してスクロール
-	const slideWidth = container.clientWidth;
-	container.scrollTo({
-		left: slideWidth * index,
-		behavior: 'smooth'
-	});
+    const childrenCount = (sId === 'mainSlider') ? assetList.length : container.children.length;
+    const targetLeft = (container.scrollWidth / childrenCount) * index;
+
+    container.scrollTo({
+        left: targetLeft,
+        behavior: 'smooth'
+    });
 }
-
 // 画像系出力タグの生成（ボタン統一版）
 function updateThumbOutputs() {
 		const container = document.getElementById('thumbOutputs');
