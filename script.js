@@ -9,7 +9,7 @@
 
 /* ───────────────────────────────────────────
 	 CORE ENGINE v6.9.1
-	 ─────────────────────────────────────────── */
+─────────────────────────────────────────── */
 
 /** @type {any} YouTube Playerのインスタンス（YouTube IFrame API用） */
 let player;
@@ -281,8 +281,6 @@ async function loadVideo(id, shouldScroll = false) {
 /**
  * プレイリストの中身を履歴風のカードで表示する
  */
-const YOUTUBE_API_KEY = '';
-
 async function fetchPlaylist(listId) {
     const section = document.getElementById('playlistSection');
     const list = document.getElementById('playlistList');
@@ -297,8 +295,12 @@ async function fetchPlaylist(listId) {
     list.innerHTML = `<p class="text-[10px] animate-pulse p-4 font-bold tracking-widest">SYNCHRONIZING...</p>`;
 
     try {
-        const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=10&playlistId=${listId}&key=${YOUTUBE_API_KEY}`;
+        // const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=10&playlistId=${listId}&key=${YOUTUBE_API_KEY}`;
+		const url = `api/get_playlist.php?id=${listId}`;
         const response = await fetch(url);
+
+		if (!response.ok) throw new Error(`HTTP_ERROR: ${response.status}`);
+
         const data = await response.json();
 
         if (data.items) {
@@ -341,7 +343,8 @@ async function fetchPlaylist(listId) {
             updateDots('playlistList', 'playlistIndicator', 1);
         }
     } catch (e) {
-        console.error("Playlist render error", e);
+		console.error("Playlist render error:", e);
+        list.innerHTML = `<p class="text-[10px] p-4 text-red-500 font-bold">CONNECTION_FAILED: ${e.message}</p>`;
     }
 }
 
