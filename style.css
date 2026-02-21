@@ -1,31 +1,41 @@
-/* Coral Pixels の読み込み */
-@import url('https://fonts.googleapis.com/css2?family=Coral+Pixels&display=swap');
+@charset "UTF-8";
 
-/* タイトルのスタイル */
-.nothing-title {
-	font-family: 'Coral Pixels', sans-serif;
-	color: #FF2F2F; /* Nothing OS の象徴的な赤 */
-	font-size: 32px;
-	letter-spacing: 0.02em; /* ドットの重なりを防ぐため少しだけ広げる */
-	text-align: center;
-	margin-top: 2rem;
-	margin-bottom: 2rem;
-	text-transform: uppercase;
+/* 1. 全てを初期化（ブラウザごとの隙間バグを防ぐ） */
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
-/* --- NOTHING OS DESIGN SYSTEM --- */
-
+/* 2. Nothing OSっぽいフォントと色をセット */
 :root {
 	--grid-color: rgba(0, 0, 0, 0.05);
 	--nothing-red: #ff3131;
 	--nothing-bg: #f2f2f2;
+	--nothing-black: #000000;
 	--card-bg: rgba(255, 255, 255, 0.9);
+
+	--font-main: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
 }
+
+/* 3. ベースの見た目 */
+body {
+    color: var(--nothing-black);
+    -webkit-font-smoothing: antialiased;
+}
+
+
+
+
+
 
 body {
 	background-color: var(--nothing-bg);
-	font-family: 'Inter', sans-serif;
-	color: #000;
+	font-family: var(--font-main);
+
+	color: var(--nothing-black);
+
 	/* 背景のグリッド模様 */
 	background-image:
 		radial-gradient(circle at center, transparent 0%, var(--nothing-bg) 90%),
@@ -34,6 +44,9 @@ body {
 	background-size: 100% 100%, 100px 100px, 100px 100px;
 	background-attachment: fixed;
 	letter-spacing: -0.01em;
+
+	-webkit-font-smoothing: antialiased;
+
 }
 
 .dot-font {

@@ -89,7 +89,7 @@ function processInput() {
 	const playlistId = playlistMatch ? playlistMatch[1] : null;
 	const videoId = videoMatch ? videoMatch[1] : null;
 
-	if (playlistId) {
+	if (playlistId && playlistId.length > 5) {
 		fetchPlaylist(playlistId);
 		if (videoId) loadVideo(videoId, true);
 	} else if (videoId) {
@@ -299,20 +299,42 @@ async function fetchPlaylist(listId) {
 		const url = `api/get_playlist.php?id=${listId}`;
         const response = await fetch(url);
 
-		if (!response.ok) throw new Error(`HTTP_ERROR: ${response.status}`);
+		// if (!response.ok) throw new Error(`HTTP_ERROR: ${response.status}`);
+
+		if (!response.ok) {
+		if (response.status === 404) {
+			throw new Error("PLAYLIST_NOT_FOUND (IDを確認してください)");
+		} else {
+			throw new Error(`SERVER_ERROR: ${response.status}`);
+		}
+	}
 
         const data = await response.json();
 
         if (data.items) {
             // 1. カードの生成
-            list.innerHTML = data.items.map(item => `
-                <div class="item-card flex-shrink-0 w-[180px] snap-start cursor-pointer group/item">
-                    <div class="relative overflow-hidden rounded-xl bg-black/5" onclick="loadVideo('${item.snippet.resourceId.videoId}', true)">
-                        <img src="https://img.youtube.com/vi/${item.snippet.resourceId.videoId}/mqdefault.jpg" class="w-full aspect-video object-cover transition-all group-hover/item:scale-105">
-                    </div>
-                    <p class="text-[9px] mt-3 font-bold text-black/40 line-clamp-2 uppercase tracking-widest">${item.snippet.title}</p>
-                </div>
-            `).join('');
+			list.innerHTML = data.items.map(item => {
+				const vId = item.snippet.resourceId?.videoId;
+				if (!vId) return '';
+
+				// タイトルを安全に取得（もしあれば）
+				const title = item.snippet.title || 'NO_TITLE';
+
+				return `
+					<div class="item-card flex-shrink-0 w-[180px] snap-start cursor-pointer group/item active:scale-95 transition-transform"
+						onclick="loadVideo('${vId}', true)">
+						<div class="relative overflow-hidden rounded-2xl bg-black/[0.03] border border-black/[0.05]">
+							<img src="https://img.youtube.com/vi/${vId}/mqdefault.jpg"
+								class="w-full aspect-video object-cover transition-all duration-500 group-hover/item:scale-110"
+								loading="lazy">
+							<div class="absolute inset-0 bg-black/0 group-hover/item:bg-black/5 transition-colors"></div>
+						</div>
+						<p class="text-[10px] mt-3 font-medium text-black/60 line-clamp-2 uppercase tracking-[0.1em] leading-relaxed">
+							${title}
+						</p>
+					</div>
+				`;
+			}).join('');
 
             // 2. ボタンの生成（Historyと全く同じ構造）
             // 二重に作られないように一度消してから追加
@@ -344,7 +366,7 @@ async function fetchPlaylist(listId) {
         }
     } catch (e) {
 		console.error("Playlist render error:", e);
-        list.innerHTML = `<p class="text-[10px] p-4 text-red-500 font-bold">CONNECTION_FAILED: ${e.message}</p>`;
+        list.innerHTML = `<p class="text-[10px] p-4 text-red-500 font-bold">\>_ CONNECTION_FAILED: ${e.message}</p>`;
     }
 }
 
