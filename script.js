@@ -664,3 +664,32 @@ if (mainSlider) {
     }, { passive: false });
 }
 
+
+
+// 入力画面のツールチップ表示のためのタイマー管理オブジェクト
+let tooltipTimers = {};
+
+function showTooltip(id) {
+    // 1. まず画面上の全ツールチップを強制的に非表示にする
+    document.querySelectorAll('[id$="-tip"]').forEach(tip => {
+        tip.style.transitionDuration = '0ms'; // 消すときは一瞬
+        tip.classList.add('opacity-0', 'translate-y-[-2px]', 'pointer-events-none');
+        tip.classList.remove('opacity-100', 'translate-y-0');
+    });
+
+    const tip = document.getElementById(id);
+
+    // 既存のタイマーをクリア（全ID分を止める）
+    Object.values(tooltipTimers).forEach(clearTimeout);
+
+    // 2. あとはいつもの表示処理
+    tip.style.transitionDuration = '300ms';
+    tip.classList.remove('opacity-0', 'translate-y-[-2px]', 'pointer-events-none');
+    tip.classList.add('opacity-100', 'translate-y-0');
+
+    tooltipTimers[id] = setTimeout(() => {
+        tip.style.transitionDuration = '1000ms';
+        tip.classList.add('opacity-0', 'translate-y-[-2px]', 'pointer-events-none');
+        tip.classList.remove('opacity-100', 'translate-y-0');
+    }, 2000);
+}

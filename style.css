@@ -61,7 +61,9 @@ body {
 	border: 1px solid rgba(0, 0, 0, 0.08);
 	border-radius: 28px;
 	position: relative;
-	overflow: hidden;
+	/* overflow: hidden; */
+	overflow: visible;
+
 	box-shadow: 0 4px 24px rgba(0, 0, 0, 0.02);
 }
 
