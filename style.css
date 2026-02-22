@@ -26,10 +26,6 @@ body {
 }
 
 
-
-
-
-
 body {
 	background-color: var(--nothing-bg);
 	font-family: var(--font-main);
@@ -48,6 +44,8 @@ body {
 	-webkit-font-smoothing: antialiased;
 
 }
+
+
 
 .dot-font {
 	font-family: 'Silkscreen', cursive;
@@ -122,12 +120,37 @@ body {
 	background-color: #d8d8d8;
 }
 
+
+
+
+
+
+
+
 #mainSlider {
 	display: flex;
 	overflow-x: auto;          /* または scroll */
 	scroll-behavior: smooth;    /* これがあるとJS側が楽になる */
 	-webkit-overflow-scrolling: touch; /* iOS用 */
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /* --- ビジュアルコンテナ（透過グレー & 影） --- */
 .fixed-aspect {

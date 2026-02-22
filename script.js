@@ -665,31 +665,52 @@ if (mainSlider) {
 }
 
 
+/**
+ * ツールチップの表示設定
+ * @type {{displayTime: number, fadeOutTime: number, fadeInTime: number}}
+ */
+const TOOLTIP_CONFIG = {
+  displayTime: 2000, // 表示を維持する時間
+  fadeOutTime: 1000, // ゆっくり消える時間
+  fadeInTime: 300    // パッと出る時間
+};
 
-// 入力画面のツールチップ表示のためのタイマー管理オブジェクト
-let tooltipTimers = {};
+/** 現在実行中のツールチップ非表示タイマーのID
+ * @type {number|null}
+ */
+let activeTooltipTimer = null;
 
+/**
+ * 指定されたIDを持つツールチップを表示する。
+ * 他の表示中のツールチップは即座に非表示にし、排他制御を行う。
+ * @param {string} id - 表示対象となるツールチップ要素のID
+ * @returns {void}
+ */
 function showTooltip(id) {
-    // 1. まず画面上の全ツールチップを強制的に非表示にする
-    document.querySelectorAll('[id$="-tip"]').forEach(tip => {
-        tip.style.transitionDuration = '0ms'; // 消すときは一瞬
-        tip.classList.add('opacity-0', 'translate-y-[-2px]', 'pointer-events-none');
-        tip.classList.remove('opacity-100', 'translate-y-0');
-    });
+  // 1. 実行中のタイマーがあれば即座に止める
+  if (activeTooltipTimer) clearTimeout(activeTooltipTimer);
 
-    const tip = document.getElementById(id);
+  // 2. 全てのツールチップを「一瞬で」非表示にする（排他制御）
+  document.querySelectorAll('[id$="-tip"]').forEach(tip => {
+    tip.style.transitionDuration = '0ms';
+    tip.classList.add('opacity-0', 'pointer-events-none');
+    tip.classList.remove('opacity-100', 'translate-y-0');
+  });
 
-    // 既存のタイマーをクリア（全ID分を止める）
-    Object.values(tooltipTimers).forEach(clearTimeout);
+  /** @type {HTMLElement|null} */
+  const target = document.getElementById(id);
+  if (!target) return;
 
-    // 2. あとはいつもの表示処理
-    tip.style.transitionDuration = '300ms';
-    tip.classList.remove('opacity-0', 'translate-y-[-2px]', 'pointer-events-none');
-    tip.classList.add('opacity-100', 'translate-y-0');
+  // 3. ターゲットをふわっと表示
+  target.style.transitionDuration = `${TOOLTIP_CONFIG.fadeInTime}ms`;
+  target.classList.remove('opacity-0', 'pointer-events-none');
+  target.classList.add('opacity-100', 'translate-y-0');
 
-    tooltipTimers[id] = setTimeout(() => {
-        tip.style.transitionDuration = '1000ms';
-        tip.classList.add('opacity-0', 'translate-y-[-2px]', 'pointer-events-none');
-        tip.classList.remove('opacity-100', 'translate-y-0');
-    }, 2000);
+  // 4. 指定時間後に「ゆっくり」消すタイマーをセット
+  activeTooltipTimer = setTimeout(() => {
+    target.style.transitionDuration = `${TOOLTIP_CONFIG.fadeOutTime}ms`;
+    target.classList.add('opacity-0', 'pointer-events-none');
+    target.classList.remove('opacity-100', 'translate-y-0');
+    activeTooltipTimer = null;
+  }, TOOLTIP_CONFIG.displayTime);
 }
