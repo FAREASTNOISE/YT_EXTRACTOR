@@ -438,8 +438,7 @@ body {
 	flex: 1; /* 最初は均等 */
 	padding: 10px 16px;
 	border-radius: 18px;
-	/* text-[10px]; */
-	font-size: 10px;
+	font-size: 11px;
 	font-weight: 700;
 	letter-spacing: 0.1em;
 	display: flex;
@@ -447,42 +446,70 @@ body {
 	justify-content: center;
 	gap: 8px;
 	text-transform: uppercase;
-
 	border: none;
 	cursor: pointer;
+
 	color: #888;
 	background-color: transparent;
-	transition: flex 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+
+	transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+	/* transition: flex 0.3s cubic-bezier(0.4, 0, 0.2, 1),
 	background-color 0.3s ease,
-	color 0.3s ease;
+	color 0.3s ease; */
 }
 
 /* 選択された時の「にゅーっ」とした伸び */
 .tab-active {
-	flex: 1.15 !important; /* 他より少し広く伸びる */
+	flex: 1.2 !important; /* 他より少し広く伸びる */
 	background-color: #000 !important;
 	color: #fff !important;
-	box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+	/* box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15); */
+	box-shadow: 0 4px 20px rgba(255, 255, 255, 0.1); /* ほんのり光る */
 }
 
-/* アイコンのアニメーション */
-.tab-icon {
-	width: 11px;
-	height: 11px;
 
-	display: inline-block;
-	object-fit: contain;
-	/* アイコンと文字の間の隙間も少し詰めると綺麗です */
-	margin-right: 4px;
+/* 1. まず、アイコン全般に「アニメーションの準備」をさせる */
+#tabThumb i, #tabEmbed i {
+	display: flex; /* inline-block より flex の方が中心を取りやすい */
+    align-items: center;
+    line-height: 0; /* 文字の高さに引きずられないようにする */
 
-	transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    /* 色と変形を 0.3秒かけてヌルっと動かす設定 */
+    transition: color 0.3s ease, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: inline-block; /* transformを効かせるために必要 */
 }
 
-/* 選択されたボタンのアイコンを少し強調 */
-.tab-active .tab-icon {
-	transform: scale(1.05);
-	filter: invert(1);
+/* 2. アクティブになった時のアイコン */
+.tab-active i {
+    /* transform: scale(1.1); 1.2だと少し大きいかも？1.1くらいが上品だよ */
+    color: #fff !important; /* 親の文字色と一緒に白くなる */
 }
+
+
+
+/* ホバー時の演出（非アクティブ時のみ） */
+#tabThumb:not(.tab-active):hover,
+#tabEmbed:not(.tab-active):hover {
+    /* さらに薄く（0.04 → 0.02）して、背景に馴染ませる */
+    background-color: rgba(0, 0, 0, 0.02);
+
+    /* ボタンの背後にあるものをぼかして質感を出す（これ重要！） */
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+
+    /* 文字色を少しだけ落ち着いたトーンに */
+    color: #777;
+
+    /* 「周りをぼやかす」ための、非常に淡い光の影（スプレッドを広めに） */
+    box-shadow: 0 0 5px 2px rgba(0, 0, 0, 0.03);
+
+    /* 浮かさない設定 */
+    transform: none;
+}
+
+
+
+
 
 /* タブボタンの基本形（非アクティブ状態） */
 #tabThumb, #tabEmbed {

@@ -12,6 +12,7 @@
 
 	<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
 
+	<script src="https://unpkg.com/@phosphor-icons/web"></script>
 
 	<link rel="stylesheet" href="style.css">
 </head>
@@ -146,14 +147,25 @@
 
 	<div id="resultArea" class="hidden space-y-6">
 
-		<div class="tab-container flex gap-2 mb-8 bg-gray-100/50 p-1.5 rounded-[20px] backdrop-blur-sm border border-black/5">
-			<button id="tabThumb" onclick="switchTab('thumb')" class="flex-grow py-3 px-6 rounded-[16px] text-[10px] font-bold tracking-[0.1em] transition-all flex items-center justify-center gap-2 uppercase">
-				<img src="icon-assets.svg" class="tab-icon"> Assets
+		<!-- Tab Buttons -->
+		<div class="tab-container flex gap-1 mb-8 bg-gray-100/50 p-1 rounded-[24px] backdrop-blur-sm border border-black/5">
+
+			<button id="tabThumb" onclick="switchTab('thumb')"
+				class="flex-grow h-[40px] rounded-[20px] text-[10px] font-bold tracking-[0.1em] transition-all flex items-center justify-center gap-2 uppercase leading-none">
+				<i class="ph-thin ph-images text-[16px] translate-y-[0.5px]"></i>
+				<span>Assets</span>
 			</button>
-				<button id="tabEmbed" onclick="switchTab('embed')" class="flex-grow py-3 px-6 rounded-[16px] text-[10px] font-bold tracking-[0.1em] transition-all flex items-center justify-center gap-2 uppercase">
-					<img src="icon-embed.svg" class="tab-icon"> Embed
-				</button>
-			 </div>
+
+			<button id="tabEmbed" onclick="switchTab('embed')"
+				class="flex-grow h-[40px] rounded-[20px] text-[10px] font-bold tracking-[0.1em] transition-all flex items-center justify-center gap-2 uppercase leading-none">
+				<i class="ph-thin ph-youtube-logo text-[16px] translate-y-[0.5px]"></i>
+				<span>Embed</span>
+			</button>
+		</div>
+		<!-- // Tab Buttons -->
+
+
+
 
 			<div id="contentThumb" class="space-y-4">
 				<div class="nothing-card p-2 relative">
@@ -168,6 +180,9 @@
 				<div id="thumbOutputs" class="space-y-4"></div>
 			</div>
 
+
+
+			
 			<div id="contentEmbed" class="hidden space-y-6">
 				<div class="nothing-card p-2 relative">
 					<div class="fixed-aspect">
@@ -200,6 +215,11 @@
 				</div>
 			</div>
 		</div>
+
+
+
+
+
 
 
 
