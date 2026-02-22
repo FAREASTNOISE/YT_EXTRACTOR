@@ -21,9 +21,10 @@ let currentVideoId = "";
 let assetList = [];
 
 /** @type {string} 現在プレビュー表示している画像のURL */
+// let currentImgUrl = "";
+// let currentImgLabel = "Thumbnail";
 let currentImgUrl = "";
-
-
+let currentImgLabel = ""; // ここは空か "Thumbnail"
 
 /**
  * ページ読み込み完了時の初期化処理
@@ -123,33 +124,6 @@ async function loadVideo(id, shouldScroll = false) {
 		events: { 'onReady': () => updateEmbedOutputs() }
 	});
 
-	// const candidates = [
-	// 	{ label: 'Max Res', res: '1280x720', url: `https://img.youtube.com/vi/${id}/maxresdefault.jpg`, isScene: false },
-	// 	{ label: 'Standard', res: '640x480', url: `https://img.youtube.com/vi/${id}/sddefault.jpg`, isScene: false },
-	// 	{ label: 'HQ Default', res: '480x360', url: `https://img.youtube.com/vi/${id}/hqdefault.jpg`, isScene: false },
-	// 	{ label: 'Scene 1', res: 'Storyboard', url: `https://img.youtube.com/vi/${id}/1.jpg`, isScene: true },
-	// 	{ label: 'Scene 2', res: 'Storyboard', url: `https://img.youtube.com/vi/${id}/2.jpg`, isScene: true },
-	// 	{ label: 'Scene 3', res: 'Storyboard', url: `https://img.youtube.com/vi/${id}/3.jpg`, isScene: true },
-	// 	// candidates の中身をこう書き換えてみて
-	// 	{ label: 'Medium', res: '320x180', url: `https://img.youtube.com/vi/${id}/mqdefault.jpg`, isScene: true }, // これを追加！
-
-	// 	// { label: 'Start', res: 'Small', url: `https://img.youtube.com/vi/${id}/1.jpg`, isScene: true },
-	// 	// { label: 'Middle', res: 'Small', url: `https://img.youtube.com/vi/${id}/2.jpg`, isScene: true },
-	// 	// { label: 'End', res: 'Small', url: `https://img.youtube.com/vi/${id}/3.jpg`, isScene: true },
-	// ];
-
-	// const candidates = [
-	// 	{ label: 'Max Res', res: '1280x720', url: `https://img.youtube.com/vi/${id}/maxresdefault.jpg`, isScene: false },
-	// 	{ label: 'Standard', res: '640x480', url: `https://img.youtube.com/vi/${id}/sddefault.jpg`, isScene: false },
-	// 	// --- ここから「違う画像」が出るかもしれないお楽しみ枠 ---
-	// 	{ label: 'Wide Start', res: '16:9', url: `https://img.youtube.com/vi/${id}/mq1.jpg`, isScene: true },
-	// 	{ label: 'Wide Mid', res: '16:9', url: `https://img.youtube.com/vi/${id}/mq2.jpg`, isScene: true },
-	// 	{ label: 'Wide End', res: '16:9', url: `https://img.youtube.com/vi/${id}/mq3.jpg`, isScene: true },
-	// 	{ label: 'Alt Thumb', res: 'Legacy', url: `https://img.youtube.com/vi/${id}/0.jpg`, isScene: true },
-	// 	{ label: 'Small 1', res: '4:3', url: `https://img.youtube.com/vi/${id}/1.jpg`, isScene: true },
-	// 	{ label: 'Small 2', res: '4:3', url: `https://img.youtube.com/vi/${id}/2.jpg`, isScene: true }
-	// ];
-
 	const candidates = [
 
 		// メイン画像（高画質狙い）
@@ -181,9 +155,13 @@ async function loadVideo(id, shouldScroll = false) {
 		{ label: 'Legacy 1', res: '1.jpg', url: `https://img.youtube.com/vi/${id}/1.jpg`, isScene: true },
 
 
-		{ label: 'Scene 1', res: 'Storyboard', url: `https://img.youtube.com/vi/${id}/1.jpg`, isScene: true },
-		{ label: 'Scene 2', res: 'Storyboard', url: `https://img.youtube.com/vi/${id}/2.jpg`, isScene: true },
-		{ label: 'Scene 3', res: 'Storyboard', url: `https://img.youtube.com/vi/${id}/3.jpg`, isScene: true },
+		// { label: 'Scene 1', res: 'Storyboard', url: `https://img.youtube.com/vi/${id}/1.jpg`, isScene: true },
+		// { label: 'Scene 2', res: 'Storyboard', url: `https://img.youtube.com/vi/${id}/2.jpg`, isScene: true },
+		// { label: 'Scene 3', res: 'Storyboard', url: `https://img.youtube.com/vi/${id}/3.jpg`, isScene: true },
+
+		// { label: 'Start', res: 'Small', url: `https://img.youtube.com/vi/${id}/1.jpg`, isScene: true },
+		// { label: 'Middle', res: 'Small', url: `https://img.youtube.com/vi/${id}/2.jpg`, isScene: true },
+		// { label: 'End', res: 'Small', url: `https://img.youtube.com/vi/${id}/3.jpg`, isScene: true },
 	];
 
 
@@ -216,69 +194,6 @@ async function loadVideo(id, shouldScroll = false) {
 		});
 	}
 }
-
-
-// /**
-//  * 画像の存在チェックをスキップして、すべての候補を表示する
-//  * @param {string} id - YouTube動画ID
-//  * @param {boolean} [shouldScroll=false] - スクロール設定
-//  */
-// async function loadVideo(id, shouldScroll = false) {
-// 	if (!id || id === currentVideoId) return;
-// 	currentVideoId = id;
-// 	saveHistory(id);
-
-// 	document.getElementById('resultArea').classList.remove('hidden');
-// 	resetPlayer();
-
-// 	// プレイヤー生成（rel=0 設定済み）
-// 	player = new YT.Player('player', {
-// 		height: '100%', width: '100%', videoId: id,
-// 		playerVars: { 'rel': 0, 'playsinline': 1 },
-// 		events: { 'onReady': () => updateEmbedOutputs() }
-// 	});
-
-// 	// WebPを含めたフルリスト
-// 	const candidates = [
-// // プレビュー専用のURL（これが一番動く可能性が高い！）
-// { label: 'Live Preview', res: 'WebP', url: `https://i.ytimg.com/an_webp/${id}/mqdefault_6s.webp?du=3000&sqp=CLz9_7MG&rs=AOn4CLBT`, isScene: true },
-
-// 		{ label: 'Max Res', res: '1280x720', url: `https://img.youtube.com/vi/${id}/maxresdefault.jpg`, isScene: false },
-// 		{ label: 'Motion', res: 'WebP', url: `https://img.youtube.com/vi_webp/${id}/preview.webp`, isScene: true },
-// 		{ label: 'Animated 1', res: 'WebP', url: `https://img.youtube.com/vi_webp/${id}/1.webp`, isScene: true },
-// 		{ label: 'High Scene 1', res: 'HQ', url: `https://img.youtube.com/vi/${id}/hq1.jpg`, isScene: true },
-// 		{ label: 'Wide Scene 1', res: 'MQ', url: `https://img.youtube.com/vi/${id}/mq1.jpg`, isScene: true },
-
-// 		// 1. preview.webp (これが本命。数秒間のループアニメーション)
-// { label: 'True Motion', res: 'WebP', url: `https://i.ytimg.com/vi_webp/${id}/preview.webp`, isScene: true },
-
-// // 2. tiny.webp (モバイルプレビュー用。これも動くことがある)
-// { label: 'Tiny Motion', res: 'WebP', url: `https://i.ytimg.com/vi_webp/${id}/tiny.webp`, isScene: true }
-// 	];
-
-// 	// チェックをせずにそのままリスト化
-// 	assetList = candidates;
-
-// 	const slider = document.getElementById('mainSlider');
-// 	slider.innerHTML = assetList.map(a => `
-// 		<div class="slide-item-container ${a.isScene ? 'is-scene' : 'is-main'}">
-// 			<img src="${a.url}" class="${a.isScene ? 'slide-item-natural' : 'slide-item-fit'}"
-// 				 onerror="this.parentElement.style.display='none'">
-// 		</div>
-// 	`).join('');
-// 	// ↑ onerror を入れておけば、読み込めなかった画像枠だけ勝手に消えてくれるよ！
-
-// 	slider.scrollTo(0, 0);
-// 	updateDots('mainSlider', 'mainIndicator', 1);
-
-// 	if (shouldScroll) {
-// 		window.scrollTo({
-// 			top: document.getElementById('resultArea').offsetTop - 20,
-// 			behavior: 'smooth'
-// 		});
-// 	}
-// }
-
 
 
 
@@ -407,19 +322,33 @@ function updateDots(sId, iId, ratio) {
     const indicator = document.getElementById(iId);
     if (!container || !indicator) return;
 
-    const childrenCount = (sId === 'mainSlider') ? assetList.length : container.children.length;
+    // assetList がちゃんと存在するかチェック
+    const childrenCount = (sId === 'mainSlider' && typeof assetList !== 'undefined') ? assetList.length : container.children.length;
     const itemWidth = container.scrollWidth / childrenCount;
     const idx = Math.round(container.scrollLeft / itemWidth);
 
-    // onclickを復活させ、thisを渡すことで即座に操作できるようにする
+    // ドットの生成（ここはそのまま）
     indicator.innerHTML = Array.from({ length: childrenCount }).map((_, i) => `
         <div class="dot ${i === idx ? 'active' : ''}"
              onclick="handleDotClick(this, '${sId}', ${i})"></div>
     `).join('');
 
-    if (sId === 'mainSlider' && assetList[idx]) {
-        currentImgUrl = assetList[idx].url;
-        document.getElementById('assetMeta').innerText = `${assetList[idx].label} // ${assetList[idx].res}`;
+    // 【ここが重要！】
+    if (sId === 'mainSlider' && typeof assetList !== 'undefined' && assetList[idx]) {
+        // 直接代入し、確実に更新されたことを確認してから updateThumbOutputs を呼ぶ
+        // currentImgUrl = assetList[idx].url;
+        // currentImgLabel = assetList[idx].label || "Thumbnail"; // labelが空ならデフォルト値
+
+		currentImgUrl = assetList[idx].url;
+        currentImgLabel = assetList[idx].label;
+
+        // メタ情報の表示更新
+        const metaElem = document.getElementById('assetMeta');
+        if (metaElem) {
+            metaElem.innerText = `${currentImgLabel} // ${assetList[idx].res}`;
+        }
+
+        // タグ生成を呼ぶ
         updateThumbOutputs();
     }
 }
@@ -456,37 +385,126 @@ function scrollToIndex(sId, index) {
         behavior: 'smooth'
     });
 }
-// 画像系出力タグの生成（ボタン統一版）
-function updateThumbOutputs() {
-		const container = document.getElementById('thumbOutputs');
-		// 新しいファイル名に合わせる
-		const iconTag = `<img src="icon-assets.svg" class="btn-icon">`;
 
-		container.innerHTML = `
-				<div class="nothing-card p-5 space-y-5">
-						<div>
-								<label class="text-[9px] text-gray-400 block mb-1.5 uppercase font-bold tracking-wider">HTML Image Tag (IMG)</label>
-								<div class="flex gap-2">
-										<input type="text" value='<a href="https://www.youtube.com/watch?v=${currentVideoId}" target="_blank"><img src="${currentImgUrl}" alt="Thumbnail"></a>' readonly class="nothing-input flex-grow p-3 text-[10px] font-mono focus:outline-none">
-										<button onclick="copyRaw(this)" class="btn-gray-copy">${iconTag}COPY HTML</button>
-								</div>
-						</div>
-						<div>
-								<label class="text-[9px] text-gray-400 block mb-1.5 uppercase font-bold tracking-wider">Markdown Link</label>
-								<div class="flex gap-2">
-										<input type="text" value='[![](${currentImgUrl})](https://www.youtube.com/watch?v=${currentVideoId})' readonly class="nothing-input flex-grow p-3 text-[10px] font-mono focus:outline-none">
-										<button onclick="copyRaw(this)" class="btn-gray-copy">${iconTag}COPY MD</button>
-								</div>
-						</div>
-						<div>
-								<label class="text-[9px] text-gray-400 block mb-1.5 uppercase font-bold tracking-wider">Direct Asset URL</label>
-								<div class="flex gap-2">
-										<input type="text" value='${currentImgUrl}' readonly class="nothing-input flex-grow p-3 text-[10px] font-mono focus:outline-none">
-										<button onclick="copyRaw(this)" class="btn-gray-copy">${iconTag}COPY URL</button>
-								</div>
-						</div>
-				</div>`;
+
+
+
+/**
+ * コピーボタン付きの入力行（HTML文字列）を生成する
+ * @param {string} label - 表示するラベルテキスト（例: 'HTML Image Tag'）
+ * @param {string} value - input要素にセットするコピー対象の文字列
+ * @returns {string} 構築されたHTMLテンプレート
+ */
+function createOutputRow(label, value) {
+    // valueが空やundefinedの場合に備えてデフォルト値を設定
+    const displayValue = value || '';
+    return `
+        <div class="space-y-1.5">
+            <label class="text-[9px] text-gray-400 block uppercase font-bold tracking-wider">${label}</label>
+            <div class="flex gap-2">
+                <input type="text" value='${displayValue}' readonly
+                    class="nothing-input flex-grow p-3 text-[10px] font-mono focus:outline-none">
+                <button onclick="handleCopy(this)" class="btn-gray-copy w-[70px] transition-all text-[10px] font-bold uppercase">Copy</button>
+            </div>
+        </div>
+    `;
 }
+
+
+/**
+ * ボタンクリック時にテキストをコピーし、フィードバックを表示する
+ * @param {HTMLButtonElement} btn - クリックされたボタン要素
+ */
+async function handleCopy(btn) {
+    const input = btn.previousElementSibling;
+    if (!input || !input.value) return;
+
+    try {
+        // 最新のクリップボードAPIを使用
+        await navigator.clipboard.writeText(input.value);
+
+        const originalText = "COPY";
+        btn.innerText = "COPIED";
+        btn.style.width = "70px"; // 文字数変化でガタつかないよう固定
+
+        setTimeout(() => {
+            btn.innerText = originalText;
+        }, 1500);
+    } catch (err) {
+        // フォールバック: 従来の方法
+        input.select();
+        document.execCommand('copy');
+        btn.innerText = "COPIED";
+        setTimeout(() => { btn.innerText = "COPY"; }, 1500);
+    }
+}
+
+
+/**
+ * Assetsタブ内の出力を更新する
+ */
+function updateThumbOutputs() {
+    const container = document.getElementById('thumbOutputs');
+    // currentImgUrl がまだ無い場合は何もしない、もしくは空で出す
+    if (!container || !currentImgUrl) return;
+
+    container.innerHTML = `
+        <div class="nothing-card p-5 space-y-6">
+            ${createOutputRow(
+                'HTML Image Tag (img)',
+                `<img src="${currentImgUrl}" alt="${currentImgLabel || 'Thumbnail'}">`
+            )}
+            ${createOutputRow(
+                'HTML Image Tag (a + img)',
+                `<a href="https://www.youtube.com/watch?v=${currentVideoId}" target="_blank"><img src="${currentImgUrl}" alt="${currentImgLabel || 'Thumbnail'}"></a>`
+            )}
+            ${createOutputRow(
+                'Markdown Link',
+                `[![](${currentImgUrl})](https://www.youtube.com/watch?v=${currentVideoId})`
+            )}
+            ${createOutputRow(
+                'Direct Asset URL',
+                currentImgUrl
+            )}
+        </div>
+    `;
+}
+
+
+
+// // 画像系出力タグの生成（ボタン統一版）
+// function updateThumbOutputs() {
+// 		const container = document.getElementById('thumbOutputs');
+
+// 		container.innerHTML = `
+// 				<div class="nothing-card p-5 space-y-5">
+// 						<div>
+// 								<label class="text-[9px] text-gray-400 block mb-1.5 uppercase font-bold tracking-wider">HTML Image Tag (IMG)</label>
+// 								<div class="flex gap-2">
+// 										<input type="text" value='<a href="https://www.youtube.com/watch?v=${currentVideoId}" target="_blank"><img src="${currentImgUrl}" alt="Thumbnail"></a>' readonly class="nothing-input flex-grow p-3 text-[10px] font-mono focus:outline-none">
+// 										<button onclick="copyRaw(this)" class="btn-gray-copy">COPY HTML</button>
+// 								</div>
+// 						</div>
+// 						<div>
+// 								<label class="text-[9px] text-gray-400 block mb-1.5 uppercase font-bold tracking-wider">Markdown Link</label>
+// 								<div class="flex gap-2">
+// 										<input type="text" value='[![](${currentImgUrl})](https://www.youtube.com/watch?v=${currentVideoId})' readonly class="nothing-input flex-grow p-3 text-[10px] font-mono focus:outline-none">
+// 										<button onclick="copyRaw(this)" class="btn-gray-copy">COPY MD</button>
+// 								</div>
+// 						</div>
+// 						<div>
+// 								<label class="text-[9px] text-gray-400 block mb-1.5 uppercase font-bold tracking-wider">Direct Asset URL</label>
+// 								<div class="flex gap-2">
+// 										<input type="text" value='${currentImgUrl}' readonly class="nothing-input flex-grow p-3 text-[10px] font-mono focus:outline-none">
+// 										<button onclick="copyRaw(this)" class="btn-gray-copy">COPY URL</button>
+// 								</div>
+// 						</div>
+// 				</div>`;
+// }
+
+
+
+
 
 // 埋め込み系出力の生成
 function updateEmbedOutputs() {
