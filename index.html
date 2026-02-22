@@ -10,7 +10,7 @@
 
 	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&family=Silkscreen&display=swap" rel="stylesheet">
 
-	<link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@400;700&display=swap" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
 
 
 	<link rel="stylesheet" href="style.css">
@@ -45,19 +45,32 @@
 		<div class="flex flex-col gap-4">
 
 			<!-- Input Box and Paste Button -->
-			<div class="relative w-full">
-				<input type="text" id="videoUrl" placeholder="PASTE YOUTUBE URL OR PLAYLIST..." class="nothing-input w-full p-4 pr-24 text-sm font-mono uppercase focus:outline-none">
+			<div class="relative w-full" onmouseenter="showTooltip('input-tip')" onmouseleave="hideTooltip('input-tip')">
 
+				<div id="input-tip" class="absolute bottom-[110%] left-0 opacity-0 translate-y-[2px] transition-all duration-1000 ease-out z-[9999] pointer-events-none">
+					<div class="pb-3">
+						<div class="relative bg-[#333333]/90 text-white text-[11px] px-3 py-1.5 rounded shadow-xl whitespace-nowrap flex items-center gap-2 border border-white/10" style="font-family: 'DotGothic16', sans-serif;">
+							<span class="w-1.5 h-1.5 bg-red-500 rounded-full shadow-[0_0_5px_rgba(239,68,68,0.8)]"></span>
+							<span class="tracking-widest font-medium">入力：動画のURL、またはプレイリストのリンクをペーストしてください</span>
+							<div class="absolute -bottom-1 left-5 w-2 h-2 bg-[#333333] rotate-45 border-r border-b border-white/10"></div>
+						</div>
+					</div>
+				</div>
+
+				<input type="text" id="videoUrl" placeholder="PASTE YOUTUBE URL OR PLAYLIST..." class="nothing-input w-full p-4 pr-24 text-sm font-mono uppercase focus:outline-none">
+				<!-- // Input Box -->
+
+				<!-- Paste Button -->
 				<div class="absolute right-2 top-2 bottom-2 flex items-center">
 
 					<div class="relative group h-full" onmouseenter="showTooltip('paste-tip')" onmouseleave="hideTooltip('paste-tip')">
 
-					<div id="paste-tip" class="absolute bottom-[110%] right-0 opacity-0 translate-y-[2px] transition-all duration-1000 ease-out z-[9999] pointer-events-none">
+					<div id="paste-tip" class="absolute bottom-[110%] right-0 opacity-0 translate-y-[2px] transition-[opacity,transform] duration-1000 ease-out z-[9999] pointer-events-none">
 
 						<div class="pb-3">
-							<div class="relative bg-[#333333] text-white text-[11px] px-3 py-1.5 rounded shadow-xl whitespace-nowrap flex items-center gap-2 border border-white/10" style="font-family: 'Zen Old Mincho', serif;">
+							<div class="relative bg-[#333333]/90 text-white text-[11px] px-3 py-1.5 rounded shadow-xl whitespace-nowrap flex items-center gap-2 border border-white/10" style="font-family: 'DotGothic16', sans-serif;">
 								<span class="w-1.5 h-1.5 bg-blue-400 rounded-full shadow-[0_0_5px_rgba(96,165,250,0.8)]"></span>
-								<span class="tracking-wider font-medium">貼付：クリップボードの内容を入力欄に展開します</span>
+								<span class="tracking-widest font-medium">貼付：クリップボードの内容を入力欄に展開します</span>
 								<div class="absolute -bottom-1 right-4 w-2 h-2 bg-[#333333] rotate-45 border-r border-b border-white/10"></div>
 							</div>
 						</div>
@@ -67,6 +80,7 @@
 						Paste
 					</button>
 				</div>
+				<!-- // Paste Button -->
 
 				</div>
 			</div>
@@ -82,9 +96,9 @@
 
 					<div id="start-tip" class="absolute top-[50px] left-0 opacity-0 translate-y-[-2px] transition-all duration-1000 ease-out z-[9999] pointer-events-none">
 						<div class="pt-3">
-							<div class="relative bg-[#333333] text-white text-[11px] px-3 py-1.5 rounded shadow-xl whitespace-nowrap flex items-center gap-2 border border-white/10" style="font-family: 'Zen Old Mincho', serif;">
+							<div class="relative bg-[#333333]/90 text-white text-[11px] px-3 py-1.5 rounded shadow-xl whitespace-nowrap flex items-center gap-2 border border-white/10" style="font-family: 'DotGothic16', sans-serif;">
 								<span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse shadow-[0_0_8px_rgba(255,255,255,1)]"></span>
-								<span class="tracking-wider font-medium">実行：対象のURLを解析し、データの抽出プロセスを開始します</span>
+								<span class="tracking-widest font-medium">実行：対象のURLを解析し、データの抽出プロセスを開始します</span>
 								<div class="absolute -top-1 left-5 w-2 h-2 bg-[#333333] rotate-45 border-l border-t border-white/10"></div>
 							</div>
 						</div>
@@ -104,9 +118,9 @@
 					<div id="clear-tip" class="absolute top-[50px] right-0 opacity-0 translate-y-[-2px] transition-all duration-1000 ease-out z-[9999] pointer-events-none">
 
 						<div class="pt-3">
-							<div class="relative bg-[#333333] text-white text-[11px] px-3 py-1.5 rounded shadow-xl whitespace-nowrap flex items-center gap-2 border border-white/10" style="font-family: 'Zen Old Mincho', serif;">
+							<div class="relative bg-[#333333]/90 text-white text-[11px] px-3 py-1.5 rounded shadow-xl whitespace-nowrap flex items-center gap-2 border border-white/10" style="font-family: 'DotGothic16', sans-serif;">
 								<span class="w-1.5 h-1.5 bg-amber-500 rounded-full shadow-[0_0_5px_rgba(245,158,11,0.8)]"></span>
-								<span class="tracking-wider font-medium">消去：入力内容をすべて破棄し、初期状態に復します</span>
+								<span class="tracking-widest font-medium ">消去：入力内容をすべて破棄し、初期状態に復します</span>
 								<div class="absolute -top-1 right-5 w-2 h-2 bg-[#333333] rotate-45 border-l border-t border-white/10"></div>
 							</div>
 						</div>
