@@ -22,9 +22,10 @@ let assetList = [];
 
 /** @type {string} 現在プレビュー表示している画像のURL */
 // let currentImgUrl = "";
-// let currentImgLabel = "Thumbnail";
 let currentImgUrl = "";
-let currentImgLabel = ""; // ここは空か "Thumbnail"
+
+/** @type {string} 画像ラベル（例: "Max Res", "Standard", "Scene" 等） */
+let currentImgLabel = "Thumbnail"; // 値は空か "Thumbnail"
 
 /**
  * ページ読み込み完了時の初期化処理
@@ -154,7 +155,6 @@ async function loadVideo(id, shouldScroll = false) {
 		{ label: 'Alt Thumb', res: '0.jpg', url: `https://img.youtube.com/vi/${id}/0.jpg`, isScene: true },
 		{ label: 'Legacy 1', res: '1.jpg', url: `https://img.youtube.com/vi/${id}/1.jpg`, isScene: true },
 
-
 		// { label: 'Scene 1', res: 'Storyboard', url: `https://img.youtube.com/vi/${id}/1.jpg`, isScene: true },
 		// { label: 'Scene 2', res: 'Storyboard', url: `https://img.youtube.com/vi/${id}/2.jpg`, isScene: true },
 		// { label: 'Scene 3', res: 'Storyboard', url: `https://img.youtube.com/vi/${id}/3.jpg`, isScene: true },
@@ -194,6 +194,17 @@ async function loadVideo(id, shouldScroll = false) {
 		});
 	}
 }
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -400,7 +411,7 @@ function createOutputRow(label, value) {
     const displayValue = value || '';
     return `
         <div class="space-y-1.5">
-            <label class="text-[9px] text-gray-400 block uppercase font-bold tracking-wider">${label}</label>
+            <label class="pl-[12px] text-[9px] text-gray-400 block uppercase font-bold tracking-wider">${label}</label>
             <div class="flex gap-2">
                 <input type="text" value='${displayValue}' readonly
                     class="nothing-input flex-grow p-3 text-[10px] font-mono focus:outline-none">
@@ -441,30 +452,38 @@ async function handleCopy(btn) {
 
 
 /**
- * Assetsタブ内の出力を更新する
+ * Assetsタブ内の全出力エリアを更新する
+ * @param {string} url - 画像URL
+ * @param {string} label - alt属性用のラベル（Max Res, Motionなど）
  */
-function updateThumbOutputs() {
+function updateThumbOutputs(url, label) {
     const container = document.getElementById('thumbOutputs');
-    // currentImgUrl がまだ無い場合は何もしない、もしくは空で出す
-    if (!container || !currentImgUrl) return;
+    if (!container) return;
+
+    // 最新の値を取得（引数がなければ現在の変数を参照）
+    const targetUrl = url || currentImgUrl;
+    const targetLabel = label || currentImgLabel || "Thumbnail";
 
     container.innerHTML = `
         <div class="nothing-card p-5 space-y-6">
             ${createOutputRow(
                 'HTML Image Tag (img)',
-                `<img src="${currentImgUrl}" alt="${currentImgLabel || 'Thumbnail'}">`
+                `<img src="${targetUrl}" alt="${targetLabel}">`
             )}
+
             ${createOutputRow(
                 'HTML Image Tag (a + img)',
-                `<a href="https://www.youtube.com/watch?v=${currentVideoId}" target="_blank"><img src="${currentImgUrl}" alt="${currentImgLabel || 'Thumbnail'}"></a>`
+                `<a href="https://www.youtube.com/watch?v=${currentVideoId}" target="_blank"><img src="${targetUrl}" alt="${targetLabel}"></a>`
             )}
+
             ${createOutputRow(
                 'Markdown Link',
-                `[![](${currentImgUrl})](https://www.youtube.com/watch?v=${currentVideoId})`
+                `[![](${targetUrl})](${targetLabel})`
             )}
+
             ${createOutputRow(
                 'Direct Asset URL',
-                currentImgUrl
+                targetUrl
             )}
         </div>
     `;
@@ -505,48 +524,98 @@ function updateThumbOutputs() {
 
 
 
-
-// 埋め込み系出力の生成
+/**
+ * 埋め込み設定を反映し、アセット共通の createOutputRow 関数を利用して出力する。
+ * タグ（textarea）のみ、共通構造を模倣して独自に生成する。
+ * @returns {void}
+ */
+/**
+ * 埋め込みエリアを更新する。
+ * URLと開始時間は共通関数を使い、タグのみ textarea 構造で独自に生成する。
+ */
 function updateEmbedOutputs() {
-		const w = document.getElementById('eWidth').value;
-		const h = document.getElementById('eHeight').value;
-		const s = document.getElementById('eStart').value;
-		const embedCode = `<iframe width="${w}" height="${h}" src="https://www.youtube.com/embed/${currentVideoId}?start=${s}" frameborder="0" allowfullscreen></iframe>`;
-		const timeUrl = `https://youtu.be/${currentVideoId}?t=${s}`;
+    /** @type {string} 幅 */
+    const w = document.getElementById('eWidth')?.value || "560";
+    /** @type {string} 高さ */
+    const h = document.getElementById('eHeight')?.value || "315";
+    /** @type {string} 開始秒数 */
+    const s = document.getElementById('eStart')?.value || "0";
 
-		document.getElementById('embedOutputAreas').innerHTML = `
-				<div class="nothing-card p-5 space-y-4">
-						<label class="text-[9px] text-gray-400 block uppercase font-bold tracking-wider">IFrame Embed Code</label>
-						<div class="flex flex-col gap-2">
-								<textarea id="outIframe" readonly class="nothing-input w-full p-3 text-[10px] font-mono h-20 focus:outline-none">${embedCode}</textarea>
-								<div class="flex justify-end"><button onclick="copy('outIframe')" class="btn-gray-copy">Copy Tag</button></div>
-						</div>
-				</div>
-				<div class="nothing-card p-5 space-y-4">
-						<label class="text-[9px] text-gray-400 block uppercase font-bold tracking-wider">Time-stamped Short URL (YOUTU.BE)</label>
-						<div class="flex gap-2">
-								<input type="text" id="outTimeUrl" value="${timeUrl}" readonly class="nothing-input flex-grow p-3 text-[10px] font-mono focus:outline-none">
-								<button onclick="copy('outTimeUrl')" class="btn-gray-copy">Copy</button>
-						</div>
-				</div>`;
+    const embedCode = `<iframe width="${w}" height="${h}" src="https://www.youtube.com/embed/${currentVideoId}?start=${s}" frameborder="0" allowfullscreen></iframe>`;
+    const timeUrl = `https://youtu.be/${currentVideoId}?t=${s}`;
+
+    /** @type {HTMLElement|null} */
+    const outDisplay = document.getElementById('embedOutputAreas');
+
+    if (outDisplay) {
+        // 1. 共通関数 createOutputRow で各行を生成
+        const timeUrlRow = createOutputRow("Time URL", timeUrl);
+        // const startTimeRow = createOutputRow("Start Time", s + "s"); // 秒数表示 ${startTimeRow}
+
+        // 2. タグ行（textarea）をアセットの構造に合わせて作成
+        const embedTagRow = `
+            <div class="space-y-1.5">
+                <label class="pl-[12px] text-[9px] text-gray-400 block uppercase font-bold tracking-wider">Embed Code</label>
+                <div class="flex gap-2 items-start">
+                    <textarea readonly
+						onclick="this.select()"
+                        class="nothing-input flex-grow p-3 text-[10px] font-mono focus:outline-none h-24 resize-none leading-relaxed"
+                    >${embedCode}</textarea>
+                    <button onclick="handleCopy(this)"
+                        class="btn-gray-copy w-[70px] h-[40px] transition-all text-[10px] font-bold uppercase flex-shrink-0">
+                        Copy
+                    </button>
+                </div>
+            </div>`;
+
+        // 3. すべて合体して表示
+        outDisplay.innerHTML = `
+            <div class="space-y-4 mt-4">
+                ${embedTagRow}
+                ${timeUrlRow}
+			</div>
+        `;
+    }
+
+    // メインプレイヤーの100%維持
+    const iframe = document.querySelector('#player-wrapper iframe');
+    if (iframe) {
+        iframe.style.width = '100%';
+        iframe.style.height = '100%';
+    }
+
+	// 生成された後の input 要素にも select() を仕込む
+	const urlInput = document.getElementById('outTimeUrl'); // IDがこれなら
+	if (urlInput) urlInput.onclick = function() { this.select(); };
 }
 
+
+
+/**
+ * YouTubeプレイヤーの現在の再生時間を取得し、
+ * 開始時間（eStart）の入力欄に反映させた後、タグ一覧も更新する。
+ */
 function syncTime() {
-		if (player && player.getCurrentTime) {
-				document.getElementById('eStart').value = Math.floor(player.getCurrentTime());
-				updateEmbedOutputs();
-		}
-}
+    // 1. YouTubeプレイヤーのインスタンスがあるか確認
+    // ※ player 変数名は環境に合わせてね（YT.Playerのインスタンス）
+    if (typeof player !== 'undefined' && player.getCurrentTime) {
+        /** @type {number} 現在の再生秒数（小数点以下切り捨て） */
+        const currentTime = Math.floor(player.getCurrentTime());
 
-function resizeEmbed(type) {
-		const w = document.getElementById('eWidth'), h = document.getElementById('eHeight');
-		if (document.getElementById('keepAspect').checked) {
-				if (type === 'w') h.value = Math.round(w.value * (9 / 16));
-				else w.value = Math.round(h.value * (16 / 9));
-		}
-		updateEmbedOutputs();
-}
+        /** @type {HTMLInputElement|null} 開始時間の入力フィールド */
+        const startInput = document.getElementById('eStart');
 
+        if (startInput) {
+            // 入力欄に値をセット
+            startInput.value = currentTime;
+
+            // 値が変わったので、下の「埋め込みタグ一覧」も再生成させる
+            updateEmbedOutputs();
+        }
+    } else {
+        console.error("Player instance not found. Make sure YouTube IFrame API is ready.");
+    }
+}
 
 
 /**
@@ -575,6 +644,11 @@ function switchTab(t) {
 		// もし switchTab の中で重い計算をしているなら、ここに入れる
 		// updateThumbOutputs();
 	}, 0);
+
+	// アセットやタグ表示が含まれるタブを開いた時に、中身を再生成する
+    if (currentVideoId) {
+        updateEmbedOutputs();
+    }
 }
 
 
@@ -626,46 +700,221 @@ function historyScrollHandler() {
 		updateDots('historyList', 'historyIndicator', 2.6);
 }
 
-// ドット・インジケーター更新（計算ロジック修正）
+
+
+
+
+/* ───────────────────────────────────────────
+     UPDATED CORE LOGIC
+─────────────────────────────────────────── */
+
 function updateDots(sId, iId, ratio) {
-		const container = document.getElementById(sId);
-		const indicator = document.getElementById(iId);
-		if (!container || !indicator) return;
+    const container = document.getElementById(sId);
+    const indicator = document.getElementById(iId);
+    if (!container || !indicator) return;
 
-		// 現在のインデックスを計算
-		const itemWidth = container.clientWidth / ratio;
-		const idx = Math.round(container.scrollLeft / itemWidth);
+    // 1. インデックスの計算
+    const childrenCount = (sId === 'mainSlider' && typeof assetList !== 'undefined') ? assetList.length : container.children.length;
+    // ratioを考慮しつつ計算
+    const itemWidth = (sId === 'mainSlider') ? (container.scrollWidth / childrenCount) : (container.clientWidth / ratio);
+    const idx = Math.round(container.scrollLeft / itemWidth);
 
-		if (sId === 'mainSlider') {
-				// indicator.innerHTML = assetList.map((_, i) => `<div class="dot ${i === idx ? 'active' : ''}"></div>`).join('');
-				document.getElementById(iId).innerHTML = assetList.map((_, i) => `<div class="dot ${i === idx ? 'active' : ''}" onclick="scrollToIndex('${sId}', ${i})"></div>`).join('');
+    // 2. ドットの描画（共通）
+    indicator.innerHTML = Array.from({ length: childrenCount }).map((_, i) => `
+        <div class="dot ${i === idx ? 'active' : ''}"
+             onclick="${sId === 'mainSlider' ? `handleDotClick(this, '${sId}', ${i})` : `scrollToIndex('${sId}', ${i})`}"></div>
+    `).join('');
 
-				if (assetList[idx]) {
-						currentImgUrl = assetList[idx].url;
-						document.getElementById('assetMeta').innerText = `${assetList[idx].label} // ${assetList[idx].res}`;
-						updateThumbOutputs();
-				}
-		} else {
-				// 履歴など
-				const dotsCount = container.children.length;
-				document.getElementById(iId).innerHTML = Array.from({ length: dotsCount }).map((_, i) => `<div class="dot ${i === idx ? 'active' : ''}" onclick="scrollToIndex('${sId}', ${i})"></div>`).join('');
-		}
+    // 3. メインスライダー(サムネイル)の場合の個別処理
+    if (sId === 'mainSlider' && typeof assetList !== 'undefined' && assetList[idx]) {
+        currentImgUrl = assetList[idx].url;
+        currentImgLabel = assetList[idx].label || "Thumbnail";
+
+        const metaElem = document.getElementById('assetMeta');
+        if (metaElem) {
+            metaElem.innerText = `${currentImgLabel} // ${assetList[idx].res}`;
+        }
+        updateThumbOutputs(); // タグ文字列を更新
+    }
 }
+
+
+/**
+ * 埋め込みプレイヤーのサイズを画面上のプレビューに即座に反映する
+ */
+// function applyEmbedPreview() {
+//     const w = document.getElementById('eWidth').value;
+//     const h = document.getElementById('eHeight').value;
+//     const wrapper = document.getElementById('player-wrapper');
+//     const iframe = document.querySelector('#player-wrapper iframe');
+
+//     if (wrapper) {
+//         wrapper.style.maxWidth = `${w}px`;
+//         wrapper.style.width = '100%';
+//         wrapper.style.margin = '0 auto';
+//     }
+//     if (iframe) {
+//         iframe.style.height = `${h}px`; // iframeの高さを直接変更
+//     }
+// }
+
+/**
+ * 代表的な埋め込みサイズを各入力フィールドにセットする
+ * @param {number} w - 幅 (px)
+ * @param {number} h - 高さ (px)
+ * @returns {void}
+ */
+function setEmbedSize(w, h) {
+    /** @type {HTMLInputElement|null} */
+    const elW = document.getElementById('eWidth');
+    /** @type {HTMLInputElement|null} */
+    const elH = document.getElementById('eHeight');
+
+    if (!elW || !elH) return;
+
+    elW.value = w.toString();
+    elH.value = h.toString();
+
+    // アスペクト比維持機能(resizeEmbed)が定義されていれば実行、なければタグ生成のみ
+    if (typeof resizeEmbed === 'function') {
+        resizeEmbed('w');
+    } else {
+        updateEmbedOutputs();
+    }
+}
+
+// 既存の updateEmbedOutputs を拡張してプレビュー反映を強制する
+// const baseUpdateEmbedOutputs = updateEmbedOutputs;
+// updateEmbedOutputs = function() {
+//     if (typeof baseUpdateEmbedOutputs === 'function') baseUpdateEmbedOutputs();
+//     applyEmbedPreview(); // 数値が変わるたびに見た目を変える
+// };
+
+
+/**
+ * 指定されたサイズでYouTube埋め込みの実寸プレビューをライトボックス表示する
+ * 画面サイズを超える巨大なプレビューにも対応し、Escキーでのクローズもサポート
+ * * @returns {void}
+ */
+function openEmbedPreview() {
+    /** @type {string} 幅の入力値 */
+    const w = document.getElementById('eWidth').value;
+    /** @type {string} 高さの入力値 */
+    const h = document.getElementById('eHeight').value;
+    /** @type {string} 開始秒数の入力値 */
+    const start = document.getElementById('eStart').value;
+
+    /** @type {HTMLDivElement} オーバーレイ要素の生成 */
+    const overlay = document.createElement('div');
+    overlay.id = 'previewOverlay';
+
+    // Nothing OS風の背景（白透過＋ブラー）とスクロール設定
+    overlay.className = "fixed inset-0 z-[100] flex flex-col items-center justify-start overflow-y-auto bg-white/80 backdrop-blur-md p-10 animate-in fade-in duration-300";
+
+    /**
+     * オーバーレイの背景部分をクリックした際にプレビューを閉じる
+     * @param {MouseEvent} e
+     */
+    overlay.onclick = (e) => {
+        if(e.target === overlay) closeEmbedPreview();
+    };
+
+    overlay.innerHTML = `
+        <button onclick="closeEmbedPreview()"
+                class="fixed top-6 right-6 z-[110] bg-black text-white w-12 h-12 rounded-full flex items-center justify-center shadow-xl hover:scale-110 active:scale-90 transition-all">
+            <span class="text-2xl">×</span>
+        </button>
+
+        <div class="relative my-auto animate-in zoom-in-95 duration-300 shadow-2xl"
+             style="width:${w}px; height:${h}px; min-width:${w}px;">
+            <iframe width="100%" height="100%"
+                    src="https://www.youtube.com/embed/${currentVideoId}?start=${start}"
+                    frameborder="0" allowfullscreen></iframe>
+
+            <div class="absolute -top-8 left-0 text-[10px] font-bold uppercase tracking-widest text-black/40">
+                Actual Size // ${w} x ${h} (ESC TO CLOSE)
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    // 背面のメイン画面スクロールをロック
+    document.body.style.overflow = 'hidden';
+    document.body.style.height = '100vh';
+
+    /**
+     * Escキー押下時のイベントハンドラ
+     * @param {KeyboardEvent} e
+     */
+    const escListener = (e) => {
+        if (e.key === 'Escape') {
+            closeEmbedPreview();
+            window.removeEventListener('keydown', escListener);
+        }
+    };
+    window.addEventListener('keydown', escListener);
+}
+
+/**
+ * 実寸プレビューのオーバーレイを破棄し、画面のスクロールロックを解除する
+ * @returns {void}
+ */
+function closeEmbedPreview() {
+    /** @type {HTMLElement|null} */
+    const overlay = document.getElementById('previewOverlay');
+    if (overlay) {
+        overlay.classList.add('animate-out', 'fade-out', 'zoom-out-95');
+        setTimeout(() => {
+            overlay.remove();
+            // スクロールロックを解除
+            document.body.style.overflow = '';
+            document.body.style.height = '';
+        }, 200);
+    }
+}
+
+
+
+
+
+/* ───────────────────────────────────────────
+     OTHERS (UTILITIES)
+─────────────────────────────────────────── */
 
 function copyAllHistory() {
-		const h = JSON.parse(localStorage.getItem('yt_history') || '[]');
-		navigator.clipboard.writeText(h.map(id => `https://youtu.be/${id}`).join('\n'));
+    const h = JSON.parse(localStorage.getItem('yt_history') || '[]');
+    navigator.clipboard.writeText(h.map(id => `https://youtu.be/${id}`).join('\n'));
 }
 
-function moveSlide(id, d) { const s = document.getElementById(id); s.scrollBy({ left: d * s.clientWidth, behavior: 'smooth' }); }
+function moveSlide(id, d) {
+    const s = document.getElementById(id);
+    if (s) s.scrollBy({ left: d * s.clientWidth, behavior: 'smooth' });
+}
 
 function share(platform) {
-		const url = encodeURIComponent(`https://youtu.be/${currentVideoId}`);
-		if (platform === 'x') window.open(`https://twitter.com/intent/tweet?url=${url}`, '_blank');
-		else if (platform === 'threads') window.open(`https://www.threads.net/intent/post?text=${url}`, '_blank');
-		else if (platform === 'facebook') window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank');
-		else if (platform === 'line') window.open(`https://line.me/R/msg/text/?${url}`, '_blank');
+    const url = encodeURIComponent(`https://youtu.be/${currentVideoId}`);
+    const links = {
+        x: `https://twitter.com/intent/tweet?url=${url}`,
+        threads: `https://www.threads.net/intent/post?text=${url}`,
+        facebook: `https://www.facebook.com/sharer/sharer.php?u=${url}`,
+        line: `https://line.me/R/msg/text/?${url}`
+    };
+    if (links[platform]) window.open(links[platform], '_blank');
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 // 他の関数（loadVideo, updateDotsなど）が全部終わったあとの場所に...
@@ -685,6 +934,10 @@ if (mainSlider) {
         }
     }, { passive: false });
 }
+
+
+
+
 
 
 /**
