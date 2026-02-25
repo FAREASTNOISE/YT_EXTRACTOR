@@ -27,6 +27,9 @@ let currentImgUrl = "";
 /** @type {string} 画像ラベル（例: "Max Res", "Standard", "Scene" 等） */
 let currentImgLabel = "Thumbnail"; // 値は空か "Thumbnail"
 
+/** @type {string} 現在表示している動画のタイトル */
+let currentVideoTitle = "";
+
 /**
  * ページ読み込み完了時の初期化処理
  * 履歴の読み込み、最終タブの復元、イベントリスナーの設定を行う
@@ -70,15 +73,50 @@ window.onload = () => {
 
 
 
+
+
 /**
- * ユーザー入力されたURLから動画IDとプレイリストIDを解析し、読み込み処理を振り分ける
- * @description 対応形式: 標準URL, Shorts, 埋め込み, プレイリスト
- * @returns {void}
+ * YouTubeのURLを解析し、動画IDとShorts判定を抽出する。
+ * * @param {string} url - 解析対象のYouTube URL（shorts, v=形式, youtu.be形式に対応）
+ * @returns {{videoId: string, isShorts: boolean}} 解析結果オブジェクト
+ * @returns {string} .videoId - 抽出された11桁の動画ID（見つからない場合は空文字）
+ * @returns {boolean} .isShorts - 動画がShorts形式（/shorts/）であるかどうかのフラグ
+ */
+function analyzeYouTubeUrl(url) {
+    let videoId = '';
+    let isShorts = false;
+
+    // URLが空、または文字列でない場合は早期リターン
+    if (!url || typeof url !== 'string') return { videoId, isShorts };
+
+    if (url.includes('/shorts/')) {
+        // Shorts形式: https://www.youtube.com/shorts/VIDEO_ID
+        videoId = url.split('/shorts/')[1].split(/[?&]/)[0];
+        isShorts = true;
+    } else if (url.includes('v=')) {
+        // 標準形式: https://www.youtube.com/watch?v=VIDEO_ID
+        videoId = url.split('v=')[1].split(/[?&]/)[0];
+    } else if (url.includes('youtu.be/')) {
+        // 短縮形式: https://youtu.be/VIDEO_ID
+        videoId = url.split('youtu.be/')[1].split(/[?&]/)[0];
+    }
+
+    return { videoId, isShorts };
+}
+
+/**
+ * ユーザー入力されたURLから動画IDを解析し、UIの更新処理を実行する。
+ * * 対応形式: 標準URL, Shorts, 埋め込み, プレイリスト。
+ * 解析後のIDをグローバル変数 currentVideoId に格納し、表示を同期させます。
+ * * @returns {void}
  */
 function processInput() {
-	const inputEl = document.getElementById('videoUrl');
-	/** @type {string} */
-	const url = inputEl.value.trim();
+	// const inputEl = document.getElementById('videoUrl');
+	// /** @type {string} */
+	// const url = inputEl.value.trim();
+
+    const url = document.getElementById('videoUrl').value;
+    const { videoId, isShorts } = analyzeYouTubeUrl(url);
 
 	if (!url) return;
 
@@ -116,14 +154,39 @@ async function loadVideo(id, shouldScroll = false) {
 	document.getElementById('resultArea').classList.remove('hidden');
 	resetPlayer();
 
-	player = new YT.Player('player', {
-		height: '100%', width: '100%', videoId: id,
-		playerVars: {
-			'rel': 0,          // 関連動画を自チャンネルのみに制限
-			'playsinline': 1   // モバイルでのインライン再生を許可
-		},
-		events: { 'onReady': () => updateEmbedOutputs() }
-	});
+
+
+	// --- 動画タイトル取得 (APIキー不要のoEmbedを使用) ---
+	try {
+		const response = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${id}&format=json`);
+		if (!response.ok) throw new Error("メタデータの取得に失敗");
+
+		const data = await response.json();
+		currentVideoTitle = data.title; // シェア用に変数へ保存
+
+		// 画面上にタイトル表示要素があれば更新
+		const titleEl = document.getElementById('vTitle');
+		if (titleEl) titleEl.innerText = currentVideoTitle;
+
+	} catch (error) {
+		console.warn("タイトルの取得に失敗:", error);
+		currentVideoTitle = "YouTube Video"; // 失敗時の予備
+	}
+
+
+	// --- プレイヤーの初期化 ---
+    player = new YT.Player('player', {
+        height: '100%',
+        width: '100%',
+        videoId: id,
+        playerVars: {
+            'rel': 0,          // 関連動画を自分のチャンネルのみに
+            'playsinline': 1   // モバイルで全画面表示にさせない
+        },
+        events: {
+            'onReady': () => updateEmbedOutputs()
+        }
+    });
 
 	const candidates = [
 
@@ -165,34 +228,42 @@ async function loadVideo(id, shouldScroll = false) {
 	];
 
 
-	assetList = [];
-	for (const c of candidates) {
-		const isValid = await new Promise(resolve => {
-			const img = new Image();
-			img.crossOrigin = "anonymous";
-			img.onload = () => resolve(img.width > 120);
-			img.onerror = () => resolve(false);
-			img.src = c.url;
-		});
-		if (isValid) assetList.push(c);
-	}
+	// --- 画像の存在チェック ---
+    assetList = [];
+    for (const c of candidates) {
+        try {
+            const isValid = await new Promise(resolve => {
+                const img = new Image();
+                img.crossOrigin = "anonymous";
+                img.onload = () => resolve(img.width > 120); // YouTubeの404画像は幅が狭いため除外
+                img.onerror = () => resolve(false);
+                img.src = c.url;
+                setTimeout(() => resolve(false), 3000); // 3秒でタイムアウト
+            });
+            if (isValid) assetList.push(c);
+        } catch (e) {
+            continue;
+        }
+    }
 
-	const slider = document.getElementById('mainSlider');
-	slider.innerHTML = assetList.map(a => `
-		<div class="slide-item-container ${a.isScene ? 'is-scene' : 'is-main'}">
-			<img src="${a.url}" class="${a.isScene ? 'slide-item-natural' : 'slide-item-fit'}">
-		</div>
-	`).join('');
+	// --- スライダーの表示更新 ---
+    const slider = document.getElementById('mainSlider');
+    slider.innerHTML = assetList.map(a => `
+        <div class="slide-item-container ${a.isScene ? 'is-scene' : 'is-main'}">
+            <img src="${a.url}" class="${a.isScene ? 'slide-item-natural' : 'slide-item-fit'}" loading="lazy">
+        </div>
+    `).join('');
 
-	slider.scrollTo(0, 0);
-	updateDots('mainSlider', 'mainIndicator', 1);
+    slider.scrollTo(0, 0);
+    updateDots('mainSlider', 'mainIndicator', 1);
 
-	if (shouldScroll) {
-		window.scrollTo({
-			top: document.getElementById('resultArea').offsetTop - 20,
-			behavior: 'smooth'
-		});
-	}
+    // --- 結果エリアへスクロール ---
+    if (shouldScroll) {
+        window.scrollTo({
+            top: document.getElementById('resultArea').offsetTop - 20,
+            behavior: 'smooth'
+        });
+    }
 }
 
 
@@ -322,86 +393,15 @@ function renderPlaylistCards(items) {
 
 
 
-/**
- * インジケーターのドットを更新し、クリック可能にする
- * @param {string} sId - スライダーのID
- * @param {string} iId - インジケーターのID
- * @param {number} ratio - 計算用比率
- */
-function updateDots(sId, iId, ratio) {
-    const container = document.getElementById(sId);
-    const indicator = document.getElementById(iId);
-    if (!container || !indicator) return;
-
-    // assetList がちゃんと存在するかチェック
-    const childrenCount = (sId === 'mainSlider' && typeof assetList !== 'undefined') ? assetList.length : container.children.length;
-    const itemWidth = container.scrollWidth / childrenCount;
-    const idx = Math.round(container.scrollLeft / itemWidth);
-
-    // ドットの生成（ここはそのまま）
-    indicator.innerHTML = Array.from({ length: childrenCount }).map((_, i) => `
-        <div class="dot ${i === idx ? 'active' : ''}"
-             onclick="handleDotClick(this, '${sId}', ${i})"></div>
-    `).join('');
-
-    // 【ここが重要！】
-    if (sId === 'mainSlider' && typeof assetList !== 'undefined' && assetList[idx]) {
-        // 直接代入し、確実に更新されたことを確認してから updateThumbOutputs を呼ぶ
-        // currentImgUrl = assetList[idx].url;
-        // currentImgLabel = assetList[idx].label || "Thumbnail"; // labelが空ならデフォルト値
-
-		currentImgUrl = assetList[idx].url;
-        currentImgLabel = assetList[idx].label;
-
-        // メタ情報の表示更新
-        const metaElem = document.getElementById('assetMeta');
-        if (metaElem) {
-            metaElem.innerText = `${currentImgLabel} // ${assetList[idx].res}`;
-        }
-
-        // タグ生成を呼ぶ
-        updateThumbOutputs();
-    }
-}
-
-/**
- * ドットがクリックされた時の処理
- * @param {HTMLElement} el - クリックされたドット自身
- * @param {string} sId - スライダーのID
- * @param {number} index - 何番目か
- */
-function handleDotClick(el, sId, index) {
-    // 1. 【即座に反応】クリックされたドットをその場で光らせる
-    const parent = el.parentElement;
-    parent.querySelectorAll('.dot').forEach(d => d.classList.remove('active'));
-    el.classList.add('active'); // これで CSS の .active::before が走る！
-
-    // 2. 【移動】スライダーを動かす
-    scrollToIndex(sId, index);
-}
-
-
-/**
- * ドットをクリックしたときに指定の画像までスクロールさせる
- */
-function scrollToIndex(sId, index) {
-    const container = document.getElementById(sId);
-    if (!container) return;
-
-    const childrenCount = (sId === 'mainSlider') ? assetList.length : container.children.length;
-    const targetLeft = (container.scrollWidth / childrenCount) * index;
-
-    container.scrollTo({
-        left: targetLeft,
-        behavior: 'smooth'
-    });
-}
 
 
 
-
+/* ───────────────────────────────────────────
+      OUTPUT TAGS AND LINKS GENERATOR
+─────────────────────────────────────────── */
 /**
  * コピーボタン付きの入力行（HTML文字列）を生成する
+ * Asset Embed 共用
  * @param {string} label - 表示するラベルテキスト（例: 'HTML Image Tag'）
  * @param {string} value - input要素にセットするコピー対象の文字列
  * @returns {string} 構築されたHTMLテンプレート
@@ -413,7 +413,9 @@ function createOutputRow(label, value) {
         <div class="space-y-1.5">
             <label class="pl-[12px] text-[9px] text-gray-400 block uppercase font-bold tracking-wider">${label}</label>
             <div class="flex gap-2">
-                <input type="text" value='${displayValue}' readonly
+                <input type="text" value='${displayValue}'
+					onclick="this.select()"
+					readonly
                     class="nothing-input flex-grow p-3 text-[10px] font-mono focus:outline-none">
                 <button onclick="handleCopy(this)" class="btn-gray-copy w-[70px] transition-all text-[10px] font-bold uppercase">Copy</button>
             </div>
@@ -491,55 +493,40 @@ function updateThumbOutputs(url, label) {
 
 
 
-// // 画像系出力タグの生成（ボタン統一版）
-// function updateThumbOutputs() {
-// 		const container = document.getElementById('thumbOutputs');
 
-// 		container.innerHTML = `
-// 				<div class="nothing-card p-5 space-y-5">
-// 						<div>
-// 								<label class="text-[9px] text-gray-400 block mb-1.5 uppercase font-bold tracking-wider">HTML Image Tag (IMG)</label>
-// 								<div class="flex gap-2">
-// 										<input type="text" value='<a href="https://www.youtube.com/watch?v=${currentVideoId}" target="_blank"><img src="${currentImgUrl}" alt="Thumbnail"></a>' readonly class="nothing-input flex-grow p-3 text-[10px] font-mono focus:outline-none">
-// 										<button onclick="copyRaw(this)" class="btn-gray-copy">COPY HTML</button>
-// 								</div>
-// 						</div>
-// 						<div>
-// 								<label class="text-[9px] text-gray-400 block mb-1.5 uppercase font-bold tracking-wider">Markdown Link</label>
-// 								<div class="flex gap-2">
-// 										<input type="text" value='[![](${currentImgUrl})](https://www.youtube.com/watch?v=${currentVideoId})' readonly class="nothing-input flex-grow p-3 text-[10px] font-mono focus:outline-none">
-// 										<button onclick="copyRaw(this)" class="btn-gray-copy">COPY MD</button>
-// 								</div>
-// 						</div>
-// 						<div>
-// 								<label class="text-[9px] text-gray-400 block mb-1.5 uppercase font-bold tracking-wider">Direct Asset URL</label>
-// 								<div class="flex gap-2">
-// 										<input type="text" value='${currentImgUrl}' readonly class="nothing-input flex-grow p-3 text-[10px] font-mono focus:outline-none">
-// 										<button onclick="copyRaw(this)" class="btn-gray-copy">COPY URL</button>
-// 								</div>
-// 						</div>
-// 				</div>`;
-// }
+// EMBED ここから↓
 
 
 
 
 /**
- * 埋め込み設定を反映し、アセット共通の createOutputRow 関数を利用して出力する。
- * タグ（textarea）のみ、共通構造を模倣して独自に生成する。
+ * 埋め込み設定を反映し、出力エリアを更新する。
  * @returns {void}
  */
-/**
- * 埋め込みエリアを更新する。
- * URLと開始時間は共通関数を使い、タグのみ textarea 構造で独自に生成する。
- */
 function updateEmbedOutputs() {
-    /** @type {string} 幅 */
+    // // デバッグログ
+    // console.log("Checking currentVideoId:", typeof currentVideoId !== 'undefined' ? currentVideoId : "Undefined");
+
+    if (typeof currentVideoId === 'undefined' || !currentVideoId) {
+        return;
+    }
+
+    /** @type {string} */
     const w = document.getElementById('eWidth')?.value || "560";
-    /** @type {string} 高さ */
+    /** @type {string} */
     const h = document.getElementById('eHeight')?.value || "315";
-    /** @type {string} 開始秒数 */
+    /** @type {string} */
     const s = document.getElementById('eStart')?.value || "0";
+    const startSeconds = parseInt(s) || 0;
+
+    // バッジ（分:秒）を更新
+    updateTimeBadge(startSeconds);
+
+    // ★追加: プレイヤーが存在し、かつシーク可能なら移動させる
+    if (typeof player !== 'undefined' && player && typeof player.seekTo === 'function') {
+        // 第2引数を true にすると、シーク先がまだバッファされてなくても強制的に移動する
+        player.seekTo(startSeconds, true);
+    }
 
     const embedCode = `<iframe width="${w}" height="${h}" src="https://www.youtube.com/embed/${currentVideoId}?start=${s}" frameborder="0" allowfullscreen></iframe>`;
     const timeUrl = `https://youtu.be/${currentVideoId}?t=${s}`;
@@ -548,17 +535,13 @@ function updateEmbedOutputs() {
     const outDisplay = document.getElementById('embedOutputAreas');
 
     if (outDisplay) {
-        // 1. 共通関数 createOutputRow で各行を生成
         const timeUrlRow = createOutputRow("Time URL", timeUrl);
-        // const startTimeRow = createOutputRow("Start Time", s + "s"); // 秒数表示 ${startTimeRow}
-
-        // 2. タグ行（textarea）をアセットの構造に合わせて作成
         const embedTagRow = `
             <div class="space-y-1.5">
                 <label class="pl-[12px] text-[9px] text-gray-400 block uppercase font-bold tracking-wider">Embed Code</label>
                 <div class="flex gap-2 items-start">
                     <textarea readonly
-						onclick="this.select()"
+                        onclick="this.select()"
                         class="nothing-input flex-grow p-3 text-[10px] font-mono focus:outline-none h-24 resize-none leading-relaxed"
                     >${embedCode}</textarea>
                     <button onclick="handleCopy(this)"
@@ -568,25 +551,157 @@ function updateEmbedOutputs() {
                 </div>
             </div>`;
 
-        // 3. すべて合体して表示
         outDisplay.innerHTML = `
             <div class="space-y-4 mt-4">
                 ${embedTagRow}
                 ${timeUrlRow}
-			</div>
+            </div>
         `;
     }
+}
 
-    // メインプレイヤーの100%維持
-    const iframe = document.querySelector('#player-wrapper iframe');
-    if (iframe) {
-        iframe.style.width = '100%';
-        iframe.style.height = '100%';
+
+
+/**
+ * 秒数を「分:秒」または「時:分:秒」の形式に変換して表示を更新する。
+ * @param {number} seconds - 変換する秒数
+ * @returns {void}
+ */
+function updateTimeBadge(seconds) {
+    const badge = document.getElementById('timeFormat');
+    if (!badge) return;
+
+    if (seconds <= 0) {
+        badge.innerText = "0:00";
+        return;
     }
 
-	// 生成された後の input 要素にも select() を仕込む
-	const urlInput = document.getElementById('outTimeUrl'); // IDがこれなら
-	if (urlInput) urlInput.onclick = function() { this.select(); };
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+
+    const displayM = m.toString();
+    const displayS = s.toString().padStart(2, '0');
+
+    if (h > 0) {
+        badge.innerText = `${h}:${displayM.padStart(2, '0')}:${displayS}`;
+    } else {
+        badge.innerText = `${displayM}:${displayS}`;
+    }
+}
+
+
+
+/**
+ * 入力フィールドに対して、マウスホイールでの数値増減を有効にする。
+ * @param {WheelEvent} event - マウスホイールイベント
+ * @param {'w'|'h'|'s'} type - 更新する項目の種類 (w: Width, h: Height, s: Start)
+ * @returns {void}
+ */
+function handleWheel(event, type) {
+    event.preventDefault();
+
+    /** @type {HTMLInputElement} */
+    const input = event.currentTarget;
+    const step = 1;
+    const delta = event.deltaY < 0 ? step : -step;
+
+    const newValue = parseInt(input.value || "0") + delta;
+
+    if (newValue >= 0) {
+        input.value = newValue.toString();
+
+        if (type === 'w' || type === 'h') {
+            resizeEmbed(type);
+        } else if (type === 's') {
+            updateEmbedOutputs();
+        }
+    }
+}
+
+/**
+ * 幅・高さの入力を監視し、比率を維持して更新する。
+ * 縦長（Shorts）の場合は 9:16、横長の場合は 16:9 で計算する。
+ * @param {'w'|'h'} type - 変更された入力の種類
+ * @returns {void}
+ */
+function resizeEmbed(type) {
+    const elW = document.getElementById('eWidth');
+    const elH = document.getElementById('eHeight');
+    const elKeep = document.getElementById('keepAspect');
+
+    if (!elW || !elH) return;
+
+    let w = parseInt(elW.value) || 0;
+    let h = parseInt(elH.value) || 0;
+
+    // 比率維持がONの時だけ計算
+    if (elKeep && elKeep.checked) {
+        // 現在の状態で縦長（Shorts）か横長かを判定
+        // typeが 'w' なら変更前の 'h' を見て、'h' なら変更前の 'w' を見る
+        const isPortrait = (type === 'w') ? (h > w * 0.8) : (h * 0.8 > w);
+
+        if (isPortrait) {
+            // --- Shorts比率 (9:16) ---
+            if (type === 'w') {
+                elH.value = Math.round(w * 16 / 9).toString();
+            } else {
+                elW.value = Math.round(h * 9 / 16).toString();
+            }
+        } else {
+            // --- 通常比率 (16:9) ---
+            if (type === 'w') {
+                elH.value = Math.round(w * 9 / 16).toString();
+            } else {
+                elW.value = Math.round(h * 16 / 9).toString();
+            }
+        }
+    }
+
+    // 表示とスタイルの更新
+    updateEmbedOutputs();
+    updateSizeButtonStyles();
+}
+
+
+/**
+ * 現在の入力値とボタンの設定値を比較し、一致するものだけドット枠を適用する。
+ * @returns {void}
+ */
+function updateSizeButtonStyles() {
+    /** @type {string} */
+    const currentW = document.getElementById('eWidth')?.value || "";
+    /** @type {string} */
+    const currentH = document.getElementById('eHeight')?.value || "";
+
+    /** @type {NodeListOf<HTMLButtonElement>} */
+    const buttons = document.querySelectorAll('.btn-gray-copy');
+
+    buttons.forEach(btn => {
+        // onclick属性から設定値 (w, h) を抽出
+        const onClickAttr = btn.getAttribute('onclick') || "";
+        const match = onClickAttr.match(/setEmbedSize\((\d+),\s*(\d+)\)/);
+
+        if (match) {
+            const [_, btnW, btnH] = match;
+            const isMatch = (currentW === btnW && currentH === btnH);
+
+            if (isMatch) {
+                // アクティブ状態: ドット枠を強制表示
+                btn.style.border = "1px dashed #000"; // 直接スタイルを叩くのが一番確実
+                btn.style.opacity = "1";
+                // Tailwindの干渉を防ぐためクラスも調整
+                btn.classList.add('border-dashed', 'border-black');
+                btn.classList.remove('border-transparent', 'opacity-50');
+            } else {
+                // 非アクティブ状態: 枠を消す
+                btn.style.border = "1px solid transparent";
+                btn.style.opacity = "0.5";
+                btn.classList.remove('border-dashed', 'border-black');
+                btn.classList.add('border-transparent', 'opacity-50');
+            }
+        }
+    });
 }
 
 
@@ -611,6 +726,11 @@ function syncTime() {
 
             // 値が変わったので、下の「埋め込みタグ一覧」も再生成させる
             updateEmbedOutputs();
+
+            // ★追加：数値が変わったのでボタンの状態も再チェック
+            //（秒数を変えると、たとえサイズが一致していてもカスタム状態とみなして枠を消す、
+            // もしくは現在のサイズを維持して枠を残すかの判定を走らせる）
+            updateSizeButtonStyles();
         }
     } else {
         console.error("Player instance not found. Make sure YouTube IFrame API is ready.");
@@ -618,7 +738,10 @@ function syncTime() {
 }
 
 
+
+
 /**
+ * ---AssetsタブとEmbedタブの表示切り替え---
  * 表示モード（サムネイル/埋め込み）を切り替え、状態を保存する
  * @param {'thumb' | 'embed'} t - 切り替えるタブの識別子 ('thumb' または 'embed')
  */
@@ -650,6 +773,11 @@ function switchTab(t) {
         updateEmbedOutputs();
     }
 }
+
+
+
+
+
 
 
 
@@ -740,26 +868,25 @@ function updateDots(sId, iId, ratio) {
 
 
 /**
- * 埋め込みプレイヤーのサイズを画面上のプレビューに即座に反映する
+ * ドットをクリックしたときに指定の画像までスクロールさせる
  */
-// function applyEmbedPreview() {
-//     const w = document.getElementById('eWidth').value;
-//     const h = document.getElementById('eHeight').value;
-//     const wrapper = document.getElementById('player-wrapper');
-//     const iframe = document.querySelector('#player-wrapper iframe');
+function scrollToIndex(sId, index) {
+    const container = document.getElementById(sId);
+    if (!container) return;
 
-//     if (wrapper) {
-//         wrapper.style.maxWidth = `${w}px`;
-//         wrapper.style.width = '100%';
-//         wrapper.style.margin = '0 auto';
-//     }
-//     if (iframe) {
-//         iframe.style.height = `${h}px`; // iframeの高さを直接変更
-//     }
-// }
+    const childrenCount = (sId === 'mainSlider') ? assetList.length : container.children.length;
+    const targetLeft = (container.scrollWidth / childrenCount) * index;
+
+    container.scrollTo({
+        left: targetLeft,
+        behavior: 'smooth'
+    });
+}
+
+
 
 /**
- * 代表的な埋め込みサイズを各入力フィールドにセットする
+ * プリセットボタンからサイズをセットし、UIを更新する
  * @param {number} w - 幅 (px)
  * @param {number} h - 高さ (px)
  * @returns {void}
@@ -775,20 +902,20 @@ function setEmbedSize(w, h) {
     elW.value = w.toString();
     elH.value = h.toString();
 
-    // アスペクト比維持機能(resizeEmbed)が定義されていれば実行、なければタグ生成のみ
+    // アスペクト比維持機能があれば実行、なければ直接タグ生成
     if (typeof resizeEmbed === 'function') {
         resizeEmbed('w');
     } else {
         updateEmbedOutputs();
     }
+
+    // ボタンのスタイル（ドット枠）を現在の数値に同期
+    updateSizeButtonStyles();
 }
 
-// 既存の updateEmbedOutputs を拡張してプレビュー反映を強制する
-// const baseUpdateEmbedOutputs = updateEmbedOutputs;
-// updateEmbedOutputs = function() {
-//     if (typeof baseUpdateEmbedOutputs === 'function') baseUpdateEmbedOutputs();
-//     applyEmbedPreview(); // 数値が変わるたびに見た目を変える
-// };
+
+
+
 
 
 /**
@@ -892,20 +1019,6 @@ function moveSlide(id, d) {
     if (s) s.scrollBy({ left: d * s.clientWidth, behavior: 'smooth' });
 }
 
-function share(platform) {
-    const url = encodeURIComponent(`https://youtu.be/${currentVideoId}`);
-    const links = {
-        x: `https://twitter.com/intent/tweet?url=${url}`,
-        threads: `https://www.threads.net/intent/post?text=${url}`,
-        facebook: `https://www.facebook.com/sharer/sharer.php?u=${url}`,
-        line: `https://line.me/R/msg/text/?${url}`
-    };
-    if (links[platform]) window.open(links[platform], '_blank');
-}
-
-
-
-
 
 
 
@@ -988,4 +1101,83 @@ function showTooltip(id) {
     target.classList.remove('opacity-100', 'translate-y-0');
     activeTooltipTimer = null;
   }, TOOLTIP_CONFIG.displayTime);
+}
+
+
+
+
+/* ───────────────────────────────────────────
+      UI UTILITIES & FEEDBACK
+─────────────────────────────────────────── */
+
+/**
+ * 配信先プラットフォームの定義
+ * @type {Object.<string, string>}
+ */
+const SHARE_ENDPOINTS = {
+    x: "https://twitter.com/intent/tweet?url=",
+    threads: "https://www.threads.net/intent/post?text=",
+    facebook: "https://www.facebook.com/sharer/sharer.php?u=",
+    line: "https://line.me/R/msg/text/?"
+};
+
+/**
+ * 現在の動画情報を外部へ配信する
+ * @param {keyof typeof SHARE_ENDPOINTS} platform
+ */
+function share(platform) {
+    if (!currentVideoId) return;
+
+    const videoUrl = `https://youtu.be/${currentVideoId}`;
+    // タイトルがあれば「タイトル | URL」、なければ「URL」のみ
+    const content = currentVideoTitle ? `${currentVideoTitle} | ${videoUrl}` : videoUrl;
+    const encodedContent = encodeURIComponent(content);
+    const encodedUrl = encodeURIComponent(videoUrl);
+
+    let finalUrl = "";
+
+    if (platform === 'facebook') {
+        // Facebookはテキストを直接送れない仕様なので、URLのみを渡す
+        finalUrl = SHARE_ENDPOINTS.facebook + encodedUrl;
+    } else {
+        // X, Threads, Line はタイトルを含めたテキストとして送る
+        finalUrl = SHARE_ENDPOINTS[platform] + encodedContent;
+    }
+
+    if (finalUrl) {
+        window.open(finalUrl, '_blank', 'noreferrer,noopener');
+    }
+}
+
+/**
+ * 現在の動画URLをクリップボードにコピーする
+ * @param {HTMLElement} btn - クリックされたボタン要素
+ */
+function copyCurrentUrl(btn) {
+    if (!currentVideoId) {
+        console.warn("動画IDが見つかりません");
+        return;
+    }
+
+    const videoUrl = `https://youtu.be/${currentVideoId}`;
+
+    // クリップボードへのコピー実行
+    navigator.clipboard.writeText(videoUrl).then(() => {
+        // --- 成功時のフィードバック処理 ---
+        const span = btn.querySelector('span');
+        const originalText = span.innerText;
+
+        // 文字を「COPIED!」に変更
+        span.innerText = "COPIED!";
+        btn.classList.replace('text-black/40', 'text-black'); // 一時的に色を濃くする
+
+        // 2秒後に元の状態に戻す
+        setTimeout(() => {
+            span.innerText = originalText;
+            btn.classList.replace('text-black', 'text-black/40');
+        }, 2000);
+
+    }).catch(err => {
+        console.error('コピーに失敗しました', err);
+    });
 }

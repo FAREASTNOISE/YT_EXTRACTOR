@@ -413,9 +413,10 @@ body {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	/* ...既存のスタイル... */
-}
 
+    border: 1px solid transparent; /* これが大事！ */
+    transition: all 0.2s ease;
+}
 
 /* タブの親コンテナ：少しだけ余裕を持たせる */
 .tab-container {
