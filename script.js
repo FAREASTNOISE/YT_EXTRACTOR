@@ -61,6 +61,12 @@ window.onload = () => {
          */
         pasteBtn.onclick = async () => {
             try {
+                // 権限をチェック（任意だけど入れるとより親切）
+                const permission = await navigator.permissions.query({ name: "clipboard-read" });
+                if (permission.state === "denied") {
+                    throw new Error("Permission denied");
+                }
+
                 // クリップボードのテキストを取得
                 const text = await navigator.clipboard.readText();
 
@@ -130,37 +136,70 @@ function analyzeYouTubeUrl(url) {
 function processInput() {
     const urlInput = document.getElementById('videoUrl');
     if (!urlInput) return;
-
-    const url = urlInput.value.trim();
+    const url = urlInput ? urlInput.value.trim() : "";
     if (!url) return;
 
-    // 1. 解析を実行し、結果（オブジェクト）を analysisResult に入れる
-    const analysisResult = analyzeYouTubeUrl(url);
+    console.log("Input URL:", url);
 
-    // 2. 解析結果から中身を取り出す（分割代入）
+
+    // 解析を実行し、結果（オブジェクト）を analysisResult に入れる
+    const analysisResult = analyzeYouTubeUrl(url);
+    // 解析結果から中身を取り出す（分割代入）
     const { videoId, isShorts, playlistId } = analysisResult;
 
-    // --- 振り分け処理 ---
 
-    if (playlistId && playlistId.length > 5) {
+    console.log("解析結果 obj :",  analysisResult);
+
+
+    // プレイリストがあれば出す（独立させる）
+    if (playlistId) {
         fetchPlaylist(playlistId);
-        if (videoId) {
-            currentVideoId = videoId;
-            // ★ここで呼び出す！
-            handleModeSwitch(isShorts);
-            loadVideo(videoId, true);
-        }
-    }
-    else if (videoId) {
-        currentVideoId = videoId;
-        // ★ここでも呼び出す！
-        handleModeSwitch(isShorts);
-        loadVideo(videoId, true);
-
+        const plSection = document.getElementById('playlistSection');
+        if (plSection) plSection.classList.remove('hidden');
+    } else {
         const plSection = document.getElementById('playlistSection');
         if (plSection) plSection.classList.add('hidden');
     }
+
+    console.log("PlayList Output is done!");
+
+
+    // --- 振り分け処理 ---
+
+ // 3. 動画IDがあればメインを出す（独立させる）
+    if (videoId) {
+        currentVideoId = videoId;
+
+        // モード切替（Shorts判定をここに集約）
+        handleModeSwitch(isShorts);
+
+        // 動画・画像読み込み
+        loadVideo(videoId, true);
+    }
 }
+
+
+
+/**
+ * 通常動画とShortsでボタンセットを切り替える
+ * @param {boolean} isShorts
+ */
+function handleModeSwitch(isShorts) {
+    const normal = document.getElementById('normalControls');
+    const shorts = document.getElementById('shortsControls');
+
+    if (!normal || !shorts) return; // 要素がなければ何もしない（エラー防止）
+
+    if (isShorts) {
+        normal.classList.add('hidden');
+        shorts.classList.remove('hidden');
+    } else {
+        normal.classList.remove('hidden');
+        shorts.classList.add('hidden');
+    }
+}
+
+
 
 // function processInput() {
 // 	// const inputEl = document.getElementById('videoUrl');

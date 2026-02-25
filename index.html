@@ -234,14 +234,24 @@
 </div>
 
 
-<div class="flex flex-wrap gap-2 mt-4 mb-4">
-    <button onclick="setEmbedSize(480, 270)" class="btn-gray-copy tracking-widest transition-all">480x270</button>
-    <button onclick="setEmbedSize(560, 315)" class="btn-gray-copy tracking-widest transition-all">560x315</button>
-    <button onclick="setEmbedSize(853, 480)" class="btn-gray-copy tracking-widest transition-all">853x480</button>
-    <button onclick="setEmbedSize(1280, 720)" class="btn-gray-copy tracking-widest transition-all">1280x720</button>
-    <button onclick="setEmbedSize(1920, 1080)" class="btn-gray-copy tracking-widest transition-all">1920x1080</button>
-    <button onclick="setEmbedSize(315, 560)" class="btn-gray-copy tracking-widest transition-all">Shorts</button>
+<div class="mt-4 mb-4">
+    <div id="normalControls" class="flex flex-wrap gap-2">
+        <button onclick="setEmbedSize(480, 270)" class="btn-gray-copy tracking-widest transition-all">480x270</button>
+        <button onclick="setEmbedSize(560, 315)" class="btn-gray-copy tracking-widest transition-all">560x315</button>
+        <button onclick="setEmbedSize(853, 480)" class="btn-gray-copy tracking-widest transition-all">853x480</button>
+        <button onclick="setEmbedSize(1280, 720)" class="btn-gray-copy tracking-widest transition-all">1280x720</button>
+        <button onclick="setEmbedSize(1920, 1080)" class="btn-gray-copy tracking-widest transition-all">1920x1080</button>
+    </div>
+
+    <div id="shortsControls" class="flex flex-wrap gap-2 hidden">
+        <button onclick="setEmbedSize(315, 560)" class="btn-gray-copy tracking-widest transition-all">315x560 (Small)</button>
+        <button onclick="setEmbedSize(405, 720)" class="btn-gray-copy tracking-widest transition-all">405x720 (Standard)</button>
+        <button onclick="setEmbedSize(540, 960)" class="btn-gray-copy tracking-widest transition-all">540x960 (HD)</button>
+    </div>
 </div>
+
+
+
 
 					<div class="mt-8 mb-8">
 						<button onclick="openEmbedPreview()"
