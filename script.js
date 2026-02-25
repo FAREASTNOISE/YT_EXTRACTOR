@@ -59,15 +59,23 @@ window.onload = () => {
 		/**
          * クリップボードからテキストを読み取り、入力を処理する
          */
-		pasteBtn.onclick = async () => {
-			try {
-				const text = await navigator.clipboard.readText();
-				if (text) {
-					document.getElementById('videoUrl').value = text;
-					processInput();
-				}
-			} catch (err) { console.error("Clipboard error"); }
-		};
+        pasteBtn.onclick = async () => {
+            try {
+                // クリップボードのテキストを取得
+                const text = await navigator.clipboard.readText();
+
+                // 入力欄にセット
+                const urlInput = document.getElementById('videoUrl');
+                if (urlInput) {
+                    urlInput.value = text;
+                    // 貼り付けた後に自動で解析を実行！
+                    processInput();
+                }
+            } catch (err) {
+                console.error("貼り付けに失敗しました:", err);
+                alert("ブラウザの貼り付け許可を出してください");
+            }
+        };
 	}
 };
 
@@ -76,32 +84,41 @@ window.onload = () => {
 
 
 /**
- * YouTubeのURLを解析し、動画IDとShorts判定を抽出する。
- * * @param {string} url - 解析対象のYouTube URL（shorts, v=形式, youtu.be形式に対応）
- * @returns {{videoId: string, isShorts: boolean}} 解析結果オブジェクト
- * @returns {string} .videoId - 抽出された11桁の動画ID（見つからない場合は空文字）
- * @returns {boolean} .isShorts - 動画がShorts形式（/shorts/）であるかどうかのフラグ
+ * YouTubeのURLを解析し、動画ID、Shorts判定、プレイリストIDを抽出する。
+ * * @param {string} url - 解析対象のURL
+ * @returns {{videoId: string|null, isShorts: boolean, playlistId: string|null}}
+ * @description
+ * - videoId: 11桁の動画ID
+ * - isShorts: /shorts/ 形式かどうかのフラグ
+ * - playlistId: list= パラメータのID
  */
 function analyzeYouTubeUrl(url) {
-    let videoId = '';
-    let isShorts = false;
+    // 解析結果を格納するオブジェクト
+    const analysisResult = {
+        videoId: null,
+        isShorts: false,
+        playlistId: null
+    };
 
-    // URLが空、または文字列でない場合は早期リターン
-    if (!url || typeof url !== 'string') return { videoId, isShorts };
+    if (!url) return analysisResult;
 
-    if (url.includes('/shorts/')) {
-        // Shorts形式: https://www.youtube.com/shorts/VIDEO_ID
-        videoId = url.split('/shorts/')[1].split(/[?&]/)[0];
-        isShorts = true;
-    } else if (url.includes('v=')) {
-        // 標準形式: https://www.youtube.com/watch?v=VIDEO_ID
-        videoId = url.split('v=')[1].split(/[?&]/)[0];
-    } else if (url.includes('youtu.be/')) {
-        // 短縮形式: https://youtu.be/VIDEO_ID
-        videoId = url.split('youtu.be/')[1].split(/[?&]/)[0];
+    // 1. プレイリストIDの抽出
+    const playlistMatch = url.match(/[?&]list=([^#& ]+)/);
+    if (playlistMatch) {
+        analysisResult.playlistId = playlistMatch[1];
     }
 
-    return { videoId, isShorts };
+    // 2. 動画IDの抽出
+    const videoMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|u\/\w\/|shorts\/))([^#\&\?]{11})/);
+    if (videoMatch) {
+        analysisResult.videoId = videoMatch[1];
+        // URL自体に shorts が含まれているかチェック
+        if (url.includes('/shorts/')) {
+            analysisResult.isShorts = true;
+        }
+    }
+
+    return analysisResult;
 }
 
 /**
@@ -111,33 +128,68 @@ function analyzeYouTubeUrl(url) {
  * * @returns {void}
  */
 function processInput() {
-	// const inputEl = document.getElementById('videoUrl');
-	// /** @type {string} */
-	// const url = inputEl.value.trim();
+    const urlInput = document.getElementById('videoUrl');
+    if (!urlInput) return;
 
-    const url = document.getElementById('videoUrl').value;
-    const { videoId, isShorts } = analyzeYouTubeUrl(url);
+    const url = urlInput.value.trim();
+    if (!url) return;
 
-	if (!url) return;
+    // 1. 解析を実行し、結果（オブジェクト）を analysisResult に入れる
+    const analysisResult = analyzeYouTubeUrl(url);
 
-	// 正規表現の実行結果を明示的に定義
-	/** @type {RegExpMatchArray|null} */
-	const playlistMatch = url.match(/[?&]list=([^#& ]+)/);
-	/** @type {RegExpMatchArray|null} */
-	const videoMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|u\/\w\/|shorts\/))([^#\&\?]{11})/);
+    // 2. 解析結果から中身を取り出す（分割代入）
+    const { videoId, isShorts, playlistId } = analysisResult;
 
-	const playlistId = playlistMatch ? playlistMatch[1] : null;
-	const videoId = videoMatch ? videoMatch[1] : null;
+    // --- 振り分け処理 ---
 
-	if (playlistId && playlistId.length > 5) {
-		fetchPlaylist(playlistId);
-		if (videoId) loadVideo(videoId, true);
-	} else if (videoId) {
-		loadVideo(videoId, true);
-		const plSection = document.getElementById('playlistSection');
-		if (plSection) plSection.classList.add('hidden');
-	}
+    if (playlistId && playlistId.length > 5) {
+        fetchPlaylist(playlistId);
+        if (videoId) {
+            currentVideoId = videoId;
+            // ★ここで呼び出す！
+            handleModeSwitch(isShorts);
+            loadVideo(videoId, true);
+        }
+    }
+    else if (videoId) {
+        currentVideoId = videoId;
+        // ★ここでも呼び出す！
+        handleModeSwitch(isShorts);
+        loadVideo(videoId, true);
+
+        const plSection = document.getElementById('playlistSection');
+        if (plSection) plSection.classList.add('hidden');
+    }
 }
+
+// function processInput() {
+// 	// const inputEl = document.getElementById('videoUrl');
+// 	// /** @type {string} */
+// 	// const url = inputEl.value.trim();
+
+//     const url = document.getElementById('videoUrl').value;
+//     const { videoId, isShorts } = analyzeYouTubeUrl(url);
+
+// 	if (!url) return;
+
+// 	// 正規表現の実行結果を明示的に定義
+// 	/** @type {RegExpMatchArray|null} */
+// 	const playlistMatch = url.match(/[?&]list=([^#& ]+)/);
+// 	/** @type {RegExpMatchArray|null} */
+// 	const videoMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|u\/\w\/|shorts\/))([^#\&\?]{11})/);
+
+// 	const playlistId = playlistMatch ? playlistMatch[1] : null;
+// 	const videoId = videoMatch ? videoMatch[1] : null;
+
+// 	if (playlistId && playlistId.length > 5) {
+// 		fetchPlaylist(playlistId);
+// 		if (videoId) loadVideo(videoId, true);
+// 	} else if (videoId) {
+// 		loadVideo(videoId, true);
+// 		const plSection = document.getElementById('playlistSection');
+// 		if (plSection) plSection.classList.add('hidden');
+// 	}
+// }
 
 
 /**
