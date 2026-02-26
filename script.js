@@ -240,9 +240,9 @@ function processInput() {
 
         // 4. 代表的なサイズ入力欄も連動させると親切！
         if (isShorts) {
-            setSize(315, 560);
+            setEmbedSize(315, 560);
         } else {
-            setSize(560, 315);
+            setEmbedSize(560, 315);
         }
 
 
@@ -1268,6 +1268,7 @@ function openEmbedPreview() {
     // Nothing OS風の背景（白透過＋ブラー）とスクロール設定
     overlay.className = "fixed inset-0 z-[100] flex flex-col items-center justify-start overflow-y-auto bg-white/80 backdrop-blur-md p-10 animate-in fade-in duration-300";
 
+
     /**
      * オーバーレイの背景部分をクリックした際にプレビューを閉じる
      * @param {MouseEvent} e
@@ -1283,7 +1284,7 @@ function openEmbedPreview() {
         </button>
 
         <div class="relative my-auto animate-in zoom-in-95 duration-300 shadow-2xl"
-             style="width:${w}px; height:${h}px; min-width:${w}px;">
+             style="width:${w}px; height:${h}px; min-width:${w}px;"min-height:${h}px; flex-shrink: 0;">
             <iframe width="100%" height="100%"
                     src="https://www.youtube.com/embed/${currentVideoId}?start=${start}"
                     frameborder="0" allowfullscreen></iframe>
