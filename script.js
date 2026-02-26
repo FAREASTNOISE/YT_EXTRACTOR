@@ -230,12 +230,26 @@ function processInput() {
         // モード切替（Shorts判定をここに集約）
         handleModeSwitch(isShorts);
 
+        // 2. サイズ切り替え関数を呼び出す
+        //updateMainPlayerSize(isShorts);
+        updateMainLayout(isShorts);
+
         // 動画・画像読み込み
         loadVideo(videoId, startTime, true);
+
+
+        // 4. 代表的なサイズ入力欄も連動させると親切！
+        if (isShorts) {
+            setSize(315, 560);
+        } else {
+            setSize(560, 315);
+        }
+
 
         //結果エリア全体を表示する
         const resArea = document.getElementById('resultArea');
         if (resArea) resArea.classList.remove('hidden');
+
 
         const lastTab = localStorage.getItem('yt_last_tab') || 'thumb';
         updateEmbedOutputs();
@@ -246,6 +260,42 @@ function processInput() {
     }
 }
 
+/**
+ * ショート動画かどうかに応じて、外枠（nothing-card）を含めたレイアウトを切り替える
+ * @param {boolean} isShorts
+ */
+function updateMainLayout(isShorts) {
+    const wrapper = document.getElementById('main-card-wrapper');
+    if (!wrapper) return;
+
+    if (isShorts) {
+        wrapper.classList.add('is-shorts');
+    } else {
+        wrapper.classList.remove('is-shorts');
+    }
+}
+
+
+/**
+ * メインプレイヤーの表示サイズ（アスペクト比）を切り替える
+ * @param {boolean} isShorts - ショート動画かどうかのフラグ
+ */
+// function updateMainPlayerSize(isShorts) {
+//     const container = document.getElementById('video-container');
+//     if (!container) return;
+
+//     if (isShorts) {
+//         // ショート動画：縦長 (9:16)
+//         container.style.aspectRatio = "9 / 16";
+//         container.style.maxWidth = "350px"; // 縦長が巨大になりすぎないように調整
+//         container.style.margin = "0 auto";
+//     } else {
+//         // 通常動画：横長 (16:9)
+//         container.style.aspectRatio = "16 / 9";
+//         container.style.maxWidth = "100%";
+//         container.style.margin = "0";
+//     }
+// }
 
 
 /**

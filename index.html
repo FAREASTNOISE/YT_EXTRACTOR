@@ -167,33 +167,36 @@
 
 
 		<!-- Main Assets content -->
+		<div id="contentThumb" class="space-y-4">
 
-			<div id="contentThumb" class="space-y-4">
-
-				<div class="nothing-card p-2 relative">
-					<div class="fixed-aspect">
-						<div class="nav-btn" style="left:10px;" onclick="moveSlide('mainSlider', -1)"><div class="arrow" style="transform:rotate(-135deg);"></div></div>
-						<div class="nav-btn" style="right:10px;" onclick="moveSlide('mainSlider', 1)"><div class="arrow" style="transform:rotate(45deg);"></div></div>
-						<div class="slider-viewport" id="mainSlider"></div>
-					</div>
-					<div id="mainIndicator" class="indicator-container"></div>
-					<div id="assetMeta" class="text-center text-[9px] font-bold text-gray-400 uppercase mt-1"></div>
+			<div class="nothing-card p-2 relative">
+				<div class="fixed-aspect">
+					<div class="nav-btn" style="left:10px;" onclick="moveSlide('mainSlider', -1)"><div class="arrow" style="transform:rotate(-135deg);"></div></div>
+					<div class="nav-btn" style="right:10px;" onclick="moveSlide('mainSlider', 1)"><div class="arrow" style="transform:rotate(45deg);"></div></div>
+					<div class="slider-viewport" id="mainSlider"></div>
 				</div>
-
-				<div id="thumbOutputs" class="space-y-4"></div>
-
+				<div id="mainIndicator" class="indicator-container"></div>
+				<div id="assetMeta" class="text-center text-[9px] font-bold text-gray-400 uppercase mt-1"></div>
 			</div>
 
+			<div id="thumbOutputs" class="space-y-4"></div>
+
+		</div>
 		<!-- // Main Assets content -->
 
 
 		<!-- Main Embed content -->
 			<div id="contentEmbed" class="hidden space-y-6">
-				<div class="nothing-card p-2 relative">
-					<div class="fixed-aspect">
-						<div id="player-wrapper" class="w-full h-full"><div id="player"></div></div>
-					</div>
-				</div>
+
+				<!-- Player -->
+<div id="main-card-wrapper" class="nothing-card video-preview-area p-2 relative">
+    <div id="video-container" class="fixed-aspect">
+        <div id="player-wrapper" class="w-full h-full">
+            <div id="player"></div>
+        </div>
+    </div>
+</div>
+				<!-- // Player -->
 
 				<div class="nothing-card p-6">
 					<div class="flex items-center gap-2 mb-4">
