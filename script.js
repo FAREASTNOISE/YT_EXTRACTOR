@@ -86,9 +86,6 @@ window.onload = () => {
 };
 
 
-
-
-
 /**
  * YouTubeのURLを解析し、動画ID、Shorts判定、プレイリストIDを抽出する。
  * * @param {string} url - 解析対象のURL
@@ -103,29 +100,85 @@ function analyzeYouTubeUrl(url) {
     const analysisResult = {
         videoId: null,
         isShorts: false,
-        playlistId: null
+        playlistId: null,
+        startTime: 0,
     };
 
     if (!url) return analysisResult;
 
-    // 1. プレイリストIDの抽出
-    const playlistMatch = url.match(/[?&]list=([^#& ]+)/);
-    if (playlistMatch) {
-        analysisResult.playlistId = playlistMatch[1];
-    }
 
-    // 2. 動画IDの抽出
-    const videoMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|u\/\w\/|shorts\/))([^#\&\?]{11})/);
-    if (videoMatch) {
-        analysisResult.videoId = videoMatch[1];
-        // URL自体に shorts が含まれているかチェック
-        if (url.includes('/shorts/')) {
-            analysisResult.isShorts = true;
+try {
+        // 1. まずは動画IDを正規表現でサクッと抜く（これは今まで通り）
+        const videoMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|u\/\w\/|shorts\/))([^#\&\?]{11})/);
+        if (videoMatch) {
+            analysisResult.videoId = videoMatch[1];
+            if (url.includes('/shorts/')) {
+                analysisResult.isShorts = true;
+            }
         }
+
+        // 2. プレイリストIDを抜く
+        const playlistMatch = url.match(/[?&]list=([^#& ]+)/);
+        if (playlistMatch) {
+            analysisResult.playlistId = playlistMatch[1];
+        }
+
+        // 3. 開始時間を抜く（URLオブジェクトを安全に使う）
+        // URLが不完全な場合（https://がない等）に備えて
+        let tempUrl = url;
+        if (!url.startsWith('http')) {
+            tempUrl = 'https://' + url; // 解析用に仮のプロトコルを足す
+        }
+
+        const urlObj = new URL(tempUrl);
+        const params = urlObj.searchParams;
+        const timeParam = params.get('t') || params.get('start');
+
+        if (timeParam) {
+            // どんな形式が来ても parseYouTubeTime が秒数に変換してくれる
+            analysisResult.startTime = parseYouTubeTime(timeParam);
+        }
+
+    } catch (e) {
+        // 万が一解析に失敗しても、ここを通ることで
+        // IDだけは取れている可能性があるので、止まらずに結果を返す
+        console.warn("詳細解析でスキップが発生しました:", e.message);
     }
 
     return analysisResult;
 }
+
+/**
+ * YouTubeの時間形式（1m30s または 90）を秒数に変換する
+ */
+function parseYouTubeTime(t) {
+    if (!t) return 0;
+
+    // 1. もし数値だけなら、そのまま整数にして返す
+    if (/^\d+$/.test(t)) {
+        return parseInt(t, 10);
+    }
+
+    // 2. "1m30s" などの形式を解析して秒数に直す
+    let totalSeconds = 0;
+    const minutesMatch = t.match(/(\d+)m/);
+    const secondsMatch = t.match(/(\d+)s/);
+
+    if (minutesMatch) {
+        totalSeconds += parseInt(minutesMatch[1], 10) * 60;
+    }
+    if (secondsMatch) {
+        totalSeconds += parseInt(secondsMatch[1], 10);
+    }
+
+    // もし数値のみでも "138s" のように 's' だけ付いている場合
+    if (!minutesMatch && secondsMatch && t.endsWith('s')) {
+        return parseInt(secondsMatch[1], 10);
+    }
+
+    return totalSeconds;
+}
+
 
 /**
  * ユーザー入力されたURLから動画IDを解析し、UIの更新処理を実行する。
@@ -145,7 +198,7 @@ function processInput() {
     // 解析を実行し、結果（オブジェクト）を analysisResult に入れる
     const analysisResult = analyzeYouTubeUrl(url);
     // 解析結果から中身を取り出す（分割代入）
-    const { videoId, isShorts, playlistId } = analysisResult;
+    const { videoId, isShorts, playlistId, startTime } = analysisResult;
 
 
     console.log("解析結果 obj :",  analysisResult);
@@ -168,13 +221,28 @@ function processInput() {
 
  // 3. 動画IDがあればメインを出す（独立させる）
     if (videoId) {
+        console.log("loadVideo呼び出しルーチンに入った");
+
         currentVideoId = videoId;
+
+        document.getElementById('eStart').value = startTime;
 
         // モード切替（Shorts判定をここに集約）
         handleModeSwitch(isShorts);
 
         // 動画・画像読み込み
-        loadVideo(videoId, true);
+        loadVideo(videoId, startTime, true);
+
+        //結果エリア全体を表示する
+        const resArea = document.getElementById('resultArea');
+        if (resArea) resArea.classList.remove('hidden');
+
+        const lastTab = localStorage.getItem('yt_last_tab') || 'thumb';
+        updateEmbedOutputs();
+        switchTab(lastTab);
+
+    } else {
+        console.log("loadVideo呼び出し失敗");
     }
 }
 
@@ -198,6 +266,50 @@ function handleModeSwitch(isShorts) {
         shorts.classList.add('hidden');
     }
 }
+
+
+
+
+
+/**
+ * ---AssetsタブとEmbedタブの表示切り替え---
+ * 表示モード（サムネイル/埋め込み）を切り替え、状態を保存する
+ * @param {'thumb' | 'embed'} t - 切り替えるタブの識別子 ('thumb' または 'embed')
+ */
+function switchTab(t) {
+
+	const elThumb = document.getElementById('tabThumb');
+	const elEmbed = document.getElementById('tabEmbed');
+	const conThumb = document.getElementById('contentThumb');
+	const conEmbed = document.getElementById('contentEmbed');
+
+	if (!elThumb || !elEmbed || !conThumb || !conEmbed) return;
+
+	// 【改善点】見た目の変化（クラスの付け替え）を最初に行う
+	// これにより、ユーザーのクリックに対して「即座に」反応が返ります
+	elThumb.classList.toggle('tab-active', t === 'thumb');
+	elEmbed.classList.toggle('tab-active', t === 'embed');
+	conThumb.classList.toggle('hidden', t !== 'thumb');
+	conEmbed.classList.toggle('hidden', t !== 'embed');
+
+	// 【改善点】重い処理や保存は、見た目の変化が終わった「後」に回す
+	setTimeout(() => {
+		localStorage.setItem('yt_last_tab', t);
+
+		// もし switchTab の中で重い計算をしているなら、ここに入れる
+		// updateThumbOutputs();
+	}, 0);
+
+
+
+	// アセットやタグ表示が含まれるタブを開いた時に、中身を再生成する
+    if (currentVideoId) {
+        updateEmbedOutputs();
+    } else {
+        console.log("No video loaded yet, skipping output update.");
+    }
+}
+
 
 
 
@@ -237,10 +349,29 @@ function handleModeSwitch(isShorts) {
  * @param {boolean} [shouldScroll=false] - 更新後にスライダーを左端へスクロールさせるか
  * @returns {Promise<void>} 非同期処理の完了を待機
  */
-async function loadVideo(id, shouldScroll = false) {
-	if (!id || id === currentVideoId) return;
+async function loadVideo(id, startTime = 0, shouldScroll = false) {
+    console.log("loadVideo 開始! ID:", id, "StartTime:", startTime); // 動いているか確認用
+
+    // 今のプレイヤーが持っている動画IDを取得（YouTube APIの機能を使う）
+    let currentIdInPlayer = "";
+    if (window.player && typeof window.player.getVideoData === 'function') {
+        currentIdInPlayer = window.player.getVideoData().video_id;
+    }
+
+// 【修正！】同じIDでも、結果エリアが隠れている（＝まだ表示されていない）なら続行する
+    const resArea = document.getElementById('resultArea');
+    const isHidden = resArea ? resArea.classList.contains('hidden') : true;
+
+// 「今表示されているID」と「これから読み込むID」が違うなら、必ず続行する
+    if (id === currentIdInPlayer && !isHidden) {
+        console.log("今表示中の動画と同じなので、リロードをスキップします");
+        return;
+    }
+
+    // ここで初めて、グローバル変数を更新する
 	currentVideoId = id;
-	saveHistory(id);
+
+	saveHistory(id, startTime);
 
 	document.getElementById('resultArea').classList.remove('hidden');
 	resetPlayer();
@@ -272,10 +403,28 @@ async function loadVideo(id, shouldScroll = false) {
         videoId: id,
         playerVars: {
             'rel': 0,          // 関連動画を自分のチャンネルのみに
-            'playsinline': 1   // モバイルで全画面表示にさせない
+            'playsinline': 1,   // モバイルで全画面表示にさせない
+            'start': startTime, // 開始時間をセット
+            'autoplay': 1,      // 自動再生
+            // 'controls': 0,      // コントロール非表示
+            // 'modestbranding': 1, // YouTubeロゴを隠す（完全には消えない）
+            // 'disablekb': 1,     // キーボード操作を無効化
+            // 'fs': 0,            // 全画面ボタンを消す
+            // 'iv_load_policy': 3, // 動画内の注釈を消す
+            // 'cc_load_policy': 0, // 字幕を表示しない
+            // 'origin': window.location.origin, // セキュリティ対策（必要に応じて）
+            // 'widget_referrer': window.location.href, // 参照元URLを送る（必要に応じて）
+            // 'enablejsapi': 1,   // JavaScript APIを有効にする（これがないとAPIが動かない）
+            // 'html5': 1,         // HTML5プレイヤーを強制する（ほとんどのブラウザでこれがデフォルト）
+            // 'version': 3,       // プレイヤーのバージョン（通常は3で問題ない）
+            // 'origin': 'https://www.example.com', // セキュリティ対策（必要に応じて）
+            // 'widget_referrer': 'https://www.example.com', // 参照元URLを送る（必要に応じて）
         },
         events: {
-            'onReady': () => updateEmbedOutputs()
+            // 'onReady': () => updateEmbedOutputs()
+            'onReady': () => {
+                 console.log("Player is ready."); // 中身をログだけにする
+            }
         }
     });
 
@@ -595,8 +744,7 @@ function updateThumbOutputs(url, label) {
  * @returns {void}
  */
 function updateEmbedOutputs() {
-    // // デバッグログ
-    // console.log("Checking currentVideoId:", typeof currentVideoId !== 'undefined' ? currentVideoId : "Undefined");
+
 
     if (typeof currentVideoId === 'undefined' || !currentVideoId) {
         return;
@@ -616,7 +764,7 @@ function updateEmbedOutputs() {
     // ★追加: プレイヤーが存在し、かつシーク可能なら移動させる
     if (typeof player !== 'undefined' && player && typeof player.seekTo === 'function') {
         // 第2引数を true にすると、シーク先がまだバッファされてなくても強制的に移動する
-        player.seekTo(startSeconds, true);
+        // player.seekTo(startSeconds, true);
     }
 
     const embedCode = `<iframe width="${w}" height="${h}" src="https://www.youtube.com/embed/${currentVideoId}?start=${s}" frameborder="0" allowfullscreen></iframe>`;
@@ -682,6 +830,23 @@ function updateTimeBadge(seconds) {
 }
 
 
+/**
+ * 秒数入力欄をいじった時だけ呼ばれる関数
+ */
+function handleStartSecondsChange() {
+    // 1. まずはテキスト（埋め込みコード）を更新
+    updateEmbedOutputs();
+
+    // 2. 秒数を取得して、プレイヤーを動かす（これが「手動」の時だけ発動する）
+    const s = document.getElementById('eStart')?.value || "0";
+    const startSeconds = parseInt(s) || 0;
+
+    if (typeof player !== 'undefined' && player && typeof player.seekTo === 'function') {
+        player.seekTo(startSeconds, true);
+    }
+}
+
+
 
 /**
  * 入力フィールドに対して、マウスホイールでの数値増減を有効にする。
@@ -702,10 +867,13 @@ function handleWheel(event, type) {
     if (newValue >= 0) {
         input.value = newValue.toString();
 
+        // ここで条件分岐を整理するよ
         if (type === 'w' || type === 'h') {
             resizeEmbed(type);
+            // resizeEmbedの中で最終的にupdateEmbedOutputsが呼ばれるはずだから、ここではこれだけでOK
         } else if (type === 's') {
-            updateEmbedOutputs();
+            // 秒数の時は、シーク機能付きの関数を呼ぶ！
+            handleStartSecondsChange();
         }
     }
 }
@@ -831,49 +999,18 @@ function syncTime() {
 
 
 
-/**
- * ---AssetsタブとEmbedタブの表示切り替え---
- * 表示モード（サムネイル/埋め込み）を切り替え、状態を保存する
- * @param {'thumb' | 'embed'} t - 切り替えるタブの識別子 ('thumb' または 'embed')
- */
-function switchTab(t) {
-	const elThumb = document.getElementById('tabThumb');
-	const elEmbed = document.getElementById('tabEmbed');
-	const conThumb = document.getElementById('contentThumb');
-	const conEmbed = document.getElementById('contentEmbed');
 
-	if (!elThumb || !elEmbed || !conThumb || !conEmbed) return;
 
-	// 【改善点】見た目の変化（クラスの付け替え）を最初に行う
-	// これにより、ユーザーのクリックに対して「即座に」反応が返ります
-	elThumb.classList.toggle('tab-active', t === 'thumb');
-	elEmbed.classList.toggle('tab-active', t === 'embed');
-	conThumb.classList.toggle('hidden', t !== 'thumb');
-	conEmbed.classList.toggle('hidden', t !== 'embed');
 
-	// 【改善点】重い処理や保存は、見た目の変化が終わった「後」に回す
-	setTimeout(() => {
-		localStorage.setItem('yt_last_tab', t);
 
-		// もし switchTab の中で重い計算をしているなら、ここに入れる
-		// updateThumbOutputs();
-	}, 0);
-
-	// アセットやタグ表示が含まれるタブを開いた時に、中身を再生成する
-    if (currentVideoId) {
-        updateEmbedOutputs();
-    }
+function resetPlayer() {
+    document.getElementById('player-wrapper').innerHTML = '<div id="player"></div>';
 }
 
-
-
-
-
-
-
-
-function resetPlayer() { document.getElementById('player-wrapper').innerHTML = '<div id="player"></div>'; }
-function clearInput() { document.getElementById('videoUrl').value = ""; document.getElementById('resultArea').classList.add('hidden'); currentVideoId = ""; }
+function clearInput() {
+    document.getElementById('videoUrl').value = "";
+    document.getElementById('resultArea').classList.add('hidden'); currentVideoId = "";
+}
 
 async function copyRaw(btn) {
 		await navigator.clipboard.writeText(btn.previousElementSibling.value || btn.parentElement.previousElementSibling.value);
@@ -887,12 +1024,46 @@ async function copy(id) {
 		setTimeout(() => btn.innerText = original, 1200);
 }
 
-function saveHistory(id) {
-		let h = JSON.parse(localStorage.getItem('yt_history') || '[]');
-		h = [id, ...h.filter(x => x !== id)].slice(0, 15);
-		localStorage.setItem('yt_history', JSON.stringify(h));
-		loadHistory();
+
+
+
+/* ───────────────────────────────────────────
+	 LOCAL STRAGE
+─────────────────────────────────────────── */
+
+/**
+ * 動画視聴履歴をLocalStorageに保存する
+ * @param {string} id - YouTubeの動画ID
+ * @param {number|string} start - 再生開始位置（秒）
+ */
+function saveHistory(id, start) {
+    /** @type {Array<{id: string, start: number}>} */
+    let h = JSON.parse(localStorage.getItem('yt_history') || '[]');
+
+    // すでに同じ動画IDがあれば削除（新しい秒数で上書きして先頭に持ってくるため）
+    // 過去のデータが文字列(id)だけの場合も考慮してフィルタリング
+    h = h.filter(item => {
+        const itemId = (typeof item === 'object') ? item.id : item;
+        return itemId !== id;
+    });
+
+    // 新しい履歴オブジェクトを作成
+    const newEntry = {
+        id: id,
+        start: parseInt(start, 10) || 0
+    };
+
+    // 先頭に追加して最大15件に絞る
+    h = [newEntry, ...h].slice(0, 15);
+
+    localStorage.setItem('yt_history', JSON.stringify(h));
+
+    // 画面上の履歴リスト表示を更新する関数を呼ぶ
+    loadHistory();
 }
+
+
+
 
 // 履歴の読み込みとドットの初期化
 function loadHistory() {
@@ -901,10 +1072,25 @@ function loadHistory() {
 		if (h.length === 0) return;
 
 		document.getElementById('historySection').classList.remove('hidden');
-		list.innerHTML = h.map(id => `
-				<div class="item-card" onclick="loadVideo('${id}', true)">
-						<img src="https://img.youtube.com/vi/${id}/mqdefault.jpg" class="w-full aspect-video object-cover rounded-xl shadow-sm">
-				</div>`).join('');
+
+    // h の中身が [{id: "...", start: 120}, ...] になっている前提
+    list.innerHTML = h.map(item => {
+        // 昔のデータ（単なる文字列）が混ざっていた時のためのガード
+        const videoId = (typeof item === 'object') ? item.id : item;
+        const startTime = (typeof item === 'object') ? item.start : 0;
+
+        return `
+            <div class="item-card" onclick="loadVideo('${videoId}', ${startTime}, true)">
+                <img src="https://img.youtube.com/vi/${videoId}/mqdefault.jpg"
+                    class="w-full aspect-video object-cover rounded-xl shadow-sm">
+                <div class="text-xs mt-1 text-gray-500">${startTime}s～</div>
+            </div>`;
+    }).join('');
+
+        // list.innerHTML = h.map(id => `
+		// 		<div class="item-card" onclick="loadVideo('${id}', true)">
+		// 				<img src="https://img.youtube.com/vi/${id}/mqdefault.jpg" class="w-full aspect-video object-cover rounded-xl shadow-sm">
+		// 		</div>`).join('');
 
 		// 履歴スライダーのスクロールを監視してドットを更新
 		list.removeEventListener('scroll', historyScrollHandler); // 重複防止
@@ -1008,6 +1194,9 @@ function setEmbedSize(w, h) {
 
 
 
+/* ───────────────────────────────────────────
+       LIGHTBOX PREVIEW FOR EMBED
+─────────────────────────────────────────── */
 
 /**
  * 指定されたサイズでYouTube埋め込みの実寸プレビューをライトボックス表示する

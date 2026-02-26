@@ -169,6 +169,7 @@
 		<!-- Main Assets content -->
 
 			<div id="contentThumb" class="space-y-4">
+
 				<div class="nothing-card p-2 relative">
 					<div class="fixed-aspect">
 						<div class="nav-btn" style="left:10px;" onclick="moveSlide('mainSlider', -1)"><div class="arrow" style="transform:rotate(-135deg);"></div></div>
@@ -178,7 +179,9 @@
 					<div id="mainIndicator" class="indicator-container"></div>
 					<div id="assetMeta" class="text-center text-[9px] font-bold text-gray-400 uppercase mt-1"></div>
 				</div>
+
 				<div id="thumbOutputs" class="space-y-4"></div>
+
 			</div>
 
 		<!-- // Main Assets content -->
@@ -225,7 +228,7 @@
 			<span id="timeFormat" class="text-[9px] text-black/40 font-mono tracking-tighter">0:00</span>
 		</div>
 		<input type="number" id="eStart" value="0"
-			oninput="updateEmbedOutputs(); updateSizeButtonStyles();"
+			oninput="handleStartSecondsChange(); updateSizeButtonStyles();"
 			onwheel="handleWheel(event, 's')"
 			onclick="this.select()"
 			class="nothing-input w-full p-2 text-center text-xs">
@@ -310,6 +313,7 @@
 				</div>
 			</div>
 			<!-- // Main Embed content -->
+
 
 		</div>
 		<!-- Result Display Area -->
