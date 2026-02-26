@@ -161,7 +161,11 @@ body {
 
 
 
-
+/* CSSでドットのLOADINGアニメーションを作る例 */
+#player-placeholder {
+    background: radial-gradient(circle, #000 1px, transparent 1px);
+    background-size: 20px 20px; /* ドットの間隔 */
+}
 
 
 

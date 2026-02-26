@@ -445,6 +445,12 @@ async function loadVideo(id, startTime = 0, shouldScroll = false) {
 		currentVideoTitle = "YouTube Video"; // 失敗時の予備
 	}
 
+    // 1. まずプレースホルダーにサムネイルをセットして表示する
+    const placeholder = document.getElementById('player-placeholder');
+    const img = document.getElementById('placeholder-img');
+    if (img) img.src = `https://img.youtube.com/vi/${id}/maxresdefault.jpg`;
+    if (placeholder) placeholder.style.opacity = "1";
+
 
 	// --- プレイヤーの初期化 ---
     player = new YT.Player('player', {
@@ -456,6 +462,8 @@ async function loadVideo(id, startTime = 0, shouldScroll = false) {
             'playsinline': 1,   // モバイルで全画面表示にさせない
             'start': startTime, // 開始時間をセット
             'autoplay': 1,      // 自動再生
+
+
             // 'controls': 0,      // コントロール非表示
             // 'modestbranding': 1, // YouTubeロゴを隠す（完全には消えない）
             // 'disablekb': 1,     // キーボード操作を無効化
@@ -472,9 +480,11 @@ async function loadVideo(id, startTime = 0, shouldScroll = false) {
         },
         events: {
             // 'onReady': () => updateEmbedOutputs()
-            'onReady': () => {
-                 console.log("Player is ready."); // 中身をログだけにする
-            }
+            // 'onReady': () => {
+            //      console.log("Player is ready."); // 中身をログだけにする
+            // }
+            'onReady': onPlayerReady,
+            'onStateChange': onPlayerStateChange
         }
     });
 
@@ -558,8 +568,27 @@ async function loadVideo(id, startTime = 0, shouldScroll = false) {
 
 
 
+/**
+ * プレイヤーの準備が完了した時に呼ばれる
+ */
+function onPlayerReady(event) {
+    console.log("YouTube Player is Ready!");
+    // 必要ならここでミュートにしたり再生したりできるよ
+}
 
+// プレイヤーの状態が変わった時のイベント（API作成時に登録しておく）
+function onPlayerStateChange(event) {
+    console.log("Player State:", event.data);
 
+    // 1: 再生開始 (PLAYING) または 3: バッファ中 (BUFFERING)
+    if (event.data == YT.PlayerState.PLAYING) {
+        const placeholder = document.getElementById('player-placeholder');
+        if (placeholder) {
+            placeholder.style.opacity = "0"; // スッと消す
+            setTimeout(() => placeholder.classList.add('hidden'), 500); // 完全に消去
+        }
+    }
+}
 
 
 

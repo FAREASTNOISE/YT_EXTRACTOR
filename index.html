@@ -191,6 +191,14 @@
 				<!-- Player -->
 <div id="main-card-wrapper" class="nothing-card video-preview-area p-2 relative">
     <div id="video-container" class="fixed-aspect">
+		<div id="player-placeholder" class="absolute inset-0 z-10 transition-opacity duration-500">
+			<img id="placeholder-img" src="" class="w-full h-full object-cover blur-sm opacity-50">
+			<div class="absolute inset-0 flex items-center justify-center">
+				<p class="text-[10px] font-bold tracking-[0.3em] animate-pulse">LOADING...</p>
+				</div>
+			</div>
+
+
         <div id="player-wrapper" class="w-full h-full">
             <div id="player"></div>
         </div>
