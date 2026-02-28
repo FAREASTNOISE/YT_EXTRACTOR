@@ -100,14 +100,14 @@ function analyzeYouTubeUrl(url) {
     const analysisResult = {
         videoId: null,
         isShorts: false,
-        playlistId: null,
         startTime: 0,
+        playlistId: null,
     };
 
     if (!url) return analysisResult;
 
 
-try {
+    try {
         // 1. まずは動画IDを正規表現でサクッと抜く（これは今まで通り）
         const videoMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|u\/\w\/|shorts\/))([^#\&\?]{11})/);
         if (videoMatch) {
@@ -180,6 +180,8 @@ function parseYouTubeTime(t) {
 }
 
 
+
+
 /**
  * ユーザー入力されたURLから動画IDを解析し、UIの更新処理を実行する。
  * * 対応形式: 標準URL, Shorts, 埋め込み, プレイリスト。
@@ -219,7 +221,7 @@ function processInput() {
 
     // --- 振り分け処理 ---
 
- // 3. 動画IDがあればメインを出す（独立させる）
+    // 3. 動画IDがあればメインを出す（独立させる）
     if (videoId) {
         console.log("loadVideo呼び出しルーチンに入った");
 
@@ -235,7 +237,7 @@ function processInput() {
         updateMainLayout(isShorts);
 
         // 動画・画像読み込み
-        loadVideo(videoId, startTime, true);
+        loadVideo(videoId, startTime, isShorts, true);
 
 
         // 4. 代表的なサイズ入力欄も連動させると親切！
@@ -399,8 +401,10 @@ function switchTab(t) {
  * @param {boolean} [shouldScroll=false] - 更新後にスライダーを左端へスクロールさせるか
  * @returns {Promise<void>} 非同期処理の完了を待機
  */
-async function loadVideo(id, startTime = 0, shouldScroll = false) {
-    console.log("loadVideo 開始! ID:", id, "StartTime:", startTime); // 動いているか確認用
+async function loadVideo(id, startTime = 0, isShorts = false, shouldScroll = false) {
+    console.log("loadVideo 開始! ID:", id, "StartTime:", startTime, "isShorts:", isShorts); // 動いているか確認用
+
+updateMainLayout(isShorts);
 
     // 今のプレイヤーが持っている動画IDを取得（YouTube APIの機能を使う）
     let currentIdInPlayer = "";
@@ -421,7 +425,7 @@ async function loadVideo(id, startTime = 0, shouldScroll = false) {
     // ここで初めて、グローバル変数を更新する
 	currentVideoId = id;
 
-	saveHistory(id, startTime);
+	saveHistory(id, startTime, isShorts);
 
 	document.getElementById('resultArea').classList.remove('hidden');
 	resetPlayer();
@@ -642,7 +646,7 @@ async function fetchPlaylist(listId) {
 
 				return `
 					<div class="item-card flex-shrink-0 w-[180px] snap-start cursor-pointer group/item active:scale-95 transition-transform"
-						onclick="loadVideo('${vId}', true)">
+						onclick="loadVideo('${vId}', undefined, true)">
 						<div class="relative overflow-hidden rounded-2xl bg-black/[0.03] border border-black/[0.05]">
 							<img src="https://img.youtube.com/vi/${vId}/mqdefault.jpg"
 								class="w-full aspect-video object-cover transition-all duration-500 group-hover/item:scale-110"
@@ -698,7 +702,7 @@ function renderPlaylistCards(items) {
     const indicator = document.getElementById('playlistIndicator');
 
     listContainer.innerHTML = items.map(item => `
-        <div class="item-card flex-shrink-0 w-[160px]" onclick="loadVideo('${item.id}', true)">
+        <div class="item-card flex-shrink-0 w-[160px]" onclick="loadVideo('${item.id}', undefined, ${isShorts}, true)">
             <img src="https://img.youtube.com/vi/${item.id}/mqdefault.jpg" class="rounded-xl">
             <p class="text-[9px] mt-2 font-bold text-black/40 uppercase">${item.title}</p>
         </div>
@@ -1107,16 +1111,17 @@ async function copy(id) {
 
 
 /* ───────────────────────────────────────────
-	 LOCAL STRAGE
+	 LOCAL STORAGE
 ─────────────────────────────────────────── */
 
 /**
  * 動画視聴履歴をLocalStorageに保存する
  * @param {string} id - YouTubeの動画ID
  * @param {number|string} start - 再生開始位置（秒）
- */
-function saveHistory(id, start) {
-    /** @type {Array<{id: string, start: number}>} */
+ * @param {boolean} isShorts - ショート動画かどうか
+*/
+function saveHistory(id, start, isShorts = false) {
+    /** @type {Array<{id: string, start: number, isShorts: boolean}>} */
     let h = JSON.parse(localStorage.getItem('yt_history') || '[]');
 
     // すでに同じ動画IDがあれば削除（新しい秒数で上書きして先頭に持ってくるため）
@@ -1129,7 +1134,8 @@ function saveHistory(id, start) {
     // 新しい履歴オブジェクトを作成
     const newEntry = {
         id: id,
-        start: parseInt(start, 10) || 0
+        start: parseInt(start, 10) || 0,
+        isShorts: isShorts
     };
 
     // 先頭に追加して最大15件に絞る
@@ -1143,33 +1149,33 @@ function saveHistory(id, start) {
 
 
 
-
 // 履歴の読み込みとドットの初期化
 function loadHistory() {
-		const h = JSON.parse(localStorage.getItem('yt_history') || '[]');
-		const list = document.getElementById('historyList');
-		if (h.length === 0) return;
+	const h = JSON.parse(localStorage.getItem('yt_history') || '[]');
+	const list = document.getElementById('historyList');
+	if (h.length === 0) return;
 
-		document.getElementById('historySection').classList.remove('hidden');
+
+
+    document.getElementById('historySection').classList.remove('hidden');
 
     // h の中身が [{id: "...", start: 120}, ...] になっている前提
     list.innerHTML = h.map(item => {
         // 昔のデータ（単なる文字列）が混ざっていた時のためのガード
         const videoId = (typeof item === 'object') ? item.id : item;
         const startTime = (typeof item === 'object') ? item.start : 0;
+        const isShorts = (typeof item === 'object') ? item.isShorts : false;
+
 
         return `
-            <div class="item-card" onclick="loadVideo('${videoId}', ${startTime}, true)">
+            <div class="item-card" onclick="loadVideo('${videoId}', ${startTime}, ${isShorts}, true)">
                 <img src="https://img.youtube.com/vi/${videoId}/mqdefault.jpg"
                     class="w-full aspect-video object-cover rounded-xl shadow-sm">
                 <div class="text-xs mt-1 text-gray-500">${startTime}s～</div>
             </div>`;
     }).join('');
 
-        // list.innerHTML = h.map(id => `
-		// 		<div class="item-card" onclick="loadVideo('${id}', true)">
-		// 				<img src="https://img.youtube.com/vi/${id}/mqdefault.jpg" class="w-full aspect-video object-cover rounded-xl shadow-sm">
-		// 		</div>`).join('');
+
 
 		// 履歴スライダーのスクロールを監視してドットを更新
 		list.removeEventListener('scroll', historyScrollHandler); // 重複防止
