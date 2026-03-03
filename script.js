@@ -8,11 +8,11 @@
 
 
 /* ───────────────────────────────────────────
-	 CORE ENGINE v6.9.1
+    CORE ENGINE v6.9.2 (Refined)
 ─────────────────────────────────────────── */
 
 /** @type {any} YouTube Playerのインスタンス（YouTube IFrame API用） */
-let player;
+let player = null;
 
 /** @type {string} 現在表示・処理している動画のID */
 let currentVideoId = "";
@@ -21,7 +21,6 @@ let currentVideoId = "";
 let assetList = [];
 
 /** @type {string} 現在プレビュー表示している画像のURL */
-// let currentImgUrl = "";
 let currentImgUrl = "";
 
 /** @type {string} 画像ラベル（例: "Max Res", "Standard", "Scene" 等） */
@@ -31,10 +30,35 @@ let currentImgLabel = "Thumbnail"; // 値は空か "Thumbnail"
 let currentVideoTitle = "";
 
 /**
+ * アプリケーションのグローバル状態（動画情報やアセット情報）を初期化する。
+ * 新しい動画を読み込む直前に呼び出し、古いデータの混入を防ぐためのもの。
+ * @returns {void}
+ */
+function resetAppState() {
+    console.log("Cleaning up... Previous assetList length:", assetList.length); // 追加
+
+    currentVideoId = "";
+    assetList = [];
+    currentImgUrl = "";
+    currentImgLabel = "Thumbnail";
+    currentVideoTitle = "";
+
+    // UIの表示もリセット状態に戻す
+    const titleEl = document.getElementById('vTitle');
+    if (titleEl) titleEl.innerText = "WAITING FOR VIDEO...";
+
+    console.log("Cleaned. Current assetList length:", assetList.length); // 追加
+}
+
+
+
+/**
  * ページ読み込み完了時の初期化処理
  * 履歴の読み込み、最終タブの復元、イベントリスナーの設定を行う
  */
 window.onload = () => {
+
+    resetAppState(); // まず真っさらにする
 	// 1. データの復元
 	loadHistory();
 
@@ -403,6 +427,9 @@ function switchTab(t) {
  */
 async function loadVideo(id, startTime = 0, isShorts = false, shouldScroll = false) {
     console.log("loadVideo 開始! ID:", id, "StartTime:", startTime, "isShorts:", isShorts); // 動いているか確認用
+
+    // どんな経路（検索・履歴・プレイリスト）で動画を読み込んでも、まず掃除する
+    resetAppState();
 
     updateMainLayout(isShorts);
     // モード切替（Shorts判定をここに集約）
@@ -1100,6 +1127,8 @@ function resetPlayer() {
 function clearInput() {
     document.getElementById('videoUrl').value = "";
     document.getElementById('resultArea').classList.add('hidden'); currentVideoId = "";
+
+    resetAppState();
 }
 
 async function copyRaw(btn) {
@@ -1754,3 +1783,6 @@ function copyCurrentUrl(btn) {
         console.error('コピーに失敗しました', err);
     });
 }
+
+
+
