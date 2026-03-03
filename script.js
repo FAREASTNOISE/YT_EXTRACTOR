@@ -8,7 +8,7 @@
 
 
 /* ───────────────────────────────────────────
-    CORE ENGINE v6.9.2 (Refined)
+	CORE ENGINE v6.9.2 (Refined)
 ─────────────────────────────────────────── */
 
 /** @type {any} YouTube Playerのインスタンス（YouTube IFrame API用） */
@@ -35,19 +35,19 @@ let currentVideoTitle = "";
  * @returns {void}
  */
 function resetAppState() {
-    console.log("Cleaning up... Previous assetList length:", assetList.length); // 追加
+	console.log("Cleaning up... Previous assetList length:", assetList.length);
 
-    currentVideoId = "";
-    assetList = [];
-    currentImgUrl = "";
-    currentImgLabel = "Thumbnail";
-    currentVideoTitle = "";
+	currentVideoId = "";
+	assetList = [];
+	currentImgUrl = "";
+	currentImgLabel = "Thumbnail";
+	currentVideoTitle = "";
 
-    // UIの表示もリセット状態に戻す
-    const titleEl = document.getElementById('vTitle');
-    if (titleEl) titleEl.innerText = "WAITING FOR VIDEO...";
+	// UIの表示もリセット状態に戻す
+	const titleEl = document.getElementById('vTitle');
+	if (titleEl) titleEl.innerText = "WAITING FOR VIDEO...";
 
-    console.log("Cleaned. Current assetList length:", assetList.length); // 追加
+	console.log("Cleaned. Current assetList length:", assetList.length);
 }
 
 
@@ -57,150 +57,155 @@ function resetAppState() {
  * 履歴の読み込み、最終タブの復元、イベントリスナーの設定を行う
  */
 window.onload = () => {
+	resetAppState(); // グローバル状態（動画情報やアセット情報）を初期化
+	loadHistory();   // localStorageから履歴データの復元・セッティング
 
-    resetAppState(); // まず真っさらにする
-	// 1. データの復元
-	loadHistory();
-
-	/** @type {string} 前回使用していたタブの名前（デフォルトは 'thumb'） */
+	/** @type {string} 前回使用していたタブの名前（localStorageから取得 default:'thumb'） */
 	const lastTab = localStorage.getItem('yt_last_tab') || 'thumb';
 
-	// 「次の描画タイミング」まで一瞬待ってから実行
+	// ASSET EMBED タブの切り替えを復元 UIレンダリングのタイミングを考慮して実行
 	requestAnimationFrame(() => {
-		switchTab(lastTab);
+		if (typeof switchTab === 'function') {
+			switchTab(lastTab);
+		}
 	});
 
-
-	// 2. スクロール監視（Nothing OS風のドットインジケーター連動）
+	// スクロール監視（ドットインジケーター連動）
+	/** @type {HTMLElement|null} メインのスライダー要素 */
 	const mainSlider = document.getElementById('mainSlider');
 	if (mainSlider) {
 		mainSlider.addEventListener('scroll', () => updateDots('mainSlider', 'mainIndicator', 1));
 	}
 
 	// 3. 貼り付けボタンの非同期処理設定
+	/** @type {HTMLElement|null} クリップボード貼り付けボタン */
 	const pasteBtn = document.getElementById('pasteBtn');
 	if (pasteBtn) {
 		/**
-         * クリップボードからテキストを読み取り、入力を処理する
+         * 貼り付けボタンクリック時のハンドラ
+         * クリップボード権限を確認し、テキストを読み取って解析を開始する
+         * @async
+         * @returns {Promise<void>}
          */
-        pasteBtn.onclick = async () => {
-            try {
-                // 権限をチェック（任意だけど入れるとより親切）
-                const permission = await navigator.permissions.query({ name: "clipboard-read" });
-                if (permission.state === "denied") {
-                    throw new Error("Permission denied");
-                }
+		pasteBtn.onclick = async () => {
+			try {
+				// 権限をチェック（任意だけど入れるとより親切）
+				const permission = await navigator.permissions.query({ name: "clipboard-read" });
+				if (permission.state === "denied") {
+					throw new Error("Permission denied");
+				}
 
-                // クリップボードのテキストを取得
-                const text = await navigator.clipboard.readText();
+				// クリップボードのテキストを取得
+				const text = await navigator.clipboard.readText();
 
-                // 入力欄にセット
-                const urlInput = document.getElementById('videoUrl');
-                if (urlInput) {
-                    urlInput.value = text;
-                    // 貼り付けた後に自動で解析を実行！
-                    processInput();
-                }
-            } catch (err) {
-                console.error("貼り付けに失敗しました:", err);
-                alert("ブラウザの貼り付け許可を出してください");
-            }
-        };
+				// 入力欄にセット
+				/** @type {HTMLInputElement|null} URL入力フィールド */
+				const urlInput = document.getElementById('videoUrl');
+				if (urlInput) {
+					urlInput.value = text;
+					// 貼り付けた後に自動で解析を実行！
+					processInput();
+				}
+			} catch (e) {
+				console.error("貼り付けに失敗しました:", e);
+				alert("ブラウザの貼り付け許可を出してください");
+			}
+		};
 	}
 };
 
 
 /**
  * YouTubeのURLを解析し、動画ID、Shorts判定、プレイリストIDを抽出する。
- * * @param {string} url - 解析対象のURL
- * @returns {{videoId: string|null, isShorts: boolean, playlistId: string|null}}
+ * @param {string} url - 解析対象のURL
+ * @returns {{videoId: string|null, isShorts: boolean, startTime: number, playlistId: string|null}}
  * @description
  * - videoId: 11桁の動画ID
  * - isShorts: /shorts/ 形式かどうかのフラグ
  * - playlistId: list= パラメータのID
  */
 function analyzeYouTubeUrl(url) {
-    // 解析結果を格納するオブジェクト
-    const analysisResult = {
-        videoId: null,
-        isShorts: false,
-        startTime: 0,
-        playlistId: null,
-    };
+	// 解析結果を格納するオブジェクト
+	const analysisResult = {
+		videoId: null,
+		isShorts: false,
+		startTime: 0,
+		playlistId: null,
+	};
 
-    if (!url) return analysisResult;
+	if (!url) return analysisResult;
 
 
-    try {
-        // 1. まずは動画IDを正規表現でサクッと抜く（これは今まで通り）
-        const videoMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|u\/\w\/|shorts\/))([^#\&\?]{11})/);
-        if (videoMatch) {
-            analysisResult.videoId = videoMatch[1];
-            if (url.includes('/shorts/')) {
-                analysisResult.isShorts = true;
-            }
-        }
+	try {
+		// 1. まずは動画IDを正規表現でサクッと抜く（これは今まで通り）
+		const videoMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|u\/\w\/|shorts\/))([^#\&\?]{11})/);
+		if (videoMatch) {
+			analysisResult.videoId = videoMatch[1];
+			if (url.includes('/shorts/')) {
+				analysisResult.isShorts = true;
+			}
+		}
 
-        // 2. プレイリストIDを抜く
-        const playlistMatch = url.match(/[?&]list=([^#& ]+)/);
-        if (playlistMatch) {
-            analysisResult.playlistId = playlistMatch[1];
-        }
+		// 2. プレイリストIDを抜く
+		const playlistMatch = url.match(/[?&]list=([^#& ]+)/);
+		if (playlistMatch) {
+			analysisResult.playlistId = playlistMatch[1];
+		}
 
-        // 3. 開始時間を抜く（URLオブジェクトを安全に使う）
-        // URLが不完全な場合（https://がない等）に備えて
-        let tempUrl = url;
-        if (!url.startsWith('http')) {
-            tempUrl = 'https://' + url; // 解析用に仮のプロトコルを足す
-        }
+		// 3. 開始時間を抜く（URLオブジェクトを安全に使う）
+		// URLが不完全な場合（https://がない等）に備えて
+		let tempUrl = url;
+		if (!url.startsWith('http')) {
+			tempUrl = 'https://' + url; // 解析用に仮のプロトコルを足す
+		}
 
-        const urlObj = new URL(tempUrl);
-        const params = urlObj.searchParams;
-        const timeParam = params.get('t') || params.get('start');
+		const urlObj = new URL(tempUrl);
+		const params = urlObj.searchParams;
+		const timeParam = params.get('t') || params.get('start');
 
-        if (timeParam) {
-            // どんな形式が来ても parseYouTubeTime が秒数に変換してくれる
-            analysisResult.startTime = parseYouTubeTime(timeParam);
-        }
+		if (timeParam) {
+			// どんな形式が来ても parseYouTubeTime が秒数に変換してくれる
+			analysisResult.startTime = parseYouTubeTime(timeParam);
+		}
 
-    } catch (e) {
-        // 万が一解析に失敗しても、ここを通ることで
-        // IDだけは取れている可能性があるので、止まらずに結果を返す
-        console.warn("詳細解析でスキップが発生しました:", e.message);
-    }
+	} catch (e) {
+		// 万が一解析に失敗しても、ここを通ることで
+		// IDだけは取れている可能性があるので、止まらずに結果を返す
+		console.warn("詳細解析でスキップが発生しました:", e.message);
+	}
 
-    return analysisResult;
+	return analysisResult;
 }
 
 /**
  * YouTubeの時間形式（1m30s または 90）を秒数に変換する
  */
 function parseYouTubeTime(t) {
-    if (!t) return 0;
+	if (!t) return 0;
 
-    // 1. もし数値だけなら、そのまま整数にして返す
-    if (/^\d+$/.test(t)) {
-        return parseInt(t, 10);
-    }
+	// 1. もし数値だけなら、そのまま整数にして返す
+	if (/^\d+$/.test(t)) {
+		return parseInt(t, 10);
+	}
 
-    // 2. "1m30s" などの形式を解析して秒数に直す
-    let totalSeconds = 0;
-    const minutesMatch = t.match(/(\d+)m/);
-    const secondsMatch = t.match(/(\d+)s/);
+	// 2. "1m30s" などの形式を解析して秒数に直す
+	let totalSeconds = 0;
+	const minutesMatch = t.match(/(\d+)m/);
+	const secondsMatch = t.match(/(\d+)s/);
 
-    if (minutesMatch) {
-        totalSeconds += parseInt(minutesMatch[1], 10) * 60;
-    }
-    if (secondsMatch) {
-        totalSeconds += parseInt(secondsMatch[1], 10);
-    }
+	if (minutesMatch) {
+		totalSeconds += parseInt(minutesMatch[1], 10) * 60;
+	}
+	if (secondsMatch) {
+		totalSeconds += parseInt(secondsMatch[1], 10);
+	}
 
-    // もし数値のみでも "138s" のように 's' だけ付いている場合
-    if (!minutesMatch && secondsMatch && t.endsWith('s')) {
-        return parseInt(secondsMatch[1], 10);
-    }
+	// もし数値のみでも "138s" のように 's' だけ付いている場合
+	if (!minutesMatch && secondsMatch && t.endsWith('s')) {
+		return parseInt(secondsMatch[1], 10);
+	}
 
-    return totalSeconds;
+	return totalSeconds;
 }
 
 
@@ -213,77 +218,77 @@ function parseYouTubeTime(t) {
  * * @returns {void}
  */
 function processInput() {
-    const urlInput = document.getElementById('videoUrl');
-    if (!urlInput) return;
-    const url = urlInput ? urlInput.value.trim() : "";
-    if (!url) return;
+	const urlInput = document.getElementById('videoUrl');
+	if (!urlInput) return;
+	const url = urlInput ? urlInput.value.trim() : "";
+	if (!url) return;
 
-    console.log("Input URL:", url);
-
-
-    // 解析を実行し、結果（オブジェクト）を analysisResult に入れる
-    const analysisResult = analyzeYouTubeUrl(url);
-    // 解析結果から中身を取り出す（分割代入）
-    const { videoId, isShorts, playlistId, startTime } = analysisResult;
+	console.log("Input URL:", url);
 
 
-    console.log("解析結果 obj :",  analysisResult);
+	// 解析を実行し、結果（オブジェクト）を analysisResult に入れる
+	const analysisResult = analyzeYouTubeUrl(url);
+	// 解析結果から中身を取り出す（分割代入）
+	const { videoId, isShorts, playlistId, startTime } = analysisResult;
 
 
-    // プレイリストがあれば出す（独立させる）
-    if (playlistId) {
-        fetchPlaylist(playlistId);
-        const plSection = document.getElementById('playlistSection');
-        if (plSection) plSection.classList.remove('hidden');
-    } else {
-        const plSection = document.getElementById('playlistSection');
-        if (plSection) plSection.classList.add('hidden');
-    }
-
-    console.log("PlayList Output is done!");
+	console.log("解析結果 obj :",  analysisResult);
 
 
-    // --- 振り分け処理 ---
+	// プレイリストがあれば出す（独立させる）
+	if (playlistId) {
+		fetchPlaylist(playlistId);
+		const plSection = document.getElementById('playlistSection');
+		if (plSection) plSection.classList.remove('hidden');
+	} else {
+		const plSection = document.getElementById('playlistSection');
+		if (plSection) plSection.classList.add('hidden');
+	}
 
-    // 3. 動画IDがあればメインを出す（独立させる）
-    if (videoId) {
-        console.log("loadVideo呼び出しルーチンに入った");
-
-        currentVideoId = videoId;
-
-        document.getElementById('eStart').value = startTime;
-
-        // モード切替（Shorts判定をここに集約）
-        handleModeSwitch(isShorts);
-
-        // 2. サイズ切り替え関数を呼び出す
-        //updateMainPlayerSize(isShorts);
-        updateMainLayout(isShorts);
-
-        // 動画・画像読み込み
-        loadVideo(videoId, startTime, isShorts, true);
+	console.log("PlayList Output is done!");
 
 
-        // 4. 代表的なサイズ入力欄も連動させると親切！
-        if (isShorts) {
-            setEmbedSize(315, 560);
-        } else {
-            setEmbedSize(560, 315);
-        }
+	// --- 振り分け処理 ---
+
+	// 3. 動画IDがあればメインを出す（独立させる）
+	if (videoId) {
+		console.log("loadVideo呼び出しルーチンに入った");
+
+		currentVideoId = videoId;
+
+		document.getElementById('eStart').value = startTime;
+
+		// モード切替（Shorts判定をここに集約）
+		handleModeSwitch(isShorts);
+
+		// 2. サイズ切り替え関数を呼び出す
+		//updateMainPlayerSize(isShorts);
+		updateMainLayout(isShorts);
+
+		// 動画・画像読み込み
+		loadVideo(videoId, startTime, isShorts, true);
 
 
-        //結果エリア全体を表示する
-        const resArea = document.getElementById('resultArea');
-        if (resArea) resArea.classList.remove('hidden');
+		// 4. 代表的なサイズ入力欄も連動させると親切！
+		if (isShorts) {
+			setEmbedSize(315, 560);
+		} else {
+			setEmbedSize(560, 315);
+		}
 
 
-        const lastTab = localStorage.getItem('yt_last_tab') || 'thumb';
-        updateEmbedOutputs();
-        switchTab(lastTab);
+		//結果エリア全体を表示する
+		const resArea = document.getElementById('resultArea');
+		if (resArea) resArea.classList.remove('hidden');
 
-    } else {
-        console.log("loadVideo呼び出し失敗");
-    }
+
+		const lastTab = localStorage.getItem('yt_last_tab') || 'thumb';
+		updateEmbedOutputs();
+		switchTab(lastTab);
+
+	} else {
+		console.log("loadVideo呼び出し失敗");
+	}
 }
 
 /**
@@ -291,14 +296,14 @@ function processInput() {
  * @param {boolean} isShorts
  */
 function updateMainLayout(isShorts) {
-    const wrapper = document.getElementById('main-card-wrapper');
-    if (!wrapper) return;
+	const wrapper = document.getElementById('main-card-wrapper');
+	if (!wrapper) return;
 
-    if (isShorts) {
-        wrapper.classList.add('is-shorts');
-    } else {
-        wrapper.classList.remove('is-shorts');
-    }
+	if (isShorts) {
+		wrapper.classList.add('is-shorts');
+	} else {
+		wrapper.classList.remove('is-shorts');
+	}
 }
 
 
@@ -329,18 +334,18 @@ function updateMainLayout(isShorts) {
  * @param {boolean} isShorts
  */
 function handleModeSwitch(isShorts) {
-    const normal = document.getElementById('normalControls');
-    const shorts = document.getElementById('shortsControls');
+	const normal = document.getElementById('normalControls');
+	const shorts = document.getElementById('shortsControls');
 
-    if (!normal || !shorts) return; // 要素がなければ何もしない（エラー防止）
+	if (!normal || !shorts) return; // 要素がなければ何もしない（エラー防止）
 
-    if (isShorts) {
-        normal.classList.add('hidden');
-        shorts.classList.remove('hidden');
-    } else {
-        normal.classList.remove('hidden');
-        shorts.classList.add('hidden');
-    }
+	if (isShorts) {
+		normal.classList.add('hidden');
+		shorts.classList.remove('hidden');
+	} else {
+		normal.classList.remove('hidden');
+		shorts.classList.add('hidden');
+	}
 }
 
 
@@ -379,11 +384,11 @@ function switchTab(t) {
 
 
 	// アセットやタグ表示が含まれるタブを開いた時に、中身を再生成する
-    if (currentVideoId) {
-        updateEmbedOutputs();
-    } else {
-        console.log("No video loaded yet, skipping output update.");
-    }
+	if (currentVideoId) {
+		updateEmbedOutputs();
+	} else {
+		console.log("No video loaded yet, skipping output update.");
+	}
 }
 
 
@@ -426,32 +431,32 @@ function switchTab(t) {
  * @returns {Promise<void>} 非同期処理の完了を待機
  */
 async function loadVideo(id, startTime = 0, isShorts = false, shouldScroll = false) {
-    console.log("loadVideo 開始! ID:", id, "StartTime:", startTime, "isShorts:", isShorts); // 動いているか確認用
+	console.log("loadVideo 開始! ID:", id, "StartTime:", startTime, "isShorts:", isShorts); // 動いているか確認用
 
-    // どんな経路（検索・履歴・プレイリスト）で動画を読み込んでも、まず掃除する
-    resetAppState();
+	// どんな経路（検索・履歴・プレイリスト）で動画を読み込んでも、まず掃除する
+	resetAppState();
 
-    updateMainLayout(isShorts);
-    // モード切替（Shorts判定をここに集約）
-    handleModeSwitch(isShorts);
+	updateMainLayout(isShorts);
+	// モード切替（Shorts判定をここに集約）
+	handleModeSwitch(isShorts);
 
-    // 今のプレイヤーが持っている動画IDを取得（YouTube APIの機能を使う）
-    let currentIdInPlayer = "";
-    if (window.player && typeof window.player.getVideoData === 'function') {
-        currentIdInPlayer = window.player.getVideoData().video_id;
-    }
+	// 今のプレイヤーが持っている動画IDを取得（YouTube APIの機能を使う）
+	let currentIdInPlayer = "";
+	if (window.player && typeof window.player.getVideoData === 'function') {
+		currentIdInPlayer = window.player.getVideoData().video_id;
+	}
 
 // 【修正！】同じIDでも、結果エリアが隠れている（＝まだ表示されていない）なら続行する
-    const resArea = document.getElementById('resultArea');
-    const isHidden = resArea ? resArea.classList.contains('hidden') : true;
+	const resArea = document.getElementById('resultArea');
+	const isHidden = resArea ? resArea.classList.contains('hidden') : true;
 
 // 「今表示されているID」と「これから読み込むID」が違うなら、必ず続行する
-    if (id === currentIdInPlayer && !isHidden) {
-        console.log("今表示中の動画と同じなので、リロードをスキップします");
-        return;
-    }
+	if (id === currentIdInPlayer && !isHidden) {
+		console.log("今表示中の動画と同じなので、リロードをスキップします");
+		return;
+	}
 
-    // ここで初めて、グローバル変数を更新する
+	// ここで初めて、グローバル変数を更新する
 	currentVideoId = id;
 
 	saveHistory(id, startTime, isShorts);
@@ -478,48 +483,48 @@ async function loadVideo(id, startTime = 0, isShorts = false, shouldScroll = fal
 		currentVideoTitle = "YouTube Video"; // 失敗時の予備
 	}
 
-    // 1. まずプレースホルダーにサムネイルをセットして表示する
-    const placeholder = document.getElementById('player-placeholder');
-    const img = document.getElementById('placeholder-img');
-    if (img) img.src = `https://img.youtube.com/vi/${id}/maxresdefault.jpg`;
-    if (placeholder) placeholder.style.opacity = "1";
+	// 1. まずプレースホルダーにサムネイルをセットして表示する
+	const placeholder = document.getElementById('player-placeholder');
+	const img = document.getElementById('placeholder-img');
+	if (img) img.src = `https://img.youtube.com/vi/${id}/maxresdefault.jpg`;
+	if (placeholder) placeholder.style.opacity = "1";
 
 
 	// --- プレイヤーの初期化 ---
-    player = new YT.Player('player', {
-        height: '100%',
-        width: '100%',
-        videoId: id,
-        playerVars: {
-            'rel': 0,          // 関連動画を自分のチャンネルのみに
-            'playsinline': 1,   // モバイルで全画面表示にさせない
-            'start': startTime, // 開始時間をセット
-            'autoplay': 1,      // 自動再生
+	player = new YT.Player('player', {
+		height: '100%',
+		width: '100%',
+		videoId: id,
+		playerVars: {
+			'rel': 0,          // 関連動画を自分のチャンネルのみに
+			'playsinline': 1,   // モバイルで全画面表示にさせない
+			'start': startTime, // 開始時間をセット
+			'autoplay': 1,      // 自動再生
 
 
-            // 'controls': 0,      // コントロール非表示
-            // 'modestbranding': 1, // YouTubeロゴを隠す（完全には消えない）
-            // 'disablekb': 1,     // キーボード操作を無効化
-            // 'fs': 0,            // 全画面ボタンを消す
-            // 'iv_load_policy': 3, // 動画内の注釈を消す
-            // 'cc_load_policy': 0, // 字幕を表示しない
-            // 'origin': window.location.origin, // セキュリティ対策（必要に応じて）
-            // 'widget_referrer': window.location.href, // 参照元URLを送る（必要に応じて）
-            // 'enablejsapi': 1,   // JavaScript APIを有効にする（これがないとAPIが動かない）
-            // 'html5': 1,         // HTML5プレイヤーを強制する（ほとんどのブラウザでこれがデフォルト）
-            // 'version': 3,       // プレイヤーのバージョン（通常は3で問題ない）
-            // 'origin': 'https://www.example.com', // セキュリティ対策（必要に応じて）
-            // 'widget_referrer': 'https://www.example.com', // 参照元URLを送る（必要に応じて）
-        },
-        events: {
-            // 'onReady': () => updateEmbedOutputs()
-            // 'onReady': () => {
-            //      console.log("Player is ready."); // 中身をログだけにする
-            // }
-            'onReady': onPlayerReady,
-            'onStateChange': onPlayerStateChange
-        }
-    });
+			// 'controls': 0,      // コントロール非表示
+			// 'modestbranding': 1, // YouTubeロゴを隠す（完全には消えない）
+			// 'disablekb': 1,     // キーボード操作を無効化
+			// 'fs': 0,            // 全画面ボタンを消す
+			// 'iv_load_policy': 3, // 動画内の注釈を消す
+			// 'cc_load_policy': 0, // 字幕を表示しない
+			// 'origin': window.location.origin, // セキュリティ対策（必要に応じて）
+			// 'widget_referrer': window.location.href, // 参照元URLを送る（必要に応じて）
+			// 'enablejsapi': 1,   // JavaScript APIを有効にする（これがないとAPIが動かない）
+			// 'html5': 1,         // HTML5プレイヤーを強制する（ほとんどのブラウザでこれがデフォルト）
+			// 'version': 3,       // プレイヤーのバージョン（通常は3で問題ない）
+			// 'origin': 'https://www.example.com', // セキュリティ対策（必要に応じて）
+			// 'widget_referrer': 'https://www.example.com', // 参照元URLを送る（必要に応じて）
+		},
+		events: {
+			// 'onReady': () => updateEmbedOutputs()
+			// 'onReady': () => {
+			//      console.log("Player is ready."); // 中身をログだけにする
+			// }
+			'onReady': onPlayerReady,
+			'onStateChange': onPlayerStateChange
+		}
+	});
 
 	const candidates = [
 
@@ -562,41 +567,41 @@ async function loadVideo(id, startTime = 0, isShorts = false, shouldScroll = fal
 
 
 	// --- 画像の存在チェック ---
-    assetList = [];
-    for (const c of candidates) {
-        try {
-            const isValid = await new Promise(resolve => {
-                const img = new Image();
-                img.crossOrigin = "anonymous";
-                img.onload = () => resolve(img.width > 120); // YouTubeの404画像は幅が狭いため除外
-                img.onerror = () => resolve(false);
-                img.src = c.url;
-                setTimeout(() => resolve(false), 3000); // 3秒でタイムアウト
-            });
-            if (isValid) assetList.push(c);
-        } catch (e) {
-            continue;
-        }
-    }
+	assetList = [];
+	for (const c of candidates) {
+		try {
+			const isValid = await new Promise(resolve => {
+				const img = new Image();
+				img.crossOrigin = "anonymous";
+				img.onload = () => resolve(img.width > 120); // YouTubeの404画像は幅が狭いため除外
+				img.onerror = () => resolve(false);
+				img.src = c.url;
+				setTimeout(() => resolve(false), 3000); // 3秒でタイムアウト
+			});
+			if (isValid) assetList.push(c);
+		} catch (e) {
+			continue;
+		}
+	}
 
 	// --- スライダーの表示更新 ---
-    const slider = document.getElementById('mainSlider');
-    slider.innerHTML = assetList.map(a => `
-        <div class="slide-item-container ${a.isScene ? 'is-scene' : 'is-main'}">
-            <img src="${a.url}" class="${a.isScene ? 'slide-item-natural' : 'slide-item-fit'}" loading="lazy">
-        </div>
-    `).join('');
+	const slider = document.getElementById('mainSlider');
+	slider.innerHTML = assetList.map(a => `
+		<div class="slide-item-container ${a.isScene ? 'is-scene' : 'is-main'}">
+			<img src="${a.url}" class="${a.isScene ? 'slide-item-natural' : 'slide-item-fit'}" loading="lazy">
+		</div>
+	`).join('');
 
-    slider.scrollTo(0, 0);
-    updateDots('mainSlider', 'mainIndicator', 1);
+	slider.scrollTo(0, 0);
+	updateDots('mainSlider', 'mainIndicator', 1);
 
-    // --- 結果エリアへスクロール ---
-    if (shouldScroll) {
-        window.scrollTo({
-            top: document.getElementById('resultArea').offsetTop - 20,
-            behavior: 'smooth'
-        });
-    }
+	// --- 結果エリアへスクロール ---
+	if (shouldScroll) {
+		window.scrollTo({
+			top: document.getElementById('resultArea').offsetTop - 20,
+			behavior: 'smooth'
+		});
+	}
 }
 
 
@@ -605,22 +610,22 @@ async function loadVideo(id, startTime = 0, isShorts = false, shouldScroll = fal
  * プレイヤーの準備が完了した時に呼ばれる
  */
 function onPlayerReady(event) {
-    console.log("YouTube Player is Ready!");
-    // 必要ならここでミュートにしたり再生したりできるよ
+	console.log("YouTube Player is Ready!");
+	// 必要ならここでミュートにしたり再生したりできるよ
 }
 
 // プレイヤーの状態が変わった時のイベント（API作成時に登録しておく）
 function onPlayerStateChange(event) {
-    console.log("Player State:", event.data);
+	console.log("Player State:", event.data);
 
-    // 1: 再生開始 (PLAYING) または 3: バッファ中 (BUFFERING)
-    if (event.data == YT.PlayerState.PLAYING) {
-        const placeholder = document.getElementById('player-placeholder');
-        if (placeholder) {
-            placeholder.style.opacity = "0"; // スッと消す
-            setTimeout(() => placeholder.classList.add('hidden'), 500); // 完全に消去
-        }
-    }
+	// 1: 再生開始 (PLAYING) または 3: バッファ中 (BUFFERING)
+	if (event.data == YT.PlayerState.PLAYING) {
+		const placeholder = document.getElementById('player-placeholder');
+		if (placeholder) {
+			placeholder.style.opacity = "0"; // スッと消す
+			setTimeout(() => placeholder.classList.add('hidden'), 500); // 完全に消去
+		}
+	}
 }
 
 
@@ -635,22 +640,22 @@ function onPlayerStateChange(event) {
  * プレイリストの中身を履歴風のカードで表示する
  */
 async function fetchPlaylist(listId) {
-    const section = document.getElementById('playlistSection');
-    const list = document.getElementById('playlistList');
-    const indicator = document.getElementById('playlistIndicator');
+	const section = document.getElementById('playlistSection');
+	const list = document.getElementById('playlistList');
+	const indicator = document.getElementById('playlistIndicator');
 
-    if (!section || !list) return;
+	if (!section || !list) return;
 
-    section.classList.remove('hidden');
-    // 親要素に relative をつけて、ボタンを左右に固定する準備
-    section.className = "mt-12 border-t border-black/10 pt-8 relative group";
+	section.classList.remove('hidden');
+	// 親要素に relative をつけて、ボタンを左右に固定する準備
+	section.className = "mt-12 border-t border-black/10 pt-8 relative group";
 
-    list.innerHTML = `<p class="text-[10px] animate-pulse p-4 font-bold tracking-widest">SYNCHRONIZING...</p>`;
+	list.innerHTML = `<p class="text-[10px] animate-pulse p-4 font-bold tracking-widest">SYNCHRONIZING...</p>`;
 
-    try {
-        // const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=10&playlistId=${listId}&key=${YOUTUBE_API_KEY}`;
+	try {
+		// const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=10&playlistId=${listId}&key=${YOUTUBE_API_KEY}`;
 		const url = `api/get_playlist.php?id=${listId}`;
-        const response = await fetch(url);
+		const response = await fetch(url);
 
 		// if (!response.ok) throw new Error(`HTTP_ERROR: ${response.status}`);
 
@@ -662,10 +667,10 @@ async function fetchPlaylist(listId) {
 		}
 	}
 
-        const data = await response.json();
+		const data = await response.json();
 
-        if (data.items) {
-            // 1. カードの生成
+		if (data.items) {
+			// 1. カードの生成
 			list.innerHTML = data.items.map(item => {
 				const vId = item.snippet.resourceId?.videoId;
 				if (!vId) return '';
@@ -689,56 +694,56 @@ async function fetchPlaylist(listId) {
 				`;
 			}).join('');
 
-            // 2. ボタンの生成（Historyと全く同じ構造）
-            // 二重に作られないように一度消してから追加
+			// 2. ボタンの生成（Historyと全く同じ構造）
+			// 二重に作られないように一度消してから追加
  // 2. ボタンの生成（Historyと完全に一致、矢印の色をblackへ）
-            section.querySelectorAll('.nav-btn').forEach(btn => btn.remove());
+			section.querySelectorAll('.nav-btn').forEach(btn => btn.remove());
 
-            const prevBtn = `
-                <div class="nav-btn !w-8 !h-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                     style="left:-10px; top:45%; position:absolute; z-index:50;"
-                     onclick="moveSlide('playlistList', -1)">
-                    <div class="arrow !w-1.5 !h-1.5"
-                         style="transform:rotate(-135deg); border-top:2px solid black; border-right:2px solid black;"></div>
-                </div>`;
+			const prevBtn = `
+				<div class="nav-btn !w-8 !h-8 opacity-0 group-hover:opacity-100 transition-opacity"
+					 style="left:-10px; top:45%; position:absolute; z-index:50;"
+					 onclick="moveSlide('playlistList', -1)">
+					<div class="arrow !w-1.5 !h-1.5"
+						 style="transform:rotate(-135deg); border-top:2px solid black; border-right:2px solid black;"></div>
+				</div>`;
 
-            const nextBtn = `
-                <div class="nav-btn !w-8 !h-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                     style="right:-10px; top:45%; position:absolute; z-index:50;"
-                     onclick="moveSlide('playlistList', 1)">
-                    <div class="arrow !w-1.5 !h-1.5"
-                         style="transform:rotate(45deg); border-top:2px solid black; border-right:2px solid black;"></div>
-                </div>`;
+			const nextBtn = `
+				<div class="nav-btn !w-8 !h-8 opacity-0 group-hover:opacity-100 transition-opacity"
+					 style="right:-10px; top:45%; position:absolute; z-index:50;"
+					 onclick="moveSlide('playlistList', 1)">
+					<div class="arrow !w-1.5 !h-1.5"
+						 style="transform:rotate(45deg); border-top:2px solid black; border-right:2px solid black;"></div>
+				</div>`;
 
-            section.insertAdjacentHTML('beforeend', prevBtn);
-            section.insertAdjacentHTML('beforeend', nextBtn);
+			section.insertAdjacentHTML('beforeend', prevBtn);
+			section.insertAdjacentHTML('beforeend', nextBtn);
 
-            // 3. ドットの連動
-            list.onscroll = () => updateDots('playlistList', 'playlistIndicator', 1);
-            updateDots('playlistList', 'playlistIndicator', 1);
-        }
-    } catch (e) {
+			// 3. ドットの連動
+			list.onscroll = () => updateDots('playlistList', 'playlistIndicator', 1);
+			updateDots('playlistList', 'playlistIndicator', 1);
+		}
+	} catch (e) {
 		console.error("Playlist render error:", e);
-        list.innerHTML = `<p class="text-[10px] p-4 text-red-500 font-bold">\>_ CONNECTION_FAILED: ${e.message}</p>`;
-    }
+		list.innerHTML = `<p class="text-[10px] p-4 text-red-500 font-bold">\>_ CONNECTION_FAILED: ${e.message}</p>`;
+	}
 }
 
 /**
  * 実際にカードとドットを描画する共通関数
  */
 function renderPlaylistCards(items) {
-    const listContainer = document.getElementById('playlistList');
-    const indicator = document.getElementById('playlistIndicator');
+	const listContainer = document.getElementById('playlistList');
+	const indicator = document.getElementById('playlistIndicator');
 
-    listContainer.innerHTML = items.map(item => `
-        <div class="item-card flex-shrink-0 w-[160px]" onclick="loadVideo('${item.id}', undefined, ${isShorts}, true)">
-            <img src="https://img.youtube.com/vi/${item.id}/mqdefault.jpg" class="rounded-xl">
-            <p class="text-[9px] mt-2 font-bold text-black/40 uppercase">${item.title}</p>
-        </div>
-    `).join('');
+	listContainer.innerHTML = items.map(item => `
+		<div class="item-card flex-shrink-0 w-[160px]" onclick="loadVideo('${item.id}', undefined, ${isShorts}, true)">
+			<img src="https://img.youtube.com/vi/${item.id}/mqdefault.jpg" class="rounded-xl">
+			<p class="text-[9px] mt-2 font-bold text-black/40 uppercase">${item.title}</p>
+		</div>
+	`).join('');
 
-    // ドットの更新
-    updateDots('playlistList', 'playlistIndicator', 1);
+	// ドットの更新
+	updateDots('playlistList', 'playlistIndicator', 1);
 }
 
 
@@ -749,7 +754,7 @@ function renderPlaylistCards(items) {
 
 
 /* ───────────────────────────────────────────
-      OUTPUT TAGS AND LINKS GENERATOR
+	  OUTPUT TAGS AND LINKS GENERATOR
 ─────────────────────────────────────────── */
 /**
  * コピーボタン付きの入力行（HTML文字列）を生成する
@@ -759,20 +764,20 @@ function renderPlaylistCards(items) {
  * @returns {string} 構築されたHTMLテンプレート
  */
 function createOutputRow(label, value) {
-    // valueが空やundefinedの場合に備えてデフォルト値を設定
-    const displayValue = value || '';
-    return `
-        <div class="space-y-1.5">
-            <label class="pl-[12px] text-[9px] text-gray-400 block uppercase font-bold tracking-wider">${label}</label>
-            <div class="flex gap-2">
-                <input type="text" value='${displayValue}'
+	// valueが空やundefinedの場合に備えてデフォルト値を設定
+	const displayValue = value || '';
+	return `
+		<div class="space-y-1.5">
+			<label class="pl-[12px] text-[9px] text-gray-400 block uppercase font-bold tracking-wider">${label}</label>
+			<div class="flex gap-2">
+				<input type="text" value='${displayValue}'
 					onclick="this.select()"
 					readonly
-                    class="nothing-input flex-grow p-3 text-[10px] font-mono focus:outline-none">
-                <button onclick="handleCopy(this)" class="btn-gray-copy w-[70px] transition-all text-[10px] font-bold uppercase">Copy</button>
-            </div>
-        </div>
-    `;
+					class="nothing-input flex-grow p-3 text-[10px] font-mono focus:outline-none">
+				<button onclick="handleCopy(this)" class="btn-gray-copy w-[70px] transition-all text-[10px] font-bold uppercase">Copy</button>
+			</div>
+		</div>
+	`;
 }
 
 
@@ -781,27 +786,27 @@ function createOutputRow(label, value) {
  * @param {HTMLButtonElement} btn - クリックされたボタン要素
  */
 async function handleCopy(btn) {
-    const input = btn.previousElementSibling;
-    if (!input || !input.value) return;
+	const input = btn.previousElementSibling;
+	if (!input || !input.value) return;
 
-    try {
-        // 最新のクリップボードAPIを使用
-        await navigator.clipboard.writeText(input.value);
+	try {
+		// 最新のクリップボードAPIを使用
+		await navigator.clipboard.writeText(input.value);
 
-        const originalText = "COPY";
-        btn.innerText = "COPIED";
-        btn.style.width = "70px"; // 文字数変化でガタつかないよう固定
+		const originalText = "COPY";
+		btn.innerText = "COPIED";
+		btn.style.width = "70px"; // 文字数変化でガタつかないよう固定
 
-        setTimeout(() => {
-            btn.innerText = originalText;
-        }, 1500);
-    } catch (err) {
-        // フォールバック: 従来の方法
-        input.select();
-        document.execCommand('copy');
-        btn.innerText = "COPIED";
-        setTimeout(() => { btn.innerText = "COPY"; }, 1500);
-    }
+		setTimeout(() => {
+			btn.innerText = originalText;
+		}, 1500);
+	} catch (err) {
+		// フォールバック: 従来の方法
+		input.select();
+		document.execCommand('copy');
+		btn.innerText = "COPIED";
+		setTimeout(() => { btn.innerText = "COPY"; }, 1500);
+	}
 }
 
 
@@ -811,41 +816,41 @@ async function handleCopy(btn) {
  * @param {string} label - alt属性用のラベル（Max Res, Motionなど）
  */
 function updateThumbOutputs(url, label) {
-    const container = document.getElementById('thumbOutputs');
-    if (!container) return;
+	const container = document.getElementById('thumbOutputs');
+	if (!container) return;
 
-    console.log("updateThumbOutputs called with URL:", url, "Label:", label);
+	console.log("updateThumbOutputs called with URL:", url, "Label:", label);
 
-    // 最新の値を取得（引数がなければ現在の変数を参照）
-    const targetUrl = url || currentImgUrl;
-    const targetLabel = label || currentImgLabel || "Thumbnail";
-    const targetVideoUrl = `https://www.youtube.com/watch?v=${currentVideoId}`;
+	// 最新の値を取得（引数がなければ現在の変数を参照）
+	const targetUrl = url || currentImgUrl;
+	const targetLabel = label || currentImgLabel || "Thumbnail";
+	const targetVideoUrl = `https://www.youtube.com/watch?v=${currentVideoId}`;
 
 
 
-    container.innerHTML = `
-        <div class="nothing-card p-5 space-y-6">
-            ${createOutputRow(
-                'HTML Image Tag (img)',
-                `<img src="${targetUrl}" alt="${targetLabel}">`
-            )}
+	container.innerHTML = `
+		<div class="nothing-card p-5 space-y-6">
+			${createOutputRow(
+				'HTML Image Tag (img)',
+				`<img src="${targetUrl}" alt="${targetLabel}">`
+			)}
 
-            ${createOutputRow(
-                'HTML Image Tag (a + img)',
-                `<a href="${targetVideoUrl}" target="_blank"><img src="${targetUrl}" alt="${targetLabel}"></a>`
-            )}
+			${createOutputRow(
+				'HTML Image Tag (a + img)',
+				`<a href="${targetVideoUrl}" target="_blank"><img src="${targetUrl}" alt="${targetLabel}"></a>`
+			)}
 
-            ${createOutputRow(
-                'Markdown Link',
-                `[![${targetLabel}](${targetUrl})](${targetVideoUrl})`
-            )}
+			${createOutputRow(
+				'Markdown Link',
+				`[![${targetLabel}](${targetUrl})](${targetVideoUrl})`
+			)}
 
-            ${createOutputRow(
-                'Direct Asset URL',
-                targetUrl
-            )}
-        </div>
-    `;
+			${createOutputRow(
+				'Direct Asset URL',
+				targetUrl
+			)}
+		</div>
+	`;
 }
 
 
@@ -863,57 +868,57 @@ function updateThumbOutputs(url, label) {
 function updateEmbedOutputs() {
 
 
-    if (typeof currentVideoId === 'undefined' || !currentVideoId) {
-        return;
-    }
+	if (typeof currentVideoId === 'undefined' || !currentVideoId) {
+		return;
+	}
 
-    /** @type {string} */
-    const w = document.getElementById('eWidth')?.value || "560";
-    /** @type {string} */
-    const h = document.getElementById('eHeight')?.value || "315";
-    /** @type {string} */
-    const s = document.getElementById('eStart')?.value || "0";
-    const startSeconds = parseInt(s) || 0;
+	/** @type {string} */
+	const w = document.getElementById('eWidth')?.value || "560";
+	/** @type {string} */
+	const h = document.getElementById('eHeight')?.value || "315";
+	/** @type {string} */
+	const s = document.getElementById('eStart')?.value || "0";
+	const startSeconds = parseInt(s) || 0;
 
-    // バッジ（分:秒）を更新
-    updateTimeBadge(startSeconds);
+	// バッジ（分:秒）を更新
+	updateTimeBadge(startSeconds);
 
-    // ★追加: プレイヤーが存在し、かつシーク可能なら移動させる
-    if (typeof player !== 'undefined' && player && typeof player.seekTo === 'function') {
-        // 第2引数を true にすると、シーク先がまだバッファされてなくても強制的に移動する
-        // player.seekTo(startSeconds, true);
-    }
+	// ★追加: プレイヤーが存在し、かつシーク可能なら移動させる
+	if (typeof player !== 'undefined' && player && typeof player.seekTo === 'function') {
+		// 第2引数を true にすると、シーク先がまだバッファされてなくても強制的に移動する
+		// player.seekTo(startSeconds, true);
+	}
 
-    const embedCode = `<iframe width="${w}" height="${h}" src="https://www.youtube.com/embed/${currentVideoId}?start=${s}" frameborder="0" allowfullscreen></iframe>`;
-    const timeUrl = `https://youtu.be/${currentVideoId}?t=${s}`;
+	const embedCode = `<iframe width="${w}" height="${h}" src="https://www.youtube.com/embed/${currentVideoId}?start=${s}" frameborder="0" allowfullscreen></iframe>`;
+	const timeUrl = `https://youtu.be/${currentVideoId}?t=${s}`;
 
-    /** @type {HTMLElement|null} */
-    const outDisplay = document.getElementById('embedOutputAreas');
+	/** @type {HTMLElement|null} */
+	const outDisplay = document.getElementById('embedOutputAreas');
 
-    if (outDisplay) {
-        const timeUrlRow = createOutputRow("Time URL", timeUrl);
-        const embedTagRow = `
-            <div class="space-y-1.5">
-                <label class="pl-[12px] text-[9px] text-gray-400 block uppercase font-bold tracking-wider">Embed Code</label>
-                <div class="flex gap-2 items-start">
-                    <textarea readonly
-                        onclick="this.select()"
-                        class="nothing-input flex-grow p-3 text-[10px] font-mono focus:outline-none h-24 resize-none leading-relaxed"
-                    >${embedCode}</textarea>
-                    <button onclick="handleCopy(this)"
-                        class="btn-gray-copy w-[70px] h-[40px] transition-all text-[10px] font-bold uppercase flex-shrink-0">
-                        Copy
-                    </button>
-                </div>
-            </div>`;
+	if (outDisplay) {
+		const timeUrlRow = createOutputRow("Time URL", timeUrl);
+		const embedTagRow = `
+			<div class="space-y-1.5">
+				<label class="pl-[12px] text-[9px] text-gray-400 block uppercase font-bold tracking-wider">Embed Code</label>
+				<div class="flex gap-2 items-start">
+					<textarea readonly
+						onclick="this.select()"
+						class="nothing-input flex-grow p-3 text-[10px] font-mono focus:outline-none h-24 resize-none leading-relaxed"
+					>${embedCode}</textarea>
+					<button onclick="handleCopy(this)"
+						class="btn-gray-copy w-[70px] h-[40px] transition-all text-[10px] font-bold uppercase flex-shrink-0">
+						Copy
+					</button>
+				</div>
+			</div>`;
 
-        outDisplay.innerHTML = `
-            <div class="space-y-4 mt-4">
-                ${embedTagRow}
-                ${timeUrlRow}
-            </div>
-        `;
-    }
+		outDisplay.innerHTML = `
+			<div class="space-y-4 mt-4">
+				${embedTagRow}
+				${timeUrlRow}
+			</div>
+		`;
+	}
 }
 
 
@@ -924,26 +929,26 @@ function updateEmbedOutputs() {
  * @returns {void}
  */
 function updateTimeBadge(seconds) {
-    const badge = document.getElementById('timeFormat');
-    if (!badge) return;
+	const badge = document.getElementById('timeFormat');
+	if (!badge) return;
 
-    if (seconds <= 0) {
-        badge.innerText = "0:00";
-        return;
-    }
+	if (seconds <= 0) {
+		badge.innerText = "0:00";
+		return;
+	}
 
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
+	const h = Math.floor(seconds / 3600);
+	const m = Math.floor((seconds % 3600) / 60);
+	const s = seconds % 60;
 
-    const displayM = m.toString();
-    const displayS = s.toString().padStart(2, '0');
+	const displayM = m.toString();
+	const displayS = s.toString().padStart(2, '0');
 
-    if (h > 0) {
-        badge.innerText = `${h}:${displayM.padStart(2, '0')}:${displayS}`;
-    } else {
-        badge.innerText = `${displayM}:${displayS}`;
-    }
+	if (h > 0) {
+		badge.innerText = `${h}:${displayM.padStart(2, '0')}:${displayS}`;
+	} else {
+		badge.innerText = `${displayM}:${displayS}`;
+	}
 }
 
 
@@ -951,16 +956,16 @@ function updateTimeBadge(seconds) {
  * 秒数入力欄をいじった時だけ呼ばれる関数
  */
 function handleStartSecondsChange() {
-    // 1. まずはテキスト（埋め込みコード）を更新
-    updateEmbedOutputs();
+	// 1. まずはテキスト（埋め込みコード）を更新
+	updateEmbedOutputs();
 
-    // 2. 秒数を取得して、プレイヤーを動かす（これが「手動」の時だけ発動する）
-    const s = document.getElementById('eStart')?.value || "0";
-    const startSeconds = parseInt(s) || 0;
+	// 2. 秒数を取得して、プレイヤーを動かす（これが「手動」の時だけ発動する）
+	const s = document.getElementById('eStart')?.value || "0";
+	const startSeconds = parseInt(s) || 0;
 
-    if (typeof player !== 'undefined' && player && typeof player.seekTo === 'function') {
-        player.seekTo(startSeconds, true);
-    }
+	if (typeof player !== 'undefined' && player && typeof player.seekTo === 'function') {
+		player.seekTo(startSeconds, true);
+	}
 }
 
 
@@ -972,27 +977,27 @@ function handleStartSecondsChange() {
  * @returns {void}
  */
 function handleWheel(event, type) {
-    event.preventDefault();
+	event.preventDefault();
 
-    /** @type {HTMLInputElement} */
-    const input = event.currentTarget;
-    const step = 1;
-    const delta = event.deltaY < 0 ? step : -step;
+	/** @type {HTMLInputElement} */
+	const input = event.currentTarget;
+	const step = 1;
+	const delta = event.deltaY < 0 ? step : -step;
 
-    const newValue = parseInt(input.value || "0") + delta;
+	const newValue = parseInt(input.value || "0") + delta;
 
-    if (newValue >= 0) {
-        input.value = newValue.toString();
+	if (newValue >= 0) {
+		input.value = newValue.toString();
 
-        // ここで条件分岐を整理するよ
-        if (type === 'w' || type === 'h') {
-            resizeEmbed(type);
-            // resizeEmbedの中で最終的にupdateEmbedOutputsが呼ばれるはずだから、ここではこれだけでOK
-        } else if (type === 's') {
-            // 秒数の時は、シーク機能付きの関数を呼ぶ！
-            handleStartSecondsChange();
-        }
-    }
+		// ここで条件分岐を整理するよ
+		if (type === 'w' || type === 'h') {
+			resizeEmbed(type);
+			// resizeEmbedの中で最終的にupdateEmbedOutputsが呼ばれるはずだから、ここではこれだけでOK
+		} else if (type === 's') {
+			// 秒数の時は、シーク機能付きの関数を呼ぶ！
+			handleStartSecondsChange();
+		}
+	}
 }
 
 /**
@@ -1002,41 +1007,41 @@ function handleWheel(event, type) {
  * @returns {void}
  */
 function resizeEmbed(type) {
-    const elW = document.getElementById('eWidth');
-    const elH = document.getElementById('eHeight');
-    const elKeep = document.getElementById('keepAspect');
+	const elW = document.getElementById('eWidth');
+	const elH = document.getElementById('eHeight');
+	const elKeep = document.getElementById('keepAspect');
 
-    if (!elW || !elH) return;
+	if (!elW || !elH) return;
 
-    let w = parseInt(elW.value) || 0;
-    let h = parseInt(elH.value) || 0;
+	let w = parseInt(elW.value) || 0;
+	let h = parseInt(elH.value) || 0;
 
-    // 比率維持がONの時だけ計算
-    if (elKeep && elKeep.checked) {
-        // 現在の状態で縦長（Shorts）か横長かを判定
-        // typeが 'w' なら変更前の 'h' を見て、'h' なら変更前の 'w' を見る
-        const isPortrait = (type === 'w') ? (h > w * 0.8) : (h * 0.8 > w);
+	// 比率維持がONの時だけ計算
+	if (elKeep && elKeep.checked) {
+		// 現在の状態で縦長（Shorts）か横長かを判定
+		// typeが 'w' なら変更前の 'h' を見て、'h' なら変更前の 'w' を見る
+		const isPortrait = (type === 'w') ? (h > w * 0.8) : (h * 0.8 > w);
 
-        if (isPortrait) {
-            // --- Shorts比率 (9:16) ---
-            if (type === 'w') {
-                elH.value = Math.round(w * 16 / 9).toString();
-            } else {
-                elW.value = Math.round(h * 9 / 16).toString();
-            }
-        } else {
-            // --- 通常比率 (16:9) ---
-            if (type === 'w') {
-                elH.value = Math.round(w * 9 / 16).toString();
-            } else {
-                elW.value = Math.round(h * 16 / 9).toString();
-            }
-        }
-    }
+		if (isPortrait) {
+			// --- Shorts比率 (9:16) ---
+			if (type === 'w') {
+				elH.value = Math.round(w * 16 / 9).toString();
+			} else {
+				elW.value = Math.round(h * 9 / 16).toString();
+			}
+		} else {
+			// --- 通常比率 (16:9) ---
+			if (type === 'w') {
+				elH.value = Math.round(w * 9 / 16).toString();
+			} else {
+				elW.value = Math.round(h * 16 / 9).toString();
+			}
+		}
+	}
 
-    // 表示とスタイルの更新
-    updateEmbedOutputs();
-    updateSizeButtonStyles();
+	// 表示とスタイルの更新
+	updateEmbedOutputs();
+	updateSizeButtonStyles();
 }
 
 
@@ -1045,39 +1050,39 @@ function resizeEmbed(type) {
  * @returns {void}
  */
 function updateSizeButtonStyles() {
-    /** @type {string} */
-    const currentW = document.getElementById('eWidth')?.value || "";
-    /** @type {string} */
-    const currentH = document.getElementById('eHeight')?.value || "";
+	/** @type {string} */
+	const currentW = document.getElementById('eWidth')?.value || "";
+	/** @type {string} */
+	const currentH = document.getElementById('eHeight')?.value || "";
 
-    /** @type {NodeListOf<HTMLButtonElement>} */
-    const buttons = document.querySelectorAll('.btn-gray-copy');
+	/** @type {NodeListOf<HTMLButtonElement>} */
+	const buttons = document.querySelectorAll('.btn-gray-copy');
 
-    buttons.forEach(btn => {
-        // onclick属性から設定値 (w, h) を抽出
-        const onClickAttr = btn.getAttribute('onclick') || "";
-        const match = onClickAttr.match(/setEmbedSize\((\d+),\s*(\d+)\)/);
+	buttons.forEach(btn => {
+		// onclick属性から設定値 (w, h) を抽出
+		const onClickAttr = btn.getAttribute('onclick') || "";
+		const match = onClickAttr.match(/setEmbedSize\((\d+),\s*(\d+)\)/);
 
-        if (match) {
-            const [_, btnW, btnH] = match;
-            const isMatch = (currentW === btnW && currentH === btnH);
+		if (match) {
+			const [_, btnW, btnH] = match;
+			const isMatch = (currentW === btnW && currentH === btnH);
 
-            if (isMatch) {
-                // アクティブ状態: ドット枠を強制表示
-                btn.style.border = "1px dashed #000"; // 直接スタイルを叩くのが一番確実
-                btn.style.opacity = "1";
-                // Tailwindの干渉を防ぐためクラスも調整
-                btn.classList.add('border-dashed', 'border-black');
-                btn.classList.remove('border-transparent', 'opacity-50');
-            } else {
-                // 非アクティブ状態: 枠を消す
-                btn.style.border = "1px solid transparent";
-                btn.style.opacity = "0.5";
-                btn.classList.remove('border-dashed', 'border-black');
-                btn.classList.add('border-transparent', 'opacity-50');
-            }
-        }
-    });
+			if (isMatch) {
+				// アクティブ状態: ドット枠を強制表示
+				btn.style.border = "1px dashed #000"; // 直接スタイルを叩くのが一番確実
+				btn.style.opacity = "1";
+				// Tailwindの干渉を防ぐためクラスも調整
+				btn.classList.add('border-dashed', 'border-black');
+				btn.classList.remove('border-transparent', 'opacity-50');
+			} else {
+				// 非アクティブ状態: 枠を消す
+				btn.style.border = "1px solid transparent";
+				btn.style.opacity = "0.5";
+				btn.classList.remove('border-dashed', 'border-black');
+				btn.classList.add('border-transparent', 'opacity-50');
+			}
+		}
+	});
 }
 
 
@@ -1087,30 +1092,30 @@ function updateSizeButtonStyles() {
  * 開始時間（eStart）の入力欄に反映させた後、タグ一覧も更新する。
  */
 function syncTime() {
-    // 1. YouTubeプレイヤーのインスタンスがあるか確認
-    // ※ player 変数名は環境に合わせてね（YT.Playerのインスタンス）
-    if (typeof player !== 'undefined' && player.getCurrentTime) {
-        /** @type {number} 現在の再生秒数（小数点以下切り捨て） */
-        const currentTime = Math.floor(player.getCurrentTime());
+	// 1. YouTubeプレイヤーのインスタンスがあるか確認
+	// ※ player 変数名は環境に合わせてね（YT.Playerのインスタンス）
+	if (typeof player !== 'undefined' && player.getCurrentTime) {
+		/** @type {number} 現在の再生秒数（小数点以下切り捨て） */
+		const currentTime = Math.floor(player.getCurrentTime());
 
-        /** @type {HTMLInputElement|null} 開始時間の入力フィールド */
-        const startInput = document.getElementById('eStart');
+		/** @type {HTMLInputElement|null} 開始時間の入力フィールド */
+		const startInput = document.getElementById('eStart');
 
-        if (startInput) {
-            // 入力欄に値をセット
-            startInput.value = currentTime;
+		if (startInput) {
+			// 入力欄に値をセット
+			startInput.value = currentTime;
 
-            // 値が変わったので、下の「埋め込みタグ一覧」も再生成させる
-            updateEmbedOutputs();
+			// 値が変わったので、下の「埋め込みタグ一覧」も再生成させる
+			updateEmbedOutputs();
 
-            // ★追加：数値が変わったのでボタンの状態も再チェック
-            //（秒数を変えると、たとえサイズが一致していてもカスタム状態とみなして枠を消す、
-            // もしくは現在のサイズを維持して枠を残すかの判定を走らせる）
-            updateSizeButtonStyles();
-        }
-    } else {
-        console.error("Player instance not found. Make sure YouTube IFrame API is ready.");
-    }
+			// ★追加：数値が変わったのでボタンの状態も再チェック
+			//（秒数を変えると、たとえサイズが一致していてもカスタム状態とみなして枠を消す、
+			// もしくは現在のサイズを維持して枠を残すかの判定を走らせる）
+			updateSizeButtonStyles();
+		}
+	} else {
+		console.error("Player instance not found. Make sure YouTube IFrame API is ready.");
+	}
 }
 
 
@@ -1121,14 +1126,14 @@ function syncTime() {
 
 
 function resetPlayer() {
-    document.getElementById('player-wrapper').innerHTML = '<div id="player"></div>';
+	document.getElementById('player-wrapper').innerHTML = '<div id="player"></div>';
 }
 
 function clearInput() {
-    document.getElementById('videoUrl').value = "";
-    document.getElementById('resultArea').classList.add('hidden'); currentVideoId = "";
+	document.getElementById('videoUrl').value = "";
+	document.getElementById('resultArea').classList.add('hidden'); currentVideoId = "";
 
-    resetAppState();
+	resetAppState();
 }
 
 async function copyRaw(btn) {
@@ -1160,23 +1165,23 @@ function loadHistory() {
 
 
 
-    document.getElementById('historySection').classList.remove('hidden');
+	document.getElementById('historySection').classList.remove('hidden');
 
-    // h の中身が [{id: "...", start: 120}, ...] になっている前提
-    list.innerHTML = h.map(item => {
-        // 昔のデータ（単なる文字列）が混ざっていた時のためのガード
-        const videoId = (typeof item === 'object') ? item.id : item;
-        const startTime = (typeof item === 'object') ? item.start : 0;
-        const isShorts = (typeof item === 'object') ? item.isShorts : false;
+	// h の中身が [{id: "...", start: 120}, ...] になっている前提
+	list.innerHTML = h.map(item => {
+		// 昔のデータ（単なる文字列）が混ざっていた時のためのガード
+		const videoId = (typeof item === 'object') ? item.id : item;
+		const startTime = (typeof item === 'object') ? item.start : 0;
+		const isShorts = (typeof item === 'object') ? item.isShorts : false;
 
 
-        return `
-            <div class="item-card" onclick="loadVideo('${videoId}', ${startTime}, ${isShorts}, true)">
-                <img src="https://img.youtube.com/vi/${videoId}/mqdefault.jpg"
-                    class="w-full aspect-video object-cover rounded-xl shadow-sm">
-                <div class="text-xs mt-1 pl-2 text-gray-500">${startTime}s～</div>
-            </div>`;
-    }).join('');
+		return `
+			<div class="item-card" onclick="loadVideo('${videoId}', ${startTime}, ${isShorts}, true)">
+				<img src="https://img.youtube.com/vi/${videoId}/mqdefault.jpg"
+					class="w-full aspect-video object-cover rounded-xl shadow-sm">
+				<div class="text-xs mt-1 pl-2 text-gray-500">${startTime}s～</div>
+			</div>`;
+	}).join('');
 
 
 
@@ -1277,115 +1282,115 @@ function historyScrollHandler() {
  * 現在のインデックスから「d」分だけ移動し、ドットを更新する
  */
 function moveSlide(sId, d) {
-    const container = document.getElementById(sId);
-    if (!container) return;
+	const container = document.getElementById(sId);
+	if (!container) return;
 
-    // 1. 現在のインデックスを計算
-    const childrenCount = (sId === 'mainSlider' && typeof assetList !== 'undefined') ? assetList.length : container.children.length;
-    const itemWidth = container.scrollWidth / childrenCount;
-    const currentIdx = Math.round(container.scrollLeft / itemWidth);
+	// 1. 現在のインデックスを計算
+	const childrenCount = (sId === 'mainSlider' && typeof assetList !== 'undefined') ? assetList.length : container.children.length;
+	const itemWidth = container.scrollWidth / childrenCount;
+	const currentIdx = Math.round(container.scrollLeft / itemWidth);
 
-    // 2. 次のターゲットを決める（1枚ずつではなく、画面に見えている分だけ動かしたいなら d * 数 を調整）
-    // とりあえず1枚ずつならこれ：
-    let targetIdx = currentIdx + d;
+	// 2. 次のターゲットを決める（1枚ずつではなく、画面に見えている分だけ動かしたいなら d * 数 を調整）
+	// とりあえず1枚ずつならこれ：
+	let targetIdx = currentIdx + d;
 
-    // 3. もし「画面1枚分ガバッと」動かしたいなら、d に「一度に見えている枚数」を掛ける
-    // const visibleItems = Math.round(container.clientWidth / itemWidth);
-    // let targetIdx = currentIdx + (d * visibleItems);
+	// 3. もし「画面1枚分ガバッと」動かしたいなら、d に「一度に見えている枚数」を掛ける
+	// const visibleItems = Math.round(container.clientWidth / itemWidth);
+	// let targetIdx = currentIdx + (d * visibleItems);
 
-    // 4. 範囲ガード
-    targetIdx = Math.max(0, Math.min(targetIdx, childrenCount - 1));
+	// 4. 範囲ガード
+	targetIdx = Math.max(0, Math.min(targetIdx, childrenCount - 1));
 
-    // 5. すでにある「scrollToIndex」を呼ぶ！
-    scrollToIndex(sId, targetIdx);
+	// 5. すでにある「scrollToIndex」を呼ぶ！
+	scrollToIndex(sId, targetIdx);
 
-    // 6. ドットの更新（indicatorのIDやratioが必要なら引数で調整してね）
-    // setTimeout(() => updateDots(sId, 'indicatorのID', 4), 500);
+	// 6. ドットの更新（indicatorのIDやratioが必要なら引数で調整してね）
+	// setTimeout(() => updateDots(sId, 'indicatorのID', 4), 500);
 
-    // スライダー要素を取得して、スクロールを監視する
+	// スライダー要素を取得して、スクロールを監視する
 const historyList = document.getElementById('historyList'); // IDは実際のものに
 
 if (historyList) {
-    historyList.addEventListener('wheel', (e) => {
-        // 上下のスクロール（ホイール回転）が発生したら
-        if (e.deltaY !== 0) {
-            // 標準の「上下移動」をキャンセルして
-            e.preventDefault();
-            // 横方向にその分だけ動かす
-            historyList.scrollLeft += e.deltaY;
-        }
-    }, { passive: false }); // preventDefaultを使うために必要
+	historyList.addEventListener('wheel', (e) => {
+		// 上下のスクロール（ホイール回転）が発生したら
+		if (e.deltaY !== 0) {
+			// 標準の「上下移動」をキャンセルして
+			e.preventDefault();
+			// 横方向にその分だけ動かす
+			historyList.scrollLeft += e.deltaY;
+		}
+	}, { passive: false }); // preventDefaultを使うために必要
 }
 }
 
 
 
 /* ───────────────────────────────────────────
-     UPDATED CORE LOGIC
+	 UPDATED CORE LOGIC
 ─────────────────────────────────────────── */
 
 function updateDots(sId, iId, ratio = 1) {
-    const container = document.getElementById(sId);
-    const indicator = document.getElementById(iId);
-    if (!container || !indicator) return;
+	const container = document.getElementById(sId);
+	const indicator = document.getElementById(iId);
+	if (!container || !indicator) return;
 
-    // 1. インデックスの計算
-    const childrenCount = (sId === 'mainSlider' && typeof assetList !== 'undefined') ? assetList.length : container.children.length;
+	// 1. インデックスの計算
+	const childrenCount = (sId === 'mainSlider' && typeof assetList !== 'undefined') ? assetList.length : container.children.length;
 
-    // ratioを考慮しつつ計算
-    // const itemWidth = (sId === 'mainSlider') ? (container.scrollWidth / childrenCount) : (container.clientWidth / ratio);
-    // const idx = Math.round(container.scrollLeft / itemWidth);
+	// ratioを考慮しつつ計算
+	// const itemWidth = (sId === 'mainSlider') ? (container.scrollWidth / childrenCount) : (container.clientWidth / ratio);
+	// const idx = Math.round(container.scrollLeft / itemWidth);
 
-    // const itemWidth = container.scrollWidth / childrenCount;
-    // const idx = Math.round(container.scrollLeft / itemWidth);
-
-
-    // 1. スクロールの限界値を計算 (全体幅 - 見えている幅)
-    const maxScroll = container.scrollWidth - container.clientWidth;
-    const isAtEnd = container.scrollLeft >= maxScroll - 5; // 5pxの遊び
-
-    // 2. もし全くスクロールできない状態なら0番目
-    let idx;
-    if (isAtEnd) {
-        idx = childrenCount - 1;
-    } else {
-        const itemWidth = container.scrollWidth / childrenCount;
-        idx = Math.round(container.scrollLeft / itemWidth);
-    }
-    // if (maxScroll <= 0) {
-    //     var idx = 0;
-    // } else {
-    //     // 3. 「現在の位置 / 最大値」で 0.0 〜 1.0 の割合を出す
-    //     const scrollRatio = container.scrollLeft / maxScroll;
-    //     // 4. 割合をアイテム数（インデックス）に変換
-    //     var idx = Math.round(scrollRatio * (childrenCount - 1));
-    // }
-
-    // 念のため範囲内に収める
-    idx = Math.max(0, Math.min(idx, childrenCount - 1));
+	// const itemWidth = container.scrollWidth / childrenCount;
+	// const idx = Math.round(container.scrollLeft / itemWidth);
 
 
-    // console.log(`scrollLeft: ${container.scrollLeft}, itemWidth: ${itemWidth}, calculatedIdx: ${idx}`);
-    console.log(`scrollLeft: ${container.scrollLeft}, calculatedIdx: ${idx}`);
+	// 1. スクロールの限界値を計算 (全体幅 - 見えている幅)
+	const maxScroll = container.scrollWidth - container.clientWidth;
+	const isAtEnd = container.scrollLeft >= maxScroll - 5; // 5pxの遊び
 
-    // 2. ドットの描画（共通）
-    indicator.innerHTML = Array.from({ length: childrenCount }).map((_, i) => `
-        <div class="dot ${i === idx ? 'active' : ''}"
-             onclick="${sId === 'mainSlider' ? `handleDotClick(this, '${sId}', ${i})` : `scrollToIndex('${sId}', ${i})`}"></div>
-    `).join('');
+	// 2. もし全くスクロールできない状態なら0番目
+	let idx;
+	if (isAtEnd) {
+		idx = childrenCount - 1;
+	} else {
+		const itemWidth = container.scrollWidth / childrenCount;
+		idx = Math.round(container.scrollLeft / itemWidth);
+	}
+	// if (maxScroll <= 0) {
+	//     var idx = 0;
+	// } else {
+	//     // 3. 「現在の位置 / 最大値」で 0.0 〜 1.0 の割合を出す
+	//     const scrollRatio = container.scrollLeft / maxScroll;
+	//     // 4. 割合をアイテム数（インデックス）に変換
+	//     var idx = Math.round(scrollRatio * (childrenCount - 1));
+	// }
 
-    // 3. メインスライダー(サムネイル)の場合の個別処理
-    if (sId === 'mainSlider' && typeof assetList !== 'undefined' && assetList[idx]) {
-        currentImgUrl = assetList[idx].url;
-        currentImgLabel = assetList[idx].label || "Thumbnail";
+	// 念のため範囲内に収める
+	idx = Math.max(0, Math.min(idx, childrenCount - 1));
 
-        const metaElem = document.getElementById('assetMeta');
-        if (metaElem) {
-            metaElem.innerText = `${currentImgLabel} // ${assetList[idx].res}`;
-        }
 
-        updateThumbOutputs(); // タグ文字列を更新
-    }
+	// console.log(`scrollLeft: ${container.scrollLeft}, itemWidth: ${itemWidth}, calculatedIdx: ${idx}`);
+	console.log(`scrollLeft: ${container.scrollLeft}, calculatedIdx: ${idx}`);
+
+	// 2. ドットの描画（共通）
+	indicator.innerHTML = Array.from({ length: childrenCount }).map((_, i) => `
+		<div class="dot ${i === idx ? 'active' : ''}"
+			 onclick="${sId === 'mainSlider' ? `handleDotClick(this, '${sId}', ${i})` : `scrollToIndex('${sId}', ${i})`}"></div>
+	`).join('');
+
+	// 3. メインスライダー(サムネイル)の場合の個別処理
+	if (sId === 'mainSlider' && typeof assetList !== 'undefined' && assetList[idx]) {
+		currentImgUrl = assetList[idx].url;
+		currentImgLabel = assetList[idx].label || "Thumbnail";
+
+		const metaElem = document.getElementById('assetMeta');
+		if (metaElem) {
+			metaElem.innerText = `${currentImgLabel} // ${assetList[idx].res}`;
+		}
+
+		updateThumbOutputs(); // タグ文字列を更新
+	}
 }
 
 
@@ -1393,25 +1398,25 @@ function updateDots(sId, iId, ratio = 1) {
  * ドットをクリックしたとき、または移動時に指定の画像までスクロールさせる
  */
 function scrollToIndex(sId, index) {
-    const container = document.getElementById(sId);
-    if (!container) return;
+	const container = document.getElementById(sId);
+	if (!container) return;
 
-    const childrenCount = (sId === 'mainSlider') ? assetList.length : container.children.length;
+	const childrenCount = (sId === 'mainSlider') ? assetList.length : container.children.length;
 
-    let targetLeft;
+	let targetLeft;
 
-    // もし指定されたのが「最後の要素」なら、計算をやめて「物理的な右端」を指定する
-    if (index >= childrenCount - 1) {
-        targetLeft = container.scrollWidth - container.clientWidth;
-    } else {
-        // それ以外は通常通りの計算
-        targetLeft = (container.scrollWidth / childrenCount) * index;
-    }
+	// もし指定されたのが「最後の要素」なら、計算をやめて「物理的な右端」を指定する
+	if (index >= childrenCount - 1) {
+		targetLeft = container.scrollWidth - container.clientWidth;
+	} else {
+		// それ以外は通常通りの計算
+		targetLeft = (container.scrollWidth / childrenCount) * index;
+	}
 
-    container.scrollTo({
-        left: targetLeft,
-        behavior: 'smooth'
-    });
+	container.scrollTo({
+		left: targetLeft,
+		behavior: 'smooth'
+	});
 }
 
 /**
@@ -1442,25 +1447,25 @@ function scrollToIndex(sId, index) {
  * @returns {void}
  */
 function setEmbedSize(w, h) {
-    /** @type {HTMLInputElement|null} */
-    const elW = document.getElementById('eWidth');
-    /** @type {HTMLInputElement|null} */
-    const elH = document.getElementById('eHeight');
+	/** @type {HTMLInputElement|null} */
+	const elW = document.getElementById('eWidth');
+	/** @type {HTMLInputElement|null} */
+	const elH = document.getElementById('eHeight');
 
-    if (!elW || !elH) return;
+	if (!elW || !elH) return;
 
-    elW.value = w.toString();
-    elH.value = h.toString();
+	elW.value = w.toString();
+	elH.value = h.toString();
 
-    // アスペクト比維持機能があれば実行、なければ直接タグ生成
-    if (typeof resizeEmbed === 'function') {
-        resizeEmbed('w');
-    } else {
-        updateEmbedOutputs();
-    }
+	// アスペクト比維持機能があれば実行、なければ直接タグ生成
+	if (typeof resizeEmbed === 'function') {
+		resizeEmbed('w');
+	} else {
+		updateEmbedOutputs();
+	}
 
-    // ボタンのスタイル（ドット枠）を現在の数値に同期
-    updateSizeButtonStyles();
+	// ボタンのスタイル（ドット枠）を現在の数値に同期
+	updateSizeButtonStyles();
 }
 
 
@@ -1472,7 +1477,7 @@ function setEmbedSize(w, h) {
 
 
 /* ───────────────────────────────────────────
-       LIGHTBOX PREVIEW FOR EMBED
+	   LIGHTBOX PREVIEW FOR EMBED
 ─────────────────────────────────────────── */
 
 /**
@@ -1481,64 +1486,64 @@ function setEmbedSize(w, h) {
  * * @returns {void}
  */
 function openEmbedPreview() {
-    /** @type {string} 幅の入力値 */
-    const w = document.getElementById('eWidth').value;
-    /** @type {string} 高さの入力値 */
-    const h = document.getElementById('eHeight').value;
-    /** @type {string} 開始秒数の入力値 */
-    const start = document.getElementById('eStart').value;
+	/** @type {string} 幅の入力値 */
+	const w = document.getElementById('eWidth').value;
+	/** @type {string} 高さの入力値 */
+	const h = document.getElementById('eHeight').value;
+	/** @type {string} 開始秒数の入力値 */
+	const start = document.getElementById('eStart').value;
 
-    /** @type {HTMLDivElement} オーバーレイ要素の生成 */
-    const overlay = document.createElement('div');
-    overlay.id = 'previewOverlay';
+	/** @type {HTMLDivElement} オーバーレイ要素の生成 */
+	const overlay = document.createElement('div');
+	overlay.id = 'previewOverlay';
 
-    // Nothing OS風の背景（白透過＋ブラー）とスクロール設定
-    overlay.className = "fixed inset-0 z-[100] flex flex-col items-center justify-start overflow-y-auto bg-white/80 backdrop-blur-md p-10 animate-in fade-in duration-300";
+	// Nothing OS風の背景（白透過＋ブラー）とスクロール設定
+	overlay.className = "fixed inset-0 z-[100] flex flex-col items-center justify-start overflow-y-auto bg-white/80 backdrop-blur-md p-10 animate-in fade-in duration-300";
 
 
-    /**
-     * オーバーレイの背景部分をクリックした際にプレビューを閉じる
-     * @param {MouseEvent} e
-     */
-    overlay.onclick = (e) => {
-        if(e.target === overlay) closeEmbedPreview();
-    };
+	/**
+	 * オーバーレイの背景部分をクリックした際にプレビューを閉じる
+	 * @param {MouseEvent} e
+	 */
+	overlay.onclick = (e) => {
+		if(e.target === overlay) closeEmbedPreview();
+	};
 
-    overlay.innerHTML = `
-        <button onclick="closeEmbedPreview()"
-                class="fixed top-6 right-6 z-[110] bg-black text-white w-12 h-12 rounded-full flex items-center justify-center shadow-xl hover:scale-110 active:scale-90 transition-all">
-            <span class="text-2xl">×</span>
-        </button>
+	overlay.innerHTML = `
+		<button onclick="closeEmbedPreview()"
+				class="fixed top-6 right-6 z-[110] bg-black text-white w-12 h-12 rounded-full flex items-center justify-center shadow-xl hover:scale-110 active:scale-90 transition-all">
+			<span class="text-2xl">×</span>
+		</button>
 
-        <div class="relative my-auto animate-in zoom-in-95 duration-300 shadow-2xl"
-             style="width:${w}px; height:${h}px; min-width:${w}px;"min-height:${h}px; flex-shrink: 0;">
-            <iframe width="100%" height="100%"
-                    src="https://www.youtube.com/embed/${currentVideoId}?start=${start}"
-                    frameborder="0" allowfullscreen></iframe>
+		<div class="relative my-auto animate-in zoom-in-95 duration-300 shadow-2xl"
+			 style="width:${w}px; height:${h}px; min-width:${w}px;"min-height:${h}px; flex-shrink: 0;">
+			<iframe width="100%" height="100%"
+					src="https://www.youtube.com/embed/${currentVideoId}?start=${start}"
+					frameborder="0" allowfullscreen></iframe>
 
-            <div class="absolute -top-8 left-0 text-[10px] font-bold uppercase tracking-widest text-black/40">
-                Actual Size // ${w} x ${h} (ESC TO CLOSE)
-            </div>
-        </div>
-    `;
+			<div class="absolute -top-8 left-0 text-[10px] font-bold uppercase tracking-widest text-black/40">
+				Actual Size // ${w} x ${h} (ESC TO CLOSE)
+			</div>
+		</div>
+	`;
 
-    document.body.appendChild(overlay);
+	document.body.appendChild(overlay);
 
-    // 背面のメイン画面スクロールをロック
-    document.body.style.overflow = 'hidden';
-    document.body.style.height = '100vh';
+	// 背面のメイン画面スクロールをロック
+	document.body.style.overflow = 'hidden';
+	document.body.style.height = '100vh';
 
-    /**
-     * Escキー押下時のイベントハンドラ
-     * @param {KeyboardEvent} e
-     */
-    const escListener = (e) => {
-        if (e.key === 'Escape') {
-            closeEmbedPreview();
-            window.removeEventListener('keydown', escListener);
-        }
-    };
-    window.addEventListener('keydown', escListener);
+	/**
+	 * Escキー押下時のイベントハンドラ
+	 * @param {KeyboardEvent} e
+	 */
+	const escListener = (e) => {
+		if (e.key === 'Escape') {
+			closeEmbedPreview();
+			window.removeEventListener('keydown', escListener);
+		}
+	};
+	window.addEventListener('keydown', escListener);
 }
 
 /**
@@ -1546,17 +1551,17 @@ function openEmbedPreview() {
  * @returns {void}
  */
 function closeEmbedPreview() {
-    /** @type {HTMLElement|null} */
-    const overlay = document.getElementById('previewOverlay');
-    if (overlay) {
-        overlay.classList.add('animate-out', 'fade-out', 'zoom-out-95');
-        setTimeout(() => {
-            overlay.remove();
-            // スクロールロックを解除
-            document.body.style.overflow = '';
-            document.body.style.height = '';
-        }, 200);
-    }
+	/** @type {HTMLElement|null} */
+	const overlay = document.getElementById('previewOverlay');
+	if (overlay) {
+		overlay.classList.add('animate-out', 'fade-out', 'zoom-out-95');
+		setTimeout(() => {
+			overlay.remove();
+			// スクロールロックを解除
+			document.body.style.overflow = '';
+			document.body.style.height = '';
+		}, 200);
+	}
 }
 
 
@@ -1576,30 +1581,30 @@ function closeEmbedPreview() {
  * @param {boolean} isShorts - ショート動画かどうか
 */
 function saveHistory(id, start, isShorts = false) {
-    /** @type {Array<{id: string, start: number, isShorts: boolean}>} */
-    let h = JSON.parse(localStorage.getItem('yt_history') || '[]');
+	/** @type {Array<{id: string, start: number, isShorts: boolean}>} */
+	let h = JSON.parse(localStorage.getItem('yt_history') || '[]');
 
-    // すでに同じ動画IDがあれば削除（新しい秒数で上書きして先頭に持ってくるため）
-    // 過去のデータが文字列(id)だけの場合も考慮してフィルタリング
-    h = h.filter(item => {
-        const itemId = (typeof item === 'object') ? item.id : item;
-        return itemId !== id;
-    });
+	// すでに同じ動画IDがあれば削除（新しい秒数で上書きして先頭に持ってくるため）
+	// 過去のデータが文字列(id)だけの場合も考慮してフィルタリング
+	h = h.filter(item => {
+		const itemId = (typeof item === 'object') ? item.id : item;
+		return itemId !== id;
+	});
 
-    // 新しい履歴オブジェクトを作成
-    const newEntry = {
-        id: id,
-        start: parseInt(start, 10) || 0,
-        isShorts: isShorts
-    };
+	// 新しい履歴オブジェクトを作成
+	const newEntry = {
+		id: id,
+		start: parseInt(start, 10) || 0,
+		isShorts: isShorts
+	};
 
-    // 先頭に追加して最大15件に絞る
-    h = [newEntry, ...h].slice(0, 15);
+	// 先頭に追加して最大15件に絞る
+	h = [newEntry, ...h].slice(0, 15);
 
-    localStorage.setItem('yt_history', JSON.stringify(h));
+	localStorage.setItem('yt_history', JSON.stringify(h));
 
-    // 画面上の履歴リスト表示を更新する関数を呼ぶ
-    loadHistory();
+	// 画面上の履歴リスト表示を更新する関数を呼ぶ
+	loadHistory();
 }
 
 
@@ -1611,14 +1616,14 @@ function saveHistory(id, start, isShorts = false) {
 
 
 /* ───────────────────────────────────────────
-     OTHERS (UTILITIES)
+	 OTHERS (UTILITIES)
 ─────────────────────────────────────────── */
 
 
 // 既存の履歴のURLを全部コピーする機能だけどこれどうするか検討
 function copyAllHistory() {
-    const h = JSON.parse(localStorage.getItem('yt_history') || '[]');
-    navigator.clipboard.writeText(h.map(id => `https://youtu.be/${id}`).join('\n'));
+	const h = JSON.parse(localStorage.getItem('yt_history') || '[]');
+	navigator.clipboard.writeText(h.map(id => `https://youtu.be/${id}`).join('\n'));
 }
 
 
@@ -1637,17 +1642,17 @@ function copyAllHistory() {
 const mainSlider = document.getElementById('mainSlider');
 
 if (mainSlider) {
-    mainSlider.addEventListener('wheel', (e) => {
-        if (e.deltaY !== 0) {
-            e.preventDefault();
-            // scrollLeft += e.deltaY だと少し動きがカクつくので
-            // scrollBy を使うと behavior: 'smooth' が効きやすくなるよ
-            mainSlider.scrollBy({
-                left: e.deltaY,
-                behavior: 'auto' // ホイールは 'auto' の方が直感的かも
-            });
-        }
-    }, { passive: false });
+	mainSlider.addEventListener('wheel', (e) => {
+		if (e.deltaY !== 0) {
+			e.preventDefault();
+			// scrollLeft += e.deltaY だと少し動きがカクつくので
+			// scrollBy を使うと behavior: 'smooth' が効きやすくなるよ
+			mainSlider.scrollBy({
+				left: e.deltaY,
+				behavior: 'auto' // ホイールは 'auto' の方が直感的かも
+			});
+		}
+	}, { passive: false });
 }
 
 
@@ -1682,9 +1687,9 @@ function showTooltip(id) {
 
   // 2. 全てのツールチップを「一瞬で」非表示にする（排他制御）
   document.querySelectorAll('[id$="-tip"]').forEach(tip => {
-    tip.style.transitionDuration = '0ms';
-    tip.classList.add('opacity-0', 'pointer-events-none');
-    tip.classList.remove('opacity-100', 'translate-y-0');
+	tip.style.transitionDuration = '0ms';
+	tip.classList.add('opacity-0', 'pointer-events-none');
+	tip.classList.remove('opacity-100', 'translate-y-0');
   });
 
   /** @type {HTMLElement|null} */
@@ -1698,10 +1703,10 @@ function showTooltip(id) {
 
   // 4. 指定時間後に「ゆっくり」消すタイマーをセット
   activeTooltipTimer = setTimeout(() => {
-    target.style.transitionDuration = `${TOOLTIP_CONFIG.fadeOutTime}ms`;
-    target.classList.add('opacity-0', 'pointer-events-none');
-    target.classList.remove('opacity-100', 'translate-y-0');
-    activeTooltipTimer = null;
+	target.style.transitionDuration = `${TOOLTIP_CONFIG.fadeOutTime}ms`;
+	target.classList.add('opacity-0', 'pointer-events-none');
+	target.classList.remove('opacity-100', 'translate-y-0');
+	activeTooltipTimer = null;
   }, TOOLTIP_CONFIG.displayTime);
 }
 
@@ -1709,7 +1714,7 @@ function showTooltip(id) {
 
 
 /* ───────────────────────────────────────────
-      UI UTILITIES & FEEDBACK
+	  UI UTILITIES & FEEDBACK
 ─────────────────────────────────────────── */
 
 /**
@@ -1717,10 +1722,10 @@ function showTooltip(id) {
  * @type {Object.<string, string>}
  */
 const SHARE_ENDPOINTS = {
-    x: "https://twitter.com/intent/tweet?url=",
-    threads: "https://www.threads.net/intent/post?text=",
-    facebook: "https://www.facebook.com/sharer/sharer.php?u=",
-    line: "https://line.me/R/msg/text/?"
+	x: "https://twitter.com/intent/tweet?url=",
+	threads: "https://www.threads.net/intent/post?text=",
+	facebook: "https://www.facebook.com/sharer/sharer.php?u=",
+	line: "https://line.me/R/msg/text/?"
 };
 
 /**
@@ -1728,27 +1733,27 @@ const SHARE_ENDPOINTS = {
  * @param {keyof typeof SHARE_ENDPOINTS} platform
  */
 function share(platform) {
-    if (!currentVideoId) return;
+	if (!currentVideoId) return;
 
-    const videoUrl = `https://youtu.be/${currentVideoId}`;
-    // タイトルがあれば「タイトル | URL」、なければ「URL」のみ
-    const content = currentVideoTitle ? `${currentVideoTitle} | ${videoUrl}` : videoUrl;
-    const encodedContent = encodeURIComponent(content);
-    const encodedUrl = encodeURIComponent(videoUrl);
+	const videoUrl = `https://youtu.be/${currentVideoId}`;
+	// タイトルがあれば「タイトル | URL」、なければ「URL」のみ
+	const content = currentVideoTitle ? `${currentVideoTitle} | ${videoUrl}` : videoUrl;
+	const encodedContent = encodeURIComponent(content);
+	const encodedUrl = encodeURIComponent(videoUrl);
 
-    let finalUrl = "";
+	let finalUrl = "";
 
-    if (platform === 'facebook') {
-        // Facebookはテキストを直接送れない仕様なので、URLのみを渡す
-        finalUrl = SHARE_ENDPOINTS.facebook + encodedUrl;
-    } else {
-        // X, Threads, Line はタイトルを含めたテキストとして送る
-        finalUrl = SHARE_ENDPOINTS[platform] + encodedContent;
-    }
+	if (platform === 'facebook') {
+		// Facebookはテキストを直接送れない仕様なので、URLのみを渡す
+		finalUrl = SHARE_ENDPOINTS.facebook + encodedUrl;
+	} else {
+		// X, Threads, Line はタイトルを含めたテキストとして送る
+		finalUrl = SHARE_ENDPOINTS[platform] + encodedContent;
+	}
 
-    if (finalUrl) {
-        window.open(finalUrl, '_blank', 'noreferrer,noopener');
-    }
+	if (finalUrl) {
+		window.open(finalUrl, '_blank', 'noreferrer,noopener');
+	}
 }
 
 /**
@@ -1756,32 +1761,32 @@ function share(platform) {
  * @param {HTMLElement} btn - クリックされたボタン要素
  */
 function copyCurrentUrl(btn) {
-    if (!currentVideoId) {
-        console.warn("動画IDが見つかりません");
-        return;
-    }
+	if (!currentVideoId) {
+		console.warn("動画IDが見つかりません");
+		return;
+	}
 
-    const videoUrl = `https://youtu.be/${currentVideoId}`;
+	const videoUrl = `https://youtu.be/${currentVideoId}`;
 
-    // クリップボードへのコピー実行
-    navigator.clipboard.writeText(videoUrl).then(() => {
-        // --- 成功時のフィードバック処理 ---
-        const span = btn.querySelector('span');
-        const originalText = span.innerText;
+	// クリップボードへのコピー実行
+	navigator.clipboard.writeText(videoUrl).then(() => {
+		// --- 成功時のフィードバック処理 ---
+		const span = btn.querySelector('span');
+		const originalText = span.innerText;
 
-        // 文字を「COPIED!」に変更
-        span.innerText = "COPIED!";
-        btn.classList.replace('text-black/40', 'text-black'); // 一時的に色を濃くする
+		// 文字を「COPIED!」に変更
+		span.innerText = "COPIED!";
+		btn.classList.replace('text-black/40', 'text-black'); // 一時的に色を濃くする
 
-        // 2秒後に元の状態に戻す
-        setTimeout(() => {
-            span.innerText = originalText;
-            btn.classList.replace('text-black', 'text-black/40');
-        }, 2000);
+		// 2秒後に元の状態に戻す
+		setTimeout(() => {
+			span.innerText = originalText;
+			btn.classList.replace('text-black', 'text-black/40');
+		}, 2000);
 
-    }).catch(err => {
-        console.error('コピーに失敗しました', err);
-    });
+	}).catch(err => {
+		console.error('コピーに失敗しました', err);
+	});
 }
 
 
