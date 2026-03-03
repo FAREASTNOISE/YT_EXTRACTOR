@@ -404,7 +404,9 @@ function switchTab(t) {
 async function loadVideo(id, startTime = 0, isShorts = false, shouldScroll = false) {
     console.log("loadVideo 開始! ID:", id, "StartTime:", startTime, "isShorts:", isShorts); // 動いているか確認用
 
-updateMainLayout(isShorts);
+    updateMainLayout(isShorts);
+    // モード切替（Shorts判定をここに集約）
+    handleModeSwitch(isShorts);
 
     // 今のプレイヤーが持っている動画IDを取得（YouTube APIの機能を使う）
     let currentIdInPlayer = "";
@@ -785,9 +787,14 @@ function updateThumbOutputs(url, label) {
     const container = document.getElementById('thumbOutputs');
     if (!container) return;
 
+    console.log("updateThumbOutputs called with URL:", url, "Label:", label);
+
     // 最新の値を取得（引数がなければ現在の変数を参照）
     const targetUrl = url || currentImgUrl;
     const targetLabel = label || currentImgLabel || "Thumbnail";
+    const targetVideoUrl = `https://www.youtube.com/watch?v=${currentVideoId}`;
+
+
 
     container.innerHTML = `
         <div class="nothing-card p-5 space-y-6">
@@ -798,12 +805,12 @@ function updateThumbOutputs(url, label) {
 
             ${createOutputRow(
                 'HTML Image Tag (a + img)',
-                `<a href="https://www.youtube.com/watch?v=${currentVideoId}" target="_blank"><img src="${targetUrl}" alt="${targetLabel}"></a>`
+                `<a href="${targetVideoUrl}" target="_blank"><img src="${targetUrl}" alt="${targetLabel}"></a>`
             )}
 
             ${createOutputRow(
                 'Markdown Link',
-                `[![](${targetUrl})](${targetLabel})`
+                `[![${targetLabel}](${targetUrl})](${targetVideoUrl})`
             )}
 
             ${createOutputRow(
@@ -1110,44 +1117,11 @@ async function copy(id) {
 
 
 
+
+
 /* ───────────────────────────────────────────
-	 LOCAL STORAGE
+	 HISTORY
 ─────────────────────────────────────────── */
-
-/**
- * 動画視聴履歴をLocalStorageに保存する
- * @param {string} id - YouTubeの動画ID
- * @param {number|string} start - 再生開始位置（秒）
- * @param {boolean} isShorts - ショート動画かどうか
-*/
-function saveHistory(id, start, isShorts = false) {
-    /** @type {Array<{id: string, start: number, isShorts: boolean}>} */
-    let h = JSON.parse(localStorage.getItem('yt_history') || '[]');
-
-    // すでに同じ動画IDがあれば削除（新しい秒数で上書きして先頭に持ってくるため）
-    // 過去のデータが文字列(id)だけの場合も考慮してフィルタリング
-    h = h.filter(item => {
-        const itemId = (typeof item === 'object') ? item.id : item;
-        return itemId !== id;
-    });
-
-    // 新しい履歴オブジェクトを作成
-    const newEntry = {
-        id: id,
-        start: parseInt(start, 10) || 0,
-        isShorts: isShorts
-    };
-
-    // 先頭に追加して最大15件に絞る
-    h = [newEntry, ...h].slice(0, 15);
-
-    localStorage.setItem('yt_history', JSON.stringify(h));
-
-    // 画面上の履歴リスト表示を更新する関数を呼ぶ
-    loadHistory();
-}
-
-
 
 // 履歴の読み込みとドットの初期化
 function loadHistory() {
@@ -1171,7 +1145,7 @@ function loadHistory() {
             <div class="item-card" onclick="loadVideo('${videoId}', ${startTime}, ${isShorts}, true)">
                 <img src="https://img.youtube.com/vi/${videoId}/mqdefault.jpg"
                     class="w-full aspect-video object-cover rounded-xl shadow-sm">
-                <div class="text-xs mt-1 text-gray-500">${startTime}s～</div>
+                <div class="text-xs mt-1 pl-2 text-gray-500">${startTime}s～</div>
             </div>`;
     }).join('');
 
@@ -1191,6 +1165,129 @@ function historyScrollHandler() {
 }
 
 
+/**
+ * HistoryセクションとPlaylistセクションで共通して使う関数
+ * 指定した要素を横方向に「画面1枚分」スクロールさせる
+ * * @param {string} id - スクロールさせる要素のHTML ID
+ * @param {number} d - 移動方向（1: 次へ/右, -1: 前へ/左）
+ * * @example
+ * // 右に1画面分スクロール
+ * moveSlide('history-list', 1);
+ * * @example
+ * // 左に1画面分スクロール
+ * moveSlide('history-list', -1);
+ */
+// function moveSlide(id, d) {
+//     const s = document.getElementById(id);
+//     // clientWidth（表示幅）に方向を掛けることで、正確に1ページ分移動する
+//     if (s) {
+//         s.scrollBy({ left: d * s.clientWidth, behavior: 'smooth' });
+
+//         // --- ここでドットの更新関数を呼ぶ ---
+//         // スムーズスクロールが終わるのを少し待ってから判定するのがコツ
+//         setTimeout(() => updateDots(s), 500);
+//     }
+// }
+// /**
+//  * 現在のインデックスから「d」分だけ移動し、ドットを更新する
+//  */
+// function moveSlide(id, d) {
+//     const s = document.getElementById(id);
+//     if (!s) return;
+
+//     // 1. 現在のインデックスを正確に把握する
+//     // (scrollWidth / childrenCount) で1枚あたりの理論上の幅を出す
+//     const childrenCount = s.children.length;
+//     const itemWidth = s.scrollWidth / childrenCount;
+//     const currentIdx = Math.round(s.scrollLeft / itemWidth);
+
+//     // 2. 次の目的地（ターゲットインデックス）を決める
+//     let targetIdx = currentIdx + d;
+
+//     // 3. 範囲外に行かないようにガード
+//     if (targetIdx < 0) targetIdx = 0;
+//     if (targetIdx >= childrenCount) targetIdx = childrenCount - 1;
+
+//     // 4. その場所までスクロールさせる（scrollToを使う）
+//     // scrollBy({left: d * s.clientWidth}) だとズレることがあるので、
+//     // 計算した「targetIdx * itemWidth」へ直接飛ばすのが一番確実！
+//     s.scrollTo({
+//         left: targetIdx * itemWidth,
+//         behavior: 'smooth'
+//     });
+
+//     // 5. ドットを即座に（または少し遅れて）更新
+//     // ここで sId などを渡して updateDots を呼ぶ
+//     // 例: updateDots(id, 'yourIndicatorId', yourRatio);
+// }
+// 1. moveSlide は元の「大きく動く」形に戻す
+// function moveSlide(id, d) {
+//     const s = document.getElementById(id);
+//     if (s) {
+//         s.scrollBy({ left: d * s.clientWidth, behavior: 'smooth' });
+//         // スクロールが終わる頃に判定を呼ぶ
+//         setTimeout(() => updateDots(id, 'indicatorId', ratio), 500);
+//     }
+// }
+
+// // 2. updateDots の「idx」計算を「最後」に強くする
+// // (updateDots関数の中の idx 計算部分を差し替え)
+
+// // 判定の「遊び（マージン）」を作る
+// const isAtEnd = (container.scrollLeft + container.clientWidth) >= (container.scrollWidth - 10); // 右端から10px以内なら「最後」とみなす
+
+// let idx;
+// if (isAtEnd) {
+//     idx = childrenCount - 1; // 強制的に最後のインデックスにする
+// } else {
+//     const itemWidth = container.scrollWidth / childrenCount;
+//     idx = Math.round(container.scrollLeft / itemWidth);
+// }
+
+/**
+ * 現在のインデックスから「d」分だけ移動し、ドットを更新する
+ */
+function moveSlide(sId, d) {
+    const container = document.getElementById(sId);
+    if (!container) return;
+
+    // 1. 現在のインデックスを計算
+    const childrenCount = (sId === 'mainSlider' && typeof assetList !== 'undefined') ? assetList.length : container.children.length;
+    const itemWidth = container.scrollWidth / childrenCount;
+    const currentIdx = Math.round(container.scrollLeft / itemWidth);
+
+    // 2. 次のターゲットを決める（1枚ずつではなく、画面に見えている分だけ動かしたいなら d * 数 を調整）
+    // とりあえず1枚ずつならこれ：
+    let targetIdx = currentIdx + d;
+
+    // 3. もし「画面1枚分ガバッと」動かしたいなら、d に「一度に見えている枚数」を掛ける
+    // const visibleItems = Math.round(container.clientWidth / itemWidth);
+    // let targetIdx = currentIdx + (d * visibleItems);
+
+    // 4. 範囲ガード
+    targetIdx = Math.max(0, Math.min(targetIdx, childrenCount - 1));
+
+    // 5. すでにある「scrollToIndex」を呼ぶ！
+    scrollToIndex(sId, targetIdx);
+
+    // 6. ドットの更新（indicatorのIDやratioが必要なら引数で調整してね）
+    // setTimeout(() => updateDots(sId, 'indicatorのID', 4), 500);
+
+    // スライダー要素を取得して、スクロールを監視する
+const historyList = document.getElementById('historyList'); // IDは実際のものに
+
+if (historyList) {
+    historyList.addEventListener('wheel', (e) => {
+        // 上下のスクロール（ホイール回転）が発生したら
+        if (e.deltaY !== 0) {
+            // 標準の「上下移動」をキャンセルして
+            e.preventDefault();
+            // 横方向にその分だけ動かす
+            historyList.scrollLeft += e.deltaY;
+        }
+    }, { passive: false }); // preventDefaultを使うために必要
+}
+}
 
 
 
@@ -1198,16 +1295,49 @@ function historyScrollHandler() {
      UPDATED CORE LOGIC
 ─────────────────────────────────────────── */
 
-function updateDots(sId, iId, ratio) {
+function updateDots(sId, iId, ratio = 1) {
     const container = document.getElementById(sId);
     const indicator = document.getElementById(iId);
     if (!container || !indicator) return;
 
     // 1. インデックスの計算
     const childrenCount = (sId === 'mainSlider' && typeof assetList !== 'undefined') ? assetList.length : container.children.length;
+
     // ratioを考慮しつつ計算
-    const itemWidth = (sId === 'mainSlider') ? (container.scrollWidth / childrenCount) : (container.clientWidth / ratio);
-    const idx = Math.round(container.scrollLeft / itemWidth);
+    // const itemWidth = (sId === 'mainSlider') ? (container.scrollWidth / childrenCount) : (container.clientWidth / ratio);
+    // const idx = Math.round(container.scrollLeft / itemWidth);
+
+    // const itemWidth = container.scrollWidth / childrenCount;
+    // const idx = Math.round(container.scrollLeft / itemWidth);
+
+
+    // 1. スクロールの限界値を計算 (全体幅 - 見えている幅)
+    const maxScroll = container.scrollWidth - container.clientWidth;
+    const isAtEnd = container.scrollLeft >= maxScroll - 5; // 5pxの遊び
+
+    // 2. もし全くスクロールできない状態なら0番目
+    let idx;
+    if (isAtEnd) {
+        idx = childrenCount - 1;
+    } else {
+        const itemWidth = container.scrollWidth / childrenCount;
+        idx = Math.round(container.scrollLeft / itemWidth);
+    }
+    // if (maxScroll <= 0) {
+    //     var idx = 0;
+    // } else {
+    //     // 3. 「現在の位置 / 最大値」で 0.0 〜 1.0 の割合を出す
+    //     const scrollRatio = container.scrollLeft / maxScroll;
+    //     // 4. 割合をアイテム数（インデックス）に変換
+    //     var idx = Math.round(scrollRatio * (childrenCount - 1));
+    // }
+
+    // 念のため範囲内に収める
+    idx = Math.max(0, Math.min(idx, childrenCount - 1));
+
+
+    // console.log(`scrollLeft: ${container.scrollLeft}, itemWidth: ${itemWidth}, calculatedIdx: ${idx}`);
+    console.log(`scrollLeft: ${container.scrollLeft}, calculatedIdx: ${idx}`);
 
     // 2. ドットの描画（共通）
     indicator.innerHTML = Array.from({ length: childrenCount }).map((_, i) => `
@@ -1224,26 +1354,55 @@ function updateDots(sId, iId, ratio) {
         if (metaElem) {
             metaElem.innerText = `${currentImgLabel} // ${assetList[idx].res}`;
         }
+
         updateThumbOutputs(); // タグ文字列を更新
     }
 }
 
 
 /**
- * ドットをクリックしたときに指定の画像までスクロールさせる
+ * ドットをクリックしたとき、または移動時に指定の画像までスクロールさせる
  */
 function scrollToIndex(sId, index) {
     const container = document.getElementById(sId);
     if (!container) return;
 
     const childrenCount = (sId === 'mainSlider') ? assetList.length : container.children.length;
-    const targetLeft = (container.scrollWidth / childrenCount) * index;
+
+    let targetLeft;
+
+    // もし指定されたのが「最後の要素」なら、計算をやめて「物理的な右端」を指定する
+    if (index >= childrenCount - 1) {
+        targetLeft = container.scrollWidth - container.clientWidth;
+    } else {
+        // それ以外は通常通りの計算
+        targetLeft = (container.scrollWidth / childrenCount) * index;
+    }
 
     container.scrollTo({
         left: targetLeft,
         behavior: 'smooth'
     });
 }
+
+/**
+ * ドットをクリックしたときに指定の画像までスクロールさせる
+ * htmlから呼び出される
+ */
+// function scrollToIndex(sId, index) {
+//     const container = document.getElementById(sId);
+//     if (!container) return;
+
+//     const childrenCount = (sId === 'mainSlider') ? assetList.length : container.children.length;
+//     const targetLeft = (container.scrollWidth / childrenCount) * index;
+
+//     container.scrollTo({
+//         left: targetLeft,
+//         behavior: 'smooth'
+//     });
+// }
+
+
 
 
 
@@ -1274,6 +1433,10 @@ function setEmbedSize(w, h) {
     // ボタンのスタイル（ドット枠）を現在の数値に同期
     updateSizeButtonStyles();
 }
+
+
+
+
 
 
 
@@ -1371,18 +1534,62 @@ function closeEmbedPreview() {
 
 
 
+
+
+/* ───────────────────────────────────────────
+	 LOCAL STORAGE
+─────────────────────────────────────────── */
+
+/**
+ * 動画視聴履歴をLocalStorageに保存する
+ * @param {string} id - YouTubeの動画ID
+ * @param {number|string} start - 再生開始位置（秒）
+ * @param {boolean} isShorts - ショート動画かどうか
+*/
+function saveHistory(id, start, isShorts = false) {
+    /** @type {Array<{id: string, start: number, isShorts: boolean}>} */
+    let h = JSON.parse(localStorage.getItem('yt_history') || '[]');
+
+    // すでに同じ動画IDがあれば削除（新しい秒数で上書きして先頭に持ってくるため）
+    // 過去のデータが文字列(id)だけの場合も考慮してフィルタリング
+    h = h.filter(item => {
+        const itemId = (typeof item === 'object') ? item.id : item;
+        return itemId !== id;
+    });
+
+    // 新しい履歴オブジェクトを作成
+    const newEntry = {
+        id: id,
+        start: parseInt(start, 10) || 0,
+        isShorts: isShorts
+    };
+
+    // 先頭に追加して最大15件に絞る
+    h = [newEntry, ...h].slice(0, 15);
+
+    localStorage.setItem('yt_history', JSON.stringify(h));
+
+    // 画面上の履歴リスト表示を更新する関数を呼ぶ
+    loadHistory();
+}
+
+
+
+
+
+
+
+
+
 /* ───────────────────────────────────────────
      OTHERS (UTILITIES)
 ─────────────────────────────────────────── */
 
+
+// 既存の履歴のURLを全部コピーする機能だけどこれどうするか検討
 function copyAllHistory() {
     const h = JSON.parse(localStorage.getItem('yt_history') || '[]');
     navigator.clipboard.writeText(h.map(id => `https://youtu.be/${id}`).join('\n'));
-}
-
-function moveSlide(id, d) {
-    const s = document.getElementById(id);
-    if (s) s.scrollBy({ left: d * s.clientWidth, behavior: 'smooth' });
 }
 
 
