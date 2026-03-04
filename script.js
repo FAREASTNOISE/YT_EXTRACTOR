@@ -169,40 +169,44 @@ function analyzeYouTubeUrl(url) {
 		}
 
 	} catch (e) {
-		// 万が一解析に失敗しても、ここを通ることで
-		// IDだけは取れている可能性があるので、止まらずに結果を返す
+		// e.message でエラー内容を出力
 		console.warn("詳細解析でスキップが発生しました:", e.message);
 	}
 
 	return analysisResult;
 }
 
+
 /**
- * YouTubeの時間形式（1m30s または 90）を秒数に変換する
+ * YouTubeの時間形式（"1m30s" または "90"）を秒数に変換する
+ * @param {string|number} t - 変換対象の時間文字列（例: "1m30s", "90", "2h10m"）
+ * @returns {number} 変換後の総秒数（変換不能な場合は0）
  */
 function parseYouTubeTime(t) {
 	if (!t) return 0;
 
-	// 1. もし数値だけなら、そのまま整数にして返す
+	// 文字列として扱うために変換（念のため）
+    const timeStr = String(t);
+
+	// もし数値だけなら、そのまま整数にして返す
 	if (/^\d+$/.test(t)) {
 		return parseInt(t, 10);
 	}
 
-	// 2. "1m30s" などの形式を解析して秒数に直す
+	// "1m30s" などの形式を解析して秒数に直す
 	let totalSeconds = 0;
+	const hoursMatch = timeStr.match(/(\d+)h/);
 	const minutesMatch = t.match(/(\d+)m/);
 	const secondsMatch = t.match(/(\d+)s/);
 
+	if (hoursMatch) {
+        totalSeconds += parseInt(hoursMatch[1], 10) * 3600;
+    }
 	if (minutesMatch) {
 		totalSeconds += parseInt(minutesMatch[1], 10) * 60;
 	}
 	if (secondsMatch) {
 		totalSeconds += parseInt(secondsMatch[1], 10);
-	}
-
-	// もし数値のみでも "138s" のように 's' だけ付いている場合
-	if (!minutesMatch && secondsMatch && t.endsWith('s')) {
-		return parseInt(secondsMatch[1], 10);
 	}
 
 	return totalSeconds;
