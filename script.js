@@ -323,92 +323,47 @@ function handleModeSwitch(isShorts) {
 	el.shorts.classList.toggle('hidden', !isShorts);
 }
 
-
-
-
 /**
- * ---AssetsタブとEmbedタブの表示切り替え---
- * 表示モード（サムネイル/埋め込み）を切り替え、状態を保存する
- * @param {'thumb' | 'embed'} t - 切り替えるタブの識別子 ('thumb' または 'embed')
+ * AssetsタブとEmbedタブの表示切り替え
+ * @description
+ * タブの表示状態（アクティブクラス）とコンテンツの可視性を切り替えます。
+ * ユーザーの体感速度を優先し、重い更新処理と保存は非同期で行います。
+ * @param {'thumb' | 'embed'} t - 切り替えるタブの識別子
  */
 function switchTab(t) {
-
-	const elThumb = document.getElementById('tabThumb');
-	const elEmbed = document.getElementById('tabEmbed');
+	const elThumb  = document.getElementById('tabThumb');
+	const elEmbed  = document.getElementById('tabEmbed');
 	const conThumb = document.getElementById('contentThumb');
 	const conEmbed = document.getElementById('contentEmbed');
 
 	if (!elThumb || !elEmbed || !conThumb || !conEmbed) return;
 
-	// 【改善点】見た目の変化（クラスの付け替え）を最初に行う
-	// これにより、ユーザーのクリックに対して「即座に」反応が返ります
+	// 見た目の変化（クラスの付け替え） UX優先
 	elThumb.classList.toggle('tab-active', t === 'thumb');
 	elEmbed.classList.toggle('tab-active', t === 'embed');
 	conThumb.classList.toggle('hidden', t !== 'thumb');
 	conEmbed.classList.toggle('hidden', t !== 'embed');
 
-	// 【改善点】重い処理や保存は、見た目の変化が終わった「後」に回す
+	// 同じタブの場合、処理を省略
+	const lastTab = localStorage.getItem('yt_last_tab');
+    if (lastTab === t) {
+        console.log("Tab is already active, skipping storage/update.");
+        return;
+    }
+
+	// 別のタブなら状態を保存
 	setTimeout(() => {
 		localStorage.setItem('yt_last_tab', t);
-
-		// 動画IDがあるときだけ中身を更新（念のためのチェック）
-        if (currentVideoId) {
-            updateEmbedOutputs();
-        }
+		console.log(`Tab switched to: ${t} (No content regeneration needed)`);
 	}, 0);
-
-
-
-
-
-    // if (currentVideoId) {
-    //     // 重い更新処理も setTimeout の中に入れて、
-    //     // まずは「タブが切り替わった」という見た目を完成させる
-    //     setTimeout(() => {
-    //         updateEmbedOutputs();
-    //         localStorage.setItem('yt_last_tab', t);
-    //     }, 0);
-    // }
-
-	// // アセットやタグ表示が含まれるタブを開いた時に、中身を再生成する
-	// if (currentVideoId) {
-	// 	updateEmbedOutputs();
-	// } else {
-	// 	console.log("No video loaded yet, skipping output update.");
-	// }
 }
 
 
 
 
-// function processInput() {
-// 	// const inputEl = document.getElementById('videoUrl');
-// 	// /** @type {string} */
-// 	// const url = inputEl.value.trim();
 
-//     const url = document.getElementById('videoUrl').value;
-//     const { videoId, isShorts } = analyzeYouTubeUrl(url);
 
-// 	if (!url) return;
-
-// 	// 正規表現の実行結果を明示的に定義
-// 	/** @type {RegExpMatchArray|null} */
-// 	const playlistMatch = url.match(/[?&]list=([^#& ]+)/);
-// 	/** @type {RegExpMatchArray|null} */
-// 	const videoMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|u\/\w\/|shorts\/))([^#\&\?]{11})/);
-
-// 	const playlistId = playlistMatch ? playlistMatch[1] : null;
-// 	const videoId = videoMatch ? videoMatch[1] : null;
-
-// 	if (playlistId && playlistId.length > 5) {
-// 		fetchPlaylist(playlistId);
-// 		if (videoId) loadVideo(videoId, true);
-// 	} else if (videoId) {
-// 		loadVideo(videoId, true);
-// 		const plSection = document.getElementById('playlistSection');
-// 		if (plSection) plSection.classList.add('hidden');
-// 	}
-// }
+// 明日ここから↓↓↓↓↓↓↓↓ 3/7
 
 
 /**
