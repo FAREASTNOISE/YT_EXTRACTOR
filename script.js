@@ -82,11 +82,11 @@ window.onload = () => {
 	const pasteBtn = document.getElementById('pasteBtn');
 	if (pasteBtn) {
 		/**
-         * 貼り付けボタンクリック時のハンドラ
-         * クリップボード権限を確認し、テキストを読み取って解析を開始する
-         * @async
-         * @returns {Promise<void>}
-         */
+		 * 貼り付けボタンクリック時のハンドラ
+		 * クリップボード権限を確認し、テキストを読み取って解析を開始する
+		 * @async
+		 * @returns {Promise<void>}
+		 */
 		pasteBtn.onclick = async () => {
 			try {
 				// 権限をチェック（任意だけど入れるとより親切）
@@ -186,28 +186,22 @@ function parseYouTubeTime(t) {
 	if (!t) return 0;
 
 	// 文字列として扱うために変換（念のため）
-    const timeStr = String(t);
+	const timeStr = String(t);
 
 	// もし数値だけなら、そのまま整数にして返す
 	if (/^\d+$/.test(t)) {
 		return parseInt(t, 10);
 	}
 
-	// "1m30s" などの形式を解析して秒数に直す
+// 2. 正規表現で時間、分、秒を抽出
 	let totalSeconds = 0;
-	const hoursMatch = timeStr.match(/(\d+)h/);
-	const minutesMatch = t.match(/(\d+)m/);
-	const secondsMatch = t.match(/(\d+)s/);
+	const h = timeStr.match(/(\d+)h/);
+	const m = timeStr.match(/(\d+)m/);
+	const s = timeStr.match(/(\d+)s/);
 
-	if (hoursMatch) {
-        totalSeconds += parseInt(hoursMatch[1], 10) * 3600;
-    }
-	if (minutesMatch) {
-		totalSeconds += parseInt(minutesMatch[1], 10) * 60;
-	}
-	if (secondsMatch) {
-		totalSeconds += parseInt(secondsMatch[1], 10);
-	}
+	if (h) totalSeconds += parseInt(h[1], 10) * 3600;
+	if (m) totalSeconds += parseInt(m[1], 10) * 60;
+	if (s) totalSeconds += parseInt(s[1], 10);
 
 	return totalSeconds;
 }
@@ -217,141 +211,117 @@ function parseYouTubeTime(t) {
 
 /**
  * ユーザー入力されたURLから動画IDを解析し、UIの更新処理を実行する。
- * * 対応形式: 標準URL, Shorts, 埋め込み, プレイリスト。
- * 解析後のIDをグローバル変数 currentVideoId に格納し、表示を同期させます。
- * * @returns {void}
+ * @description
+ * - 対応形式: 標準URL, Shorts, 埋め込み, プレイリスト。
+ * - 解析後のIDをグローバル変数 `currentVideoId` に格納し、表示を同期。
+ * - 解析失敗時は入力欄をリセットし、表示エリアを隠す。
+ * @returns {void}
  */
 function processInput() {
 	const urlInput = document.getElementById('videoUrl');
 	if (!urlInput) return;
+
+	// inputが存在する場合のみ値をトリムして取得
 	const url = urlInput ? urlInput.value.trim() : "";
 	if (!url) return;
 
 	console.log("Input URL:", url);
-
 
 	// 解析を実行し、結果（オブジェクト）を analysisResult に入れる
 	const analysisResult = analyzeYouTubeUrl(url);
 	// 解析結果から中身を取り出す（分割代入）
 	const { videoId, isShorts, playlistId, startTime } = analysisResult;
 
-
 	console.log("解析結果 obj :",  analysisResult);
 
-
 	// プレイリストがあれば出す（独立させる）
+	const plSection = document.getElementById('playlistSection');
 	if (playlistId) {
 		fetchPlaylist(playlistId);
-		const plSection = document.getElementById('playlistSection');
 		if (plSection) plSection.classList.remove('hidden');
 	} else {
-		const plSection = document.getElementById('playlistSection');
 		if (plSection) plSection.classList.add('hidden');
 	}
 
 	console.log("PlayList Output is done!");
 
 
-	// --- 振り分け処理 ---
-
-	// 3. 動画IDがあればメインを出す（独立させる）
+	// 動画IDがあればメインコンテンツを表示
 	if (videoId) {
 		console.log("loadVideo呼び出しルーチンに入った");
 
 		currentVideoId = videoId;
 
-		document.getElementById('eStart').value = startTime;
+		const eStartInput = document.getElementById('eStart');
+		if (eStartInput) eStartInput.value = startTime;
 
 		// モード切替（Shorts判定をここに集約）
 		handleModeSwitch(isShorts);
 
-		// 2. サイズ切り替え関数を呼び出す
-		//updateMainPlayerSize(isShorts);
+		// サイズ切り替え関数を呼び出す
 		updateMainLayout(isShorts);
 
 		// 動画・画像読み込み
 		loadVideo(videoId, startTime, isShorts, true);
 
-
-		// 4. 代表的なサイズ入力欄も連動させると親切！
-		if (isShorts) {
-			setEmbedSize(315, 560);
-		} else {
-			setEmbedSize(560, 315);
-		}
-
+		// サイズ入力欄連動 Shortsなら縦長、通常なら横長のサイズをセット
+		isShorts ? setEmbedSize(315, 560) : setEmbedSize(560, 315);
 
 		//結果エリア全体を表示する
 		const resArea = document.getElementById('resultArea');
 		if (resArea) resArea.classList.remove('hidden');
 
-
+		// タブの復元と出力更新
 		const lastTab = localStorage.getItem('yt_last_tab') || 'thumb';
 		updateEmbedOutputs();
 		switchTab(lastTab);
 
 	} else {
 		console.log("loadVideo呼び出し失敗");
+
+		// 1. 入力をクリアしてヒントを出す
+		urlInput.value = "";
+		urlInput.placeholder = '正しいURLを入力してください';
+
+		// 2. 前の結果を隠す
+		const resArea = document.getElementById('resultArea');
+		if (resArea) resArea.classList.add('hidden');
+
+		const plSection = document.getElementById('playlistSection');
+		if (plSection) plSection.classList.add('hidden');
+
+		// 3. グローバル変数をリセットする
+		currentVideoId = null;
 	}
 }
 
+
 /**
- * ショート動画かどうかに応じて、外枠（nothing-card）を含めたレイアウトを切り替える
- * @param {boolean} isShorts
+ * ショート動画かどうかに応じて、レイアウトのクラスを切り替える
+ * @param {boolean} isShorts - ショート動画判定フラグ
  */
 function updateMainLayout(isShorts) {
 	const wrapper = document.getElementById('main-card-wrapper');
-	if (!wrapper) return;
-
-	if (isShorts) {
-		wrapper.classList.add('is-shorts');
-	} else {
-		wrapper.classList.remove('is-shorts');
-	}
+	if (wrapper) wrapper.classList.toggle('is-shorts', !!isShorts);
 }
 
 
 /**
- * メインプレイヤーの表示サイズ（アスペクト比）を切り替える
- * @param {boolean} isShorts - ショート動画かどうかのフラグ
+ * 通常動画とShortsでボタンセット（表示/非表示）を切り替える
+ * @param {boolean} isShorts - ショート動画判定
  */
-// function updateMainPlayerSize(isShorts) {
-//     const container = document.getElementById('video-container');
-//     if (!container) return;
-
-//     if (isShorts) {
-//         // ショート動画：縦長 (9:16)
-//         container.style.aspectRatio = "9 / 16";
-//         container.style.maxWidth = "350px"; // 縦長が巨大になりすぎないように調整
-//         container.style.margin = "0 auto";
-//     } else {
-//         // 通常動画：横長 (16:9)
-//         container.style.aspectRatio = "16 / 9";
-//         container.style.maxWidth = "100%";
-//         container.style.margin = "0";
-//     }
-// }
-
-
-/**
- * 通常動画とShortsでボタンセットを切り替える
- * @param {boolean} isShorts
- */
+// こういう書き方もある（参考までに！）
 function handleModeSwitch(isShorts) {
-	const normal = document.getElementById('normalControls');
-	const shorts = document.getElementById('shortsControls');
+	const el = {
+		normal: document.getElementById('normalControls'),
+		shorts: document.getElementById('shortsControls')
+	};
 
-	if (!normal || !shorts) return; // 要素がなければ何もしない（エラー防止）
+	if (!el.normal || !el.shorts) return;
 
-	if (isShorts) {
-		normal.classList.add('hidden');
-		shorts.classList.remove('hidden');
-	} else {
-		normal.classList.remove('hidden');
-		shorts.classList.add('hidden');
-	}
+	el.normal.classList.toggle('hidden', !!isShorts);
+	el.shorts.classList.toggle('hidden', !isShorts);
 }
-
 
 
 
@@ -381,18 +351,31 @@ function switchTab(t) {
 	setTimeout(() => {
 		localStorage.setItem('yt_last_tab', t);
 
-		// もし switchTab の中で重い計算をしているなら、ここに入れる
-		// updateThumbOutputs();
+		// 動画IDがあるときだけ中身を更新（念のためのチェック）
+        if (currentVideoId) {
+            updateEmbedOutputs();
+        }
 	}, 0);
 
 
 
-	// アセットやタグ表示が含まれるタブを開いた時に、中身を再生成する
-	if (currentVideoId) {
-		updateEmbedOutputs();
-	} else {
-		console.log("No video loaded yet, skipping output update.");
-	}
+
+
+    // if (currentVideoId) {
+    //     // 重い更新処理も setTimeout の中に入れて、
+    //     // まずは「タブが切り替わった」という見た目を完成させる
+    //     setTimeout(() => {
+    //         updateEmbedOutputs();
+    //         localStorage.setItem('yt_last_tab', t);
+    //     }, 0);
+    // }
+
+	// // アセットやタグ表示が含まれるタブを開いた時に、中身を再生成する
+	// if (currentVideoId) {
+	// 	updateEmbedOutputs();
+	// } else {
+	// 	console.log("No video loaded yet, skipping output update.");
+	// }
 }
 
 
