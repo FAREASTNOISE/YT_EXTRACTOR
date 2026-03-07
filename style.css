@@ -352,7 +352,7 @@ body {
 .item-card {
 	background: #fff;
 	border: 1px solid rgba(0, 0, 0, 0.06);
-	border-radius: 18px;
+	/* border-radius: 18px; */
 	padding: 6px;
 	flex: 0 0 calc((100% - 32px) / 2.6);
 	cursor: pointer;
@@ -362,6 +362,14 @@ body {
 .item-card:hover {
 	transform: translateY(-2px);
 }
+
+/* ビデオタイトルの質感を高める */
+.item-card p {
+    font-family: "JetBrains Mono", monospace;
+    font-weight: 500;
+    letter-spacing: 0.05em; /* 少し字間を広げるとNothingっぽくなる */
+}
+
 
 /* Amazonボタン */
 .amazon-btn {
@@ -602,12 +610,10 @@ button:not(.tab-active) .tab-icon {
 }
 
 
-/* ビデオタイトルの質感を高める */
-.item-card p {
-    font-family: "JetBrains Mono", monospace;
-    font-weight: 500;
-    letter-spacing: 0.05em; /* 少し字間を広げるとNothingっぽくなる */
-}
+
+
+
+
 
 /* セクションの見出し */
 h3.dot-font {

@@ -1214,28 +1214,37 @@ function loadHistory() {
 	list.innerHTML = h.map(item => {
 		// 昔のデータ（単なる文字列）が混ざっていた時のためのガード
 		const videoId = (typeof item === 'object') ? item.id : item;
-		const startTime = (typeof item === 'object') ? item.start : 0;
+		const s = startTime = (typeof item === 'object') ? item.start : 0;
 		const isShorts = (typeof item === 'object') ? item.isShorts : false;
 
+		const fmt = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
 		return `
-			<div class="item-card" onclick="loadVideo('${videoId}', ${startTime}, ${isShorts}, true)">
-				<img src="https://img.youtube.com/vi/${videoId}/mqdefault.jpg"
-					class="w-full aspect-video object-cover rounded-xl shadow-sm">
-				<div class="text-xs mt-1 pl-2 font-mono text-gray-500
-">${startTime}s～</div>
+			<div class="item-card rounded md:rounded-xl" onclick="loadVideo('${videoId}', ${startTime}, ${isShorts}, true)">
+				<img src="https://img.youtube.com/vi/${videoId}/mqdefault.jpg" 	class="w-full aspect-video object-cover rounded md:rounded-xl shadow-sm">
+
+				<div class="flex items-baseline mt-1.5 mb-1.5  pl-2 font-mono text-gray-500">
+        		    <span class="inline-block transform translate-y-[1.5px] bg-gray-100 text-[8px] px-1.5 py-0.5 mr-0.5 rounded-sm leading-none font-bold tracking-widest text-gray-500">
+					IN
+					</span>
+
+					<span class="inline-block transform translate-y-[1.5px] text-[9px] tracking-widest opacity-80">
+					${fmt(startTime)}
+					</span>
+				</div>
 			</div>`;
 	}).join('');
 
 
 
-		// 履歴スライダーのスクロールを監視してドットを更新
-		list.removeEventListener('scroll', historyScrollHandler); // 重複防止
-		list.addEventListener('scroll', historyScrollHandler);
+	// 履歴スライダーのスクロールを監視してドットを更新
+	list.removeEventListener('scroll', historyScrollHandler); // 重複防止
+	list.addEventListener('scroll', historyScrollHandler);
 
-		// 初回実行
-		updateDots('historyList', 'historyIndicator', 2.6);
+	// 初回実行
+	updateDots('historyList', 'historyIndicator', 2.6);
 }
+
 
 // 履歴用スクロールイベントのハンドラ
 function historyScrollHandler() {
