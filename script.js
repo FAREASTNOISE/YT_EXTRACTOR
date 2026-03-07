@@ -60,6 +60,14 @@ window.onload = () => {
 	resetAppState(); // グローバル状態（動画情報やアセット情報）を初期化
 	loadHistory();   // localStorageから履歴データの復元・セッティング
 
+	// 💡 localStorage から Loop 設定を復元
+    const savedLoop = localStorage.getItem('yt_loop_setting') === 'true';
+    const loopCheck = document.getElementById('checkLoop');
+    if (loopCheck) {
+        loopCheck.checked = savedLoop;
+    }
+
+
 	/** @type {string} 前回使用していたタブの名前（localStorageから取得 default:'thumb'） */
 	const lastTab = localStorage.getItem('yt_last_tab') || 'thumb';
 
@@ -69,6 +77,7 @@ window.onload = () => {
 			switchTab(lastTab);
 		}
 	});
+
 
 	// スクロール監視（ドットインジケーター連動）
 	/** @type {HTMLElement|null} メインのスライダー要素 */
@@ -406,6 +415,9 @@ async function loadVideo(id, startTime = 0, isShorts = false, shouldScroll = fal
 	document.getElementById('resultArea').classList.remove('hidden');
 	resetPlayer();
 
+	if (typeof updateEmbedOutputs === 'function') {
+	    updateEmbedOutputs(); // タグ生成をキック！
+	}
 
 
 	// --- 動画タイトル取得 (APIキー不要のoEmbedを使用) ---
@@ -470,17 +482,17 @@ async function loadVideo(id, startTime = 0, isShorts = false, shouldScroll = fal
 
 	const candidates = [
 
-		// メイン画像（高画質狙い）
+		// メイン画像
 		{ label: 'Max Res', res: '1280x720', url: `https://img.youtube.com/vi/${id}/maxresdefault.jpg`, isScene: false },
 		{ label: 'Ultra HQ', res: '720p', url: `https://img.youtube.com/vi/${id}/hq720.jpg`, isScene: false },
 		{ label: 'Standard', res: '640x480', url: `https://img.youtube.com/vi/${id}/sddefault.jpg`, isScene: false },
 
+		// WebPのアニメーションサムネイル
 		{ label: 'Animated 1', res: 'WebP', url: `https://i.ytimg.com/vi_webp/${id}/1.webp`, isScene: true },
 		{ label: 'Animated 2', res: 'WebP', url: `https://i.ytimg.com/vi_webp/${id}/2.webp`, isScene: true },
 		{ label: 'Animated 3', res: 'WebP', url: `https://i.ytimg.com/vi_webp/${id}/3.webp`, isScene: true },
 
-
-		// preview.webp が一番「動く」確率が高いお宝URLだよ
+		// preview.webp が一番「動く」確率が高い
 		{ label: 'Motion', res: 'WebP', url: `https://www.google.com/url?sa=E&source=gmail&q=i9.ytimg.com`, isScene: true },
 		{ label: 'Scene WebP', res: 'WebP', url: `https://i.ytimg.com/vi_webp/${id}/default.webp`, isScene: true },
 
@@ -549,16 +561,26 @@ async function loadVideo(id, startTime = 0, isShorts = false, shouldScroll = fal
 
 
 /**
- * プレイヤーの準備が完了した時に呼ばれる
+ * loadVideo関数から、プレイヤーの準備が完了した時に呼ばれる
  */
 function onPlayerReady(event) {
 	console.log("YouTube Player is Ready!");
 	// 必要ならここでミュートにしたり再生したりできるよ
 }
 
-// プレイヤーの状態が変わった時のイベント（API作成時に登録しておく）
+// loadVideo関数から、プレイヤーの状態が変わった時のイベント（API作成時に登録しておく）
 function onPlayerStateChange(event) {
 	console.log("Player State:", event.data);
+
+	/** @type {boolean} ループ設定が有効かどうか (要素がない場合はfalse) */
+	const isLoop = document.getElementById('checkLoop')?.checked ?? false;
+
+	// 再生終了(0)になったとき、ループ設定がONならプレイヤーの動画を最初から再生する
+    if (event.data === YT.PlayerState.ENDED && isLoop) {
+        event.target.playVideo();
+        // もし「開始時間」に戻したいなら
+        // event.target.seekTo(startTime);
+    }
 
 	// 1: 再生開始 (PLAYING) または 3: バッファ中 (BUFFERING)
 	if (event.data == YT.PlayerState.PLAYING) {
@@ -568,6 +590,8 @@ function onPlayerStateChange(event) {
 			setTimeout(() => placeholder.classList.add('hidden'), 500); // 完全に消去
 		}
 	}
+
+
 }
 
 
@@ -698,6 +722,7 @@ function renderPlaylistCards(items) {
 /* ───────────────────────────────────────────
 	  OUTPUT TAGS AND LINKS GENERATOR
 ─────────────────────────────────────────── */
+
 /**
  * コピーボタン付きの入力行（HTML文字列）を生成する
  * Asset Embed 共用
@@ -797,51 +822,86 @@ function updateThumbOutputs(url, label) {
 
 
 
-
-// EMBED ここから↓
-
-
-
-
 /**
- * 埋め込み設定を反映し、出力エリアを更新する。
- * @returns {void}
+ * Embed タグの生成及び出力
+ * 埋め込み設定（動画ID、ループ、サイズ、開始時間）を現在のUI状態から取得し、
+ * プレビュー用バッジの更新、および3種類（Embed/Short/Standard）の出力エリアを生成・更新する。
+ * * 取得パラメータ:
+ * - currentVideoId: 現在選択されているYouTube動画ID
+ * - checkLoop: ループ再生の有効/無効
+ * - eWidth / eHeight: 埋め込みプレイヤーの縦横サイズ
+ * - eStart: 再生開始位置（秒）
+ * * @returns {void}
  */
 function updateEmbedOutputs() {
-
-
+	// 動画IDが未定義、または空の場合は処理を中断
 	if (typeof currentVideoId === 'undefined' || !currentVideoId) {
 		return;
 	}
 
-	/** @type {string} */
-	const w = document.getElementById('eWidth')?.value || "560";
-	/** @type {string} */
-	const h = document.getElementById('eHeight')?.value || "315";
-	/** @type {string} */
-	const s = document.getElementById('eStart')?.value || "0";
-	const startSeconds = parseInt(s) || 0;
+	/** @type {string} 現在の動画ID */
+	const videoId = currentVideoId; // すでに保持している動画ID変数
 
-	// バッジ（分:秒）を更新
+	/** @type {boolean} ループ設定が有効かどうか */
+	const isLoop = document.getElementById('checkLoop').checked;
+
+	/** @type {string} 埋め込みプレイヤーの幅（デフォルト 560） */
+    const w = document.getElementById('eWidth')?.value || "560";
+    /** @type {string} 埋め込みプレイヤーの高さ（デフォルト 315） */
+    const h = document.getElementById('eHeight')?.value || "315";
+    /** @type {string} 開始位置の入力値 */
+    const s = document.getElementById('eStart')?.value || "0";
+    /** @type {number} 数値に変換した開始秒数 */
+    const startSeconds = parseInt(s, 10) || 0;
+
+	// --- 状態更新 ---
+
+    // 時間表示用バッジ（例: 01:23～）の更新
 	updateTimeBadge(startSeconds);
 
-	// ★追加: プレイヤーが存在し、かつシーク可能なら移動させる
+	// プレイヤーが存在し、かつシーク可能なら移動させる
 	if (typeof player !== 'undefined' && player && typeof player.seekTo === 'function') {
 		// 第2引数を true にすると、シーク先がまだバッファされてなくても強制的に移動する
 		// player.seekTo(startSeconds, true);
 	}
 
-	const embedCode = `<iframe width="${w}" height="${h}" src="https://www.youtube.com/embed/${currentVideoId}?start=${s}" frameborder="0" allowfullscreen></iframe>`;
-	const timeUrl = `https://youtu.be/${currentVideoId}?t=${s}`;
 
-	/** @type {HTMLElement|null} */
+	// --- 各種URLの構築 ---
+
+	// 1. 埋め込み用URL (iframeのsrc用)
+    // start: 開始位置, rel=0: 関連動画を同じチャンネルからのみにする
+	let embedUrl = `https://www.youtube.com/embed/${videoId}?start=${startSeconds}&rel=0`;
+    if (isLoop) {
+		// ループにはloop=1と、同一IDを含むplaylistパラメータの両方が必要
+		embedUrl += `&loop=1&playlist=${videoId}`;
+    }
+
+	// 2. 短縮URL (SNS共有用: youtu.be形式)
+	const shortUrl = `https://youtu.be/${videoId}?t=${s}`;
+
+	// 3. 標準URL (ブラウザ視聴用: watch?v= 形式に直す)
+	let standardUrl = `https://www.youtube.com/watch?v=${videoId}&t=${s}s`;
+	if (isLoop) {
+		standardUrl += `&loop=1&playlist=${videoId}`;
+    }
+
+	// 4. iframeタグの組み立て
+	const embedCode = `<iframe width="${w}" height="${h}" src="${embedUrl}" frameborder="0" allowfullscreen></iframe>`;
+
+
+	// --- UI（DOM）へのレンダリング ---
+
+	/** @type {HTMLElement|null} 出力エリアのコンテナ */
 	const outDisplay = document.getElementById('embedOutputAreas');
-
 	if (outDisplay) {
-		const timeUrlRow = createOutputRow("Time URL", timeUrl);
+		// URL行の生成（createOutputRow関数でフォームとボタンを組み込み）
+		const shortUrlRow = createOutputRow("Short URL", shortUrl);
+		const standardUrlRow = createOutputRow("Standard URL", standardUrl);
+
+		// 埋め込みコード用のHTML（textareaを含む）
 		const embedTagRow = `
 			<div class="space-y-1.5">
-				<label class="pl-[12px] text-[9px] text-gray-400 block uppercase font-bold tracking-wider">Embed Code</label>
+				<label class="pl-[12px] text-[9px] text-gray-400 block uppercase font-bold tracking-wider">Embed Code (iframe)</label>
 				<div class="flex gap-2 items-start">
 					<textarea readonly
 						onclick="this.select()"
@@ -854,10 +914,12 @@ function updateEmbedOutputs() {
 				</div>
 			</div>`;
 
+		// 全ての要素をまとめて出力エリアに反映
 		outDisplay.innerHTML = `
 			<div class="space-y-4 mt-4">
 				${embedTagRow}
-				${timeUrlRow}
+				${shortUrlRow}
+				${standardUrlRow}
 			</div>
 		`;
 	}
@@ -1062,6 +1124,46 @@ function syncTime() {
 
 
 
+/**
+ * チェックを切り替えた時に保存する
+ * (HTMLのonchange="updateEmbedOutputs()" の中で呼ぶか、別途追加する)
+ */
+function saveLoopSetting() {
+	/** @type {boolean} ループ設定が有効かどうか (要素がない場合はfalse) */
+	const isLoop = document.getElementById('checkLoop')?.checked ?? false;
+    localStorage.setItem('yt_loop_setting', isLoop);
+}
+
+
+/**
+ * 動画IDと設定（ループ等）に基づいた埋め込みURLを生成する
+ *
+ * これだけだと動かない
+ *
+ * @description
+ * YouTube埋め込みプレイヤーの仕様上、1動画のみでループさせる場合は
+ * loop=1 に加えて playlist パラメータに自身の動画IDを指定する必要があります。
+ * @param {string} videoId - YouTubeの動画ID
+ * @returns {string} 各種パラメータが付与された埋め込みURL
+ */
+function getEmbedUrl(videoId) {
+    if (!videoId) return '';
+
+	/** @type {boolean} ループ設定が有効かどうか (要素がない場合はfalse) */
+	const isLoop = document.getElementById('checkLoop')?.checked ?? false;
+
+    // 基本となるURL（rel=0 は関連動画を自分のチャンネル内に限定する指定）
+    let url = `https://www.youtube.com/embed/${videoId}?rel=0`;
+
+    // ループ設定が有効な場合、仕様に合わせたパラメータを追加
+    if (isLoop) {
+        url += `&loop=1&playlist=${videoId}`;
+    }
+
+    return url;
+}
+
+
 
 
 
@@ -1106,7 +1208,6 @@ function loadHistory() {
 	if (h.length === 0) return;
 
 
-
 	document.getElementById('historySection').classList.remove('hidden');
 
 	// h の中身が [{id: "...", start: 120}, ...] になっている前提
@@ -1121,7 +1222,8 @@ function loadHistory() {
 			<div class="item-card" onclick="loadVideo('${videoId}', ${startTime}, ${isShorts}, true)">
 				<img src="https://img.youtube.com/vi/${videoId}/mqdefault.jpg"
 					class="w-full aspect-video object-cover rounded-xl shadow-sm">
-				<div class="text-xs mt-1 pl-2 text-gray-500">${startTime}s～</div>
+				<div class="text-xs mt-1 pl-2 font-mono text-gray-500
+">${startTime}s～</div>
 			</div>`;
 	}).join('');
 

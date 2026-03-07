@@ -185,6 +185,7 @@
 		<!-- // Main Assets content -->
 
 
+
 		<!-- Main Embed content -->
 			<div id="contentEmbed" class="hidden space-y-6">
 
@@ -206,10 +207,19 @@
 </div>
 				<!-- // Player -->
 
+
+
+
+				<!-- Embed Code Panel -->
 				<div class="nothing-card p-6">
+
+
 					<div class="flex items-center gap-2 mb-4">
 						<input type="checkbox" id="keepAspect" checked class="w-4 h-4 accent-black">
-						<label for="keepAspect" class="text-[10px] font-bold uppercase">Keep 16:9 Aspect Ratio</label>
+						<label for="keepAspect" class="text-[10px] font-bold uppercase mr-4 md:mr-4">Keep 16:9 Aspect Ratio</label>
+
+						<input type="checkbox" id="checkLoop" class="w-4 h-4 accent-black" onchange="saveLoopSetting(); updateEmbedOutputs()" >
+						<label for="checkLoop" class="text-[10px] font-bold uppercase mr-4 md:mr-4">Loop</label>
 					</div>
 
 
@@ -322,12 +332,14 @@
 
 
 				</div>
+				<!-- // Embed Code Panel -->
+
 			</div>
 			<!-- // Main Embed content -->
 
 
 		</div>
-		<!-- Result Display Area -->
+		<!-- // Result Display Area -->
 
 
 
