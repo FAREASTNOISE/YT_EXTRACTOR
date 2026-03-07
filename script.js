@@ -1201,48 +1201,67 @@ async function copy(id) {
 	 HISTORY
 ─────────────────────────────────────────── */
 
-// 履歴の読み込みとドットの初期化
+/**
+ * localStorageから視聴履歴を読み込み、ヒストリーリスト（スライダー）を生成する。
+ * 各アイテムには動画ID、開始時間、Shorts判定が含まれる。
+ * モバイルとPCで角丸（rounded）のサイズを切り替えるレスポンシブ対応。
+ * @returns {void}
+ */
 function loadHistory() {
-	const h = JSON.parse(localStorage.getItem('yt_history') || '[]');
-	const list = document.getElementById('historyList');
-	if (h.length === 0) return;
+/** @type {Array<{id: string, start: number, isShorts: boolean}>} 履歴データ */
+    const h = JSON.parse(localStorage.getItem('yt_history') || '[]');
+    const list = document.getElementById('historyList');
 
+	if (!list || h.length === 0) return;
 
-	document.getElementById('historySection').classList.remove('hidden');
+	// 履歴セクションを表示
+    const historySection = document.getElementById('historySection');
+    if (historySection) {
+        historySection.classList.remove('hidden');
+    }
 
-	// h の中身が [{id: "...", start: 120}, ...] になっている前提
+	/**
+     * 秒数を "0:00" 形式の文字列に変換する
+     * @param {number} s 秒数
+     * @returns {string} フォーマット済み時間
+     */
+    const fmt = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+
+	// 履歴アイテムのHTMLを生成
 	list.innerHTML = h.map(item => {
-		// 昔のデータ（単なる文字列）が混ざっていた時のためのガード
-		const videoId = (typeof item === 'object') ? item.id : item;
-		const s = startTime = (typeof item === 'object') ? item.start : 0;
-		const isShorts = (typeof item === 'object') ? item.isShorts : false;
+		// データの整合性チェック（旧データ形式への対応）
+        const isObj = (typeof item === 'object' && item !== null);
+        const videoId = isObj ? item.id : item;
+        const startTime = isObj ? (item.start || 0) : 0;
+        const isShorts = isObj ? (item.isShorts || false) : false;
 
-		const fmt = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
 		return `
-			<div class="item-card rounded md:rounded-xl" onclick="loadVideo('${videoId}', ${startTime}, ${isShorts}, true)">
-				<img src="https://img.youtube.com/vi/${videoId}/mqdefault.jpg" 	class="w-full aspect-video object-cover rounded md:rounded-xl shadow-sm">
+            <div class="item-card rounded md:rounded-xl overflow-hidden" onclick="loadVideo('${videoId}', ${startTime}, ${isShorts}, true)">
+                <img src="https://img.youtube.com/vi/${videoId}/mqdefault.jpg"
+                     class="w-full aspect-video object-cover rounded md:rounded-xl shadow-sm"
+                     alt="thumbnail">
 
-				<div class="flex items-baseline mt-1.5 mb-1.5  pl-2 font-mono text-gray-500">
-        		    <span class="inline-block transform translate-y-[1.5px] bg-gray-100 text-[8px] px-1.5 py-0.5 mr-0.5 rounded-sm leading-none font-bold tracking-widest text-gray-500">
-					IN
-					</span>
-
-					<span class="inline-block transform translate-y-[1.5px] text-[9px] tracking-widest opacity-80">
-					${fmt(startTime)}
-					</span>
-				</div>
-			</div>`;
-	}).join('');
-
+                <div class="flex items-baseline mt-1.5 mb-1.5 pl-2 font-mono text-gray-500">
+                    <span class="inline-block transform translate-y-[1.5px] bg-gray-100 text-[8px] px-1.5 py-0.5 mr-0.5 rounded-sm leading-none font-bold tracking-widest text-gray-500">
+                        IN
+                    </span>
+                    <span class="inline-block transform translate-y-[1.5px] text-[9px] tracking-widest opacity-80">
+                        ${fmt(startTime)}
+                    </span>
+                </div>
+            </div>`;
+    }).join('');
 
 
-	// 履歴スライダーのスクロールを監視してドットを更新
-	list.removeEventListener('scroll', historyScrollHandler); // 重複防止
-	list.addEventListener('scroll', historyScrollHandler);
+	// --- スクロール・インジケーター設定 ---
 
-	// 初回実行
-	updateDots('historyList', 'historyIndicator', 2.6);
+    // 重複防止のためにイベントリスナーを再設定
+    list.removeEventListener('scroll', historyScrollHandler);
+    list.addEventListener('scroll', historyScrollHandler);
+
+    // 初回のドット更新
+    updateDots('historyList', 'historyIndicator', 2.6);
 }
 
 

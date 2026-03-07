@@ -339,7 +339,7 @@ body {
 .horizontal-scroll {
 	display: flex;
 	overflow-x: auto;
-	gap: 16px;
+	/* gap: 16px; */
 	padding: 10px;
 	scroll-behavior: smooth;
 	scrollbar-width: none;
