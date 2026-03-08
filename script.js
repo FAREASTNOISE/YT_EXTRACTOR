@@ -202,7 +202,7 @@ function parseYouTubeTime(t) {
 		return parseInt(t, 10);
 	}
 
-// 2. 正規表現で時間、分、秒を抽出
+	// 2. 正規表現で時間、分、秒を抽出
 	let totalSeconds = 0;
 	const h = timeStr.match(/(\d+)h/);
 	const m = timeStr.match(/(\d+)m/);
@@ -319,18 +319,38 @@ function updateMainLayout(isShorts) {
  * 通常動画とShortsでボタンセット（表示/非表示）を切り替える
  * @param {boolean} isShorts - ショート動画判定
  */
-// こういう書き方もある（参考までに！）
 function handleModeSwitch(isShorts) {
 	const el = {
 		normal: document.getElementById('normalControls'),
-		shorts: document.getElementById('shortsControls')
+		shorts: document.getElementById('shortsControls'),
+		eWidth: document.getElementById('eWidth'),
+        eHeight: document.getElementById('eHeight')
 	};
 
-	if (!el.normal || !el.shorts) return;
+	// if (!el.normal || !el.shorts) return;
+	if (!el.normal || !el.shorts || !el.eWidth || !el.eHeight) return;
 
+	// 1. 表示の切り替え
 	el.normal.classList.toggle('hidden', !!isShorts);
 	el.shorts.classList.toggle('hidden', !isShorts);
+
+	// 2. モードが変わった場合のみ、サイズを「標準」に上書きする
+    if (isShorts) {
+        // ショート動画の標準（縦長）
+        el.eWidth.value = 315;
+        el.eHeight.value = 560;
+    } else {
+        // 通常動画の標準（横長）
+        el.eWidth.value = 560;
+        el.eHeight.value = 315;
+    }
+
+
+    // 3. 【重要】サイズを変えたので、タグの出力を更新する
+    updateEmbedOutputs();
+	updateSizeButtonStyles();
 }
+
 
 /**
  * AssetsタブとEmbedタブの表示切り替え
@@ -416,7 +436,7 @@ async function loadVideo(id, startTime = 0, isShorts = false, shouldScroll = fal
 	resetPlayer();
 
 	if (typeof updateEmbedOutputs === 'function') {
-	    updateEmbedOutputs(); // タグ生成をキック！
+	    updateEmbedOutputs();
 	}
 
 
@@ -1069,7 +1089,9 @@ function updateSizeButtonStyles() {
 
 		if (match) {
 			const [_, btnW, btnH] = match;
-			const isMatch = (currentW === btnW && currentH === btnH);
+			//const isMatch = (currentW === btnW && currentH === btnH);
+			// 文字列同士の比較なので、確実に一致させるために Number() で数値化して比較するのもアリ
+			const isMatch = (Number(currentW) === Number(btnW) && Number(currentH) === Number(btnH));
 
 			if (isMatch) {
 				// アクティブ状態: ドット枠を強制表示
@@ -1239,7 +1261,7 @@ function loadHistory() {
 		return `
             <div class="item-card rounded md:rounded-xl overflow-hidden" onclick="loadVideo('${videoId}', ${startTime}, ${isShorts}, true)">
                 <img src="https://img.youtube.com/vi/${videoId}/mqdefault.jpg"
-                     class="w-full aspect-video object-cover rounded md:rounded-xl shadow-sm"
+                     class="w-full aspect-video object-cover rounded md:rounded-md shadow-sm"
                      alt="thumbnail">
 
                 <div class="flex items-baseline mt-1.5 mb-1.5 pl-2 font-mono text-gray-500">
@@ -1442,8 +1464,8 @@ function updateDots(sId, iId, ratio = 1) {
 	idx = Math.max(0, Math.min(idx, childrenCount - 1));
 
 
-	// console.log(`scrollLeft: ${container.scrollLeft}, itemWidth: ${itemWidth}, calculatedIdx: ${idx}`);
-	console.log(`scrollLeft: ${container.scrollLeft}, calculatedIdx: ${idx}`);
+
+	//console.log(`scrollLeft: ${container.scrollLeft}, calculatedIdx: ${idx}`);
 
 	// 2. ドットの描画（共通）
 	indicator.innerHTML = Array.from({ length: childrenCount }).map((_, i) => `
