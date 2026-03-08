@@ -30,6 +30,13 @@ let currentImgLabel = "Thumbnail"; // 値は空か "Thumbnail"
 let currentVideoTitle = "";
 
 /**
+ * 現在表示中の動画がShorts動画であるかどうかを保持するフラグ
+ * @type {boolean} - true: Shortsモード, false: 通常動画モード
+ * @default false
+ */
+let isCurrentShorts = false;
+
+/**
  * アプリケーションのグローバル状態（動画情報やアセット情報）を初期化する。
  * 新しい動画を読み込む直前に呼び出し、古いデータの混入を防ぐためのもの。
  * @returns {void}
@@ -404,11 +411,20 @@ function switchTab(t) {
 async function loadVideo(id, startTime = 0, isShorts = false, shouldScroll = false) {
 	console.log("loadVideo 開始! ID:", id, "StartTime:", startTime, "isShorts:", isShorts); // 動いているか確認用
 
+
+
+	// startTime（秒）を画面の入力欄に反映させる
+    const startTimeInput = document.getElementById('eStart');
+	if (startTimeInput) {
+        startTimeInput.value = startTime;
+    }
+
 	// どんな経路（検索・履歴・プレイリスト）で動画を読み込んでも、まず掃除する
 	resetAppState();
 
 	updateMainLayout(isShorts);
 	// モード切替（Shorts判定をここに集約）
+	isCurrentShorts = isShorts;
 	handleModeSwitch(isShorts);
 
 	// 今のプレイヤーが持っている動画IDを取得（YouTube APIの機能を使う）
@@ -843,14 +859,19 @@ function updateThumbOutputs(url, label) {
 
 
 /**
- * Embed タグの生成及び出力
- * 埋め込み設定（動画ID、ループ、サイズ、開始時間）を現在のUI状態から取得し、
- * プレビュー用バッジの更新、および3種類（Embed/Short/Standard）の出力エリアを生成・更新する。
+* Embed タグおよび各種共有用URLの生成・出力
+ * 埋め込み設定（動画ID、ループ、サイズ、開始時間）を現在のUI状態から取得
+ * プレビュー用バッジの更新、および4種類（Embed/Short/Standard/Short URL）の出力エリアを生成・更新する。
  * * 取得パラメータ:
  * - currentVideoId: 現在選択されているYouTube動画ID
  * - checkLoop: ループ再生の有効/無効
  * - eWidth / eHeight: 埋め込みプレイヤーの縦横サイズ
  * - eStart: 再生開始位置（秒）
+ * 以下の出力エリアを動的に生成してUIに反映します。
+ * 1. Embed Code (iframeタグ)
+ * 2. Shorts URL (Shorts専用形式 - Shortsモード時のみ)
+ * 3. Standard URL (watch?v=形式 - パラメータ保持用)
+ * 4. Short URL (youtu.be形式 - 短縮共有用)
  * * @returns {void}
  */
 function updateEmbedOutputs() {
@@ -869,7 +890,8 @@ function updateEmbedOutputs() {
     const w = document.getElementById('eWidth')?.value || "560";
     /** @type {string} 埋め込みプレイヤーの高さ（デフォルト 315） */
     const h = document.getElementById('eHeight')?.value || "315";
-    /** @type {string} 開始位置の入力値 */
+
+    /** @type {string} 開始位置の入力値（文字列） */
     const s = document.getElementById('eStart')?.value || "0";
     /** @type {number} 数値に変換した開始秒数 */
     const startSeconds = parseInt(s, 10) || 0;
@@ -896,17 +918,39 @@ function updateEmbedOutputs() {
 		embedUrl += `&loop=1&playlist=${videoId}`;
     }
 
-	// 2. 短縮URL (SNS共有用: youtu.be形式)
-	const shortUrl = `https://youtu.be/${videoId}?t=${s}`;
 
-	// 3. 標準URL (ブラウザ視聴用: watch?v= 形式に直す)
-	let standardUrl = `https://www.youtube.com/watch?v=${videoId}&t=${s}s`;
+	// 2. 標準URL (ブラウザ視聴用: watch?v= 形式または shorts/ 形式にする)
+	// ショート動画であっても、ループや時間指定を確実に反映させるために使用
+	let standardUrl = `https://www.youtube.com/watch?v=${videoId}`;
+	if (startSeconds > 0) {
+        standardUrl += `&t=${s}s`;
+    }
 	if (isLoop) {
-		standardUrl += `&loop=1&playlist=${videoId}`;
+        standardUrl += `&loop=1&playlist=${videoId}`;
     }
 
+	/** * 3. 短縮URL (youtu.be形式)
+     * SNS等の文字数制限がある場所での共有用。
+     */
+    let youtuBeUrl = `https://youtu.be/${videoId}`;
+    if (startSeconds > 0) {
+        // youtu.be形式の場合、パラメータの開始は "?" となる点に注意
+        youtuBeUrl += `?t=${s}`;
+    }
+
+
+	/** * 4. Shorts専用URL (youtube.com/shorts/形式)
+     * アプリ等での視聴に最適化。パラメータは原則付与しない。
+     */
+	let shortsUrl = "";
+	if (isCurrentShorts) {
+		shortsUrl = `https://www.youtube.com/shorts/${videoId}`;
+	}
+
+
+
 	// 4. iframeタグの組み立て
-	const embedCode = `<iframe width="${w}" height="${h}" src="${embedUrl}" frameborder="0" allowfullscreen></iframe>`;
+	const embedCode = `<iframe width="${w}" height="${h}" src="${embedUrl}" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
 
 
 	// --- UI（DOM）へのレンダリング ---
@@ -915,8 +959,12 @@ function updateEmbedOutputs() {
 	const outDisplay = document.getElementById('embedOutputAreas');
 	if (outDisplay) {
 		// URL行の生成（createOutputRow関数でフォームとボタンを組み込み）
-		const shortUrlRow = createOutputRow("Short URL", shortUrl);
 		const standardUrlRow = createOutputRow("Standard URL", standardUrl);
+		const youtuBeUrlRow = createOutputRow("Short URL (youtu.be)", youtuBeUrl);
+		let shortsUrlRow = "";
+		if (isCurrentShorts) {
+			shortsUrlRow = createOutputRow("Shorts URL (youtube.com/shorts/)", shortsUrl);
+		}
 
 		// 埋め込みコード用のHTML（textareaを含む）
 		const embedTagRow = `
@@ -934,12 +982,13 @@ function updateEmbedOutputs() {
 				</div>
 			</div>`;
 
-		// 全ての要素をまとめて出力エリアに反映
+		// 全ての要素をまとめて出力エリアに反映（shortsUrlRow が空文字なら何も表示しない）
 		outDisplay.innerHTML = `
 			<div class="space-y-4 mt-4">
 				${embedTagRow}
-				${shortUrlRow}
 				${standardUrlRow}
+				${youtuBeUrlRow}
+				${shortsUrlRow ? shortsUrlRow : ""}
 			</div>
 		`;
 	}
