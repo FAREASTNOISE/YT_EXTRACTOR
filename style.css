@@ -1,0 +1,633 @@
+@charset "UTF-8";
+
+/* 1. 全てを初期化（ブラウザごとの隙間バグを防ぐ） */
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* 2. Nothing OSっぽいフォントと色をセット */
+:root {
+	--grid-color: rgba(0, 0, 0, 0.05);
+	--nothing-red: #ff3131;
+	--nothing-bg: #f2f2f2;
+	--nothing-black: #000000;
+	--card-bg: rgba(255, 255, 255, 0.9);
+
+	--font-main: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* 3. ベースの見た目 */
+body {
+    color: var(--nothing-black);
+    -webkit-font-smoothing: antialiased;
+}
+
+
+body {
+	background-color: var(--nothing-bg);
+	font-family: var(--font-main);
+
+	color: var(--nothing-black);
+
+	/* 背景のグリッド模様 */
+	background-image:
+		radial-gradient(circle at center, transparent 0%, var(--nothing-bg) 90%),
+		linear-gradient(var(--grid-color) 1px, transparent 1px),
+		linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+	background-size: 100% 100%, 100px 100px, 100px 100px;
+	background-attachment: fixed;
+	letter-spacing: -0.01em;
+
+	-webkit-font-smoothing: antialiased;
+
+}
+
+
+
+.dot-font {
+	font-family: 'Silkscreen', cursive;
+}
+
+/* カードデザイン */
+.nothing-card {
+	background: var(--card-bg);
+	backdrop-filter: blur(12px);
+	-webkit-backdrop-filter: blur(12px);
+	border: 1px solid rgba(0, 0, 0, 0.08);
+	border-radius: 28px;
+	position: relative;
+	/* overflow: hidden; */
+	overflow: visible;
+
+	box-shadow: 0 4px 24px rgba(0, 0, 0, 0.02);
+}
+
+/* 入力欄 */
+.nothing-input {
+	background: rgba(0, 0, 0, 0.04);
+	border: 1px solid transparent;
+	border-radius: 16px;
+	transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nothing-input:focus {
+	background: rgba(0, 0, 0, 0.02);
+	border-color: rgba(0, 0, 0, 0.1);
+	box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* メインボタン（Nothing Phoneの設定ボタン風） */
+.btn-black-rect {
+	background: #000;
+	color: #fff;
+	border-radius: 50px; /* Nothing OSのボタンはかなり丸い */
+	font-size: 11px;
+	font-weight: 700;
+	padding: 18px;
+	width: 100%;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	transition: transform 0.1s, opacity 0.2s;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	cursor: pointer;
+}
+
+.btn-black-rect:active {
+	transform: scale(0.98);
+	opacity: 0.9;
+}
+
+/* コピーボタン（サブボタン） */
+.btn-gray-copy {
+	background-color: #e5e5e5;
+	color: #000;
+	border-radius: 12px;
+	font-size: 10px;
+	font-weight: 700;
+	padding: 8px 16px;
+	text-transform: uppercase;
+	border: none;
+	cursor: pointer;
+	transition: background 0.2s;
+}
+
+.btn-gray-copy:hover {
+	background-color: #d8d8d8;
+}
+
+
+
+
+
+
+
+
+#mainSlider {
+	display: flex;
+	overflow-x: auto;          /* または scroll */
+	scroll-behavior: smooth;    /* これがあるとJS側が楽になる */
+	-webkit-overflow-scrolling: touch; /* iOS用 */
+}
+
+
+
+
+
+
+/* デフォルト（横長）の状態 */
+.video-preview-area {
+    width: 100%;
+    max-width: 800px; /* 通常時の最大幅（任意） */
+    margin: 0 auto;
+    transition: max-width 0.3s ease;
+}
+
+/* ショート動画（縦長）が有効な時のスタイル */
+.video-preview-area.is-shorts {
+    max-width: 350px; /* 外枠自体をギュッと細くする */
+}
+
+/* 中身のアスペクト比も連動 */
+.video-preview-area.is-shorts .fixed-aspect {
+    aspect-ratio: 9 / 16;
+}
+
+
+
+
+
+/* CSSでドットのLOADINGアニメーションを作る例 */
+#player-placeholder {
+    background: radial-gradient(circle, #000 1px, transparent 1px);
+    background-size: 20px 20px; /* ドットの間隔 */
+}
+
+
+
+
+/* --- ビジュアルコンテナ（透過グレー & 影） --- */
+.fixed-aspect {
+	width: 100%;
+	aspect-ratio: 16 / 9;
+	border-radius: 20px;
+	overflow: hidden;
+	background: rgba(200, 200, 200, 0.25); /* 透過グレー */
+	backdrop-filter: blur(10px);
+	-webkit-backdrop-filter: blur(10px);
+	border: 1px solid rgba(0, 0, 0, 0.05);
+	position: relative;
+}
+
+.slider-viewport {
+	width: 100%;
+	height: 100%;
+	overflow-x: auto;
+	display: flex;
+	scroll-snap-type: x mandatory;
+	scroll-behavior: smooth;
+	scrollbar-width: none;
+}
+
+.slider-viewport::-webkit-scrollbar {
+	display: none;
+}
+
+.slide-item-container {
+	flex: 0 0 100%;
+	width: 100%;
+	height: 100%;
+	scroll-snap-align: start;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+/* メイン画像（エッジまで見せるなら角丸を消す、または調整） */
+.slide-item-container.is-main .slide-item-fit {
+	border-radius: 0; /* 端までピッタリ派ならこれ */
+}
+/* Sceneの時だけ、背景に少し「深み」を出す */
+.slide-item-container.is-scene {
+	background: radial-gradient(circle at center, rgba(255,255,255,0.05) 0%, transparent 70%);
+}
+
+/* 高画質画像（全画面） */
+.slide-item-fit {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	border-radius: 12px;
+}
+
+/* Scene画像（等倍・浮遊感のある影） */
+.slide-item-natural {
+	max-width: 90%;
+	max-height: 90%;
+	width: auto;
+	height: auto;
+	object-fit: contain;
+	box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15); /* 高級感のある影 */
+	border-radius: 8px;
+	border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* ナビゲーション矢印 */
+.nav-btn {
+	position: absolute;
+	top: 50%;
+	transform: translateY(-50%);
+	width: 40px;
+	height: 40px;
+	background: rgba(255, 255, 255, 0.9);
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 40;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+	cursor: pointer;
+	border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.arrow {
+	width: 8px;
+	height: 8px;
+	border-top: 2.5px solid #000;
+	border-right: 2.5px solid #000;
+}
+
+/* インジケータードット */
+.indicator-container {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 8px;
+	margin-top: 16px;
+	height: 12px;
+}
+
+
+.indicator-container {
+    display: flex;
+    gap: 12px;
+    padding: 10px;
+    /* 背景が何色でもOKなように background は指定しないか継承させる */
+}
+
+.dot {
+    width: 8px;
+    height: 8px;
+    background: #888; /* グレーの背景でも沈まない程度の色 */
+    border-radius: 50%;
+    cursor: pointer;
+    position: relative;
+    /* 伸びる動きに「粘り」を出すためのイージング */
+    transition:
+        width 0.4s cubic-bezier(0.5, 0, 0.3, 1.5), /* 1.5で少しだけ「プルン」とさせる */
+        background 0.3s ease,
+        transform 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* クリックした瞬間（押し込み） */
+.dot:active {
+    transform: scale(0.7); /* ぐっと押し込まれる */
+}
+
+/* アクティブなドット：20pxに伸びる */
+.dot.active {
+    background: #ff0000;
+    width: 20px;
+    border-radius: 10px;
+    transform: scale(1); /* 押し込みから戻る */
+}
+
+/* 2. 上に乗る「1pxの光沢」は、ぼかしフィルタの影響を受けないように外に出すのがコツだけど、
+   一旦そのまま入れるなら opacity で制御 */
+.dot::before {
+    content: '';
+    position: absolute;
+    top: 1.2px;
+    right: 1.5px;
+    width: 2.5px;
+    height: 2.5px;
+    background-color: rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    opacity: 0;
+}
+
+.dot.active::before {
+    animation: flash-out 0.8s forwards;
+}
+
+@keyframes flash-out {
+    0% { opacity: 0; }
+    20% { opacity: 1; }
+    100% { opacity: 0; }
+}
+/* タブ切り替え */
+.tab-active {
+	background: #000 !important;
+	color: #fff !important;
+	border-color: #000 !important;
+}
+
+/* スクロールリスト（履歴・プレイリスト） */
+.horizontal-scroll {
+	display: flex;
+	overflow-x: auto;
+	/* gap: 16px; */
+	padding: 10px;
+	scroll-behavior: smooth;
+	scrollbar-width: none;
+}
+
+.horizontal-scroll::-webkit-scrollbar {
+	display: none;
+}
+
+.item-card {
+	background: #fff;
+	border: 1px solid rgba(0, 0, 0, 0.06);
+	/* border-radius: 18px; */
+	padding: 6px;
+	flex: 0 0 calc((100% - 32px) / 2.6);
+	cursor: pointer;
+	transition: transform 0.2s;
+}
+
+.item-card:hover {
+	transform: translateY(-2px);
+}
+
+/* ビデオタイトルの質感を高める */
+.item-card p {
+    font-family: "JetBrains Mono", monospace;
+    font-weight: 500;
+    letter-spacing: 0.05em; /* 少し字間を広げるとNothingっぽくなる */
+}
+
+
+/* Amazonボタン */
+.amazon-btn {
+	background: linear-gradient(to bottom, #f7dfa5, #f0c14b);
+	border: 1px solid #a88734;
+	border-radius: 50px;
+	color: #111;
+	padding: 12px 28px;
+	font-size: 11px;
+	font-weight: bold;
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	text-decoration: none;
+	transition: opacity 0.2s;
+}
+
+.amazon-btn:hover {
+	opacity: 0.9;
+}
+
+
+/* タグ用：小さな角丸ボタン */
+.btn-small-round {
+	background: #000;
+	color: #fff;
+	border-radius: 50px;
+	font-size: 9px;
+	font-weight: 700;
+	padding: 6px 16px;
+	text-transform: uppercase;
+	transition: all 0.2s;
+	cursor: pointer;
+	border: none;
+}
+.btn-small-round:active { transform: scale(0.95); opacity: 0.8; }
+
+
+
+/* 履歴の親要素を基準にするための設定 */
+#historySection .relative {
+	position: relative;
+	padding: 0 10px;
+}
+
+/* 履歴用の小さなボタン */
+#historySection .nav-btn {
+	background: rgba(255, 255, 255, 0.95);
+	border: 1px solid rgba(0,0,0,0.1);
+}
+
+
+
+
+
+/* ボタン内のアイコン設定 */
+.btn-icon {
+	width: 12px;
+	height: 12px;
+	margin-right: 6px;
+	filter: brightness(0); /* 黒く表示 */
+	display: inline-block;
+	vertical-align: middle;
+}
+
+.btn-gray-copy {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+
+    border: 1px solid transparent; /* これが大事！ */
+    transition: all 0.2s ease;
+}
+
+/* タブの親コンテナ：少しだけ余裕を持たせる */
+.tab-container {
+	display: flex;
+	gap: 2px;
+	margin-bottom: 32px;
+	background-color: rgba(229, 231, 235, 0.5); /* グレーの背景 */
+	padding: 4px;
+	border-radius: 24px;
+	backdrop-filter: blur(10px);
+	border: 1px solid rgba(0, 0, 0, 0.05);
+
+	max-width: 320px; /* ここで全体の最大幅を制限 */
+	margin-left: auto;
+	margin-right: auto;
+}
+
+/* 各タブボタンの基本：にゅーっと動くための設定 */
+#tabThumb, #tabEmbed {
+	flex: 1; /* 最初は均等 */
+	padding: 10px 16px;
+	border-radius: 18px;
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.1em;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	text-transform: uppercase;
+	border: none;
+	cursor: pointer;
+
+	color: #888;
+	background-color: transparent;
+
+	transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+	/* transition: flex 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+	background-color 0.3s ease,
+	color 0.3s ease; */
+}
+
+/* 選択された時の「にゅーっ」とした伸び */
+.tab-active {
+	flex: 1.2 !important; /* 他より少し広く伸びる */
+	background-color: #000 !important;
+	color: #fff !important;
+	/* box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15); */
+	box-shadow: 0 4px 20px rgba(255, 255, 255, 0.1); /* ほんのり光る */
+}
+
+
+/* 1. まず、アイコン全般に「アニメーションの準備」をさせる */
+#tabThumb i, #tabEmbed i {
+	display: flex; /* inline-block より flex の方が中心を取りやすい */
+    align-items: center;
+    line-height: 0; /* 文字の高さに引きずられないようにする */
+
+    /* 色と変形を 0.3秒かけてヌルっと動かす設定 */
+    transition: color 0.3s ease, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: inline-block; /* transformを効かせるために必要 */
+}
+
+/* 2. アクティブになった時のアイコン */
+.tab-active i {
+    /* transform: scale(1.1); 1.2だと少し大きいかも？1.1くらいが上品だよ */
+    color: #fff !important; /* 親の文字色と一緒に白くなる */
+}
+
+
+
+/* ホバー時の演出（非アクティブ時のみ） */
+#tabThumb:not(.tab-active):hover,
+#tabEmbed:not(.tab-active):hover {
+    /* さらに薄く（0.04 → 0.02）して、背景に馴染ませる */
+    background-color: rgba(0, 0, 0, 0.02);
+
+    /* ボタンの背後にあるものをぼかして質感を出す（これ重要！） */
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+
+    /* 文字色を少しだけ落ち着いたトーンに */
+    color: #777;
+
+    /* 「周りをぼやかす」ための、非常に淡い光の影（スプレッドを広めに） */
+    box-shadow: 0 0 5px 2px rgba(0, 0, 0, 0.03);
+
+    /* 浮かさない設定 */
+    transform: none;
+}
+
+
+
+
+
+/* タブボタンの基本形（非アクティブ状態） */
+#tabThumb, #tabEmbed {
+	background-color: transparent; /* 背景を透明に */
+	color: #888; /* 文字をグレーに */
+	border: none;
+	cursor: pointer;
+	transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); /* ヌルっと動かす */
+}
+
+/* アクティブ（選択中）の状態 */
+.tab-active {
+	background-color: #000 !important; /* 背景を真っ黒に */
+	color: #fff !important; /* 文字を真っ白に */
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); /* わずかな浮遊感 */
+}
+
+/* アイコンの色制御 */
+.tab-icon {
+	width: 14px;
+	height: 14px;
+	object-fit: contain;
+	transition: all 0.4s ease;
+}
+
+/* 非アクティブ時のアイコン：薄く、グレーに */
+button:not(.tab-active) .tab-icon {
+	opacity: 0.3;
+	filter: grayscale(1) brightness(0.5);
+}
+
+/* アクティブ時のアイコン：真っ白に（SVGが黒の場合） */
+.tab-active .tab-icon {
+	opacity: 1;
+	filter: invert(1); /* 黒いSVGを白に反転させる */
+}
+
+
+
+
+
+/* Plyr全体のテーマカラーを「赤」に変更 */
+:root {
+	--plyr-color-main: #ff0000; /* Nothing Red */
+	--plyr-video-control-background-hover: rgba(255, 0, 0, 0.1);
+}
+
+/* プレイヤーの角を落として、影を消す（ミニマルにする） */
+.plyr {
+	border-radius: 4px; /* Nothingは極端に丸めない */
+	box-shadow: none;
+	border: 1px solid #333; /* 控えめな境界線 */
+}
+
+/* コントロールバーを浮かさず、背景に馴染ませる */
+.plyr--video .plyr__controls {
+	background: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0.7)) !important;
+	padding-bottom: 10px;
+}
+
+/* 再生ボタンなどを「ドット絵」っぽく見せるための工夫（オプション） */
+.plyr__control svg {
+	filter: drop-shadow(0 0 2px rgba(255, 0, 0, 0.5));
+}
+
+.video-section {
+	max-width: 900px; /* 広がりすぎ防止 */
+	margin: 0 auto;   /* 真ん中に寄せる */
+	padding: 20px;
+	background: #000; /* 背景を黒にするとNothing感アップ */
+}
+
+
+
+
+
+
+
+/* セクションの見出し */
+h3.dot-font {
+    font-family: "JetBrains Mono", monospace;
+    /* ドットフォントと混ぜるなら、ここはあえてMonoのままでもカッコいい */
+    letter-spacing: 0.05em; /* 少し字間を広げるとNothingっぽくなる */
+}
+
+label {
+    font-family: "JetBrains Mono", monospace;
+    letter-spacing: 0.05em; /* 少し字間を広げるとNothingっぽくなる */
+
+}
+#assetMeta{
+	    font-family: "JetBrains Mono", monospace;
+    letter-spacing: 0.05em; /* 少し字間を広げるとNothingっぽくなる */
+}
