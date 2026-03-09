@@ -412,6 +412,19 @@ async function loadVideo(id, startTime = 0, isShorts = false, shouldScroll = fal
 	console.log("loadVideo 開始! ID:", id, "StartTime:", startTime, "isShorts:", isShorts); // 動いているか確認用
 
 
+	// --- 1. 既存プレイヤーのクリーンアップ ---
+    /** @type {YT.Player|null} 既存のプレイヤーを取得して安全に破棄する */
+    const existingPlayer = getSafePlayer();
+    if (existingPlayer) {
+        try {
+            existingPlayer.destroy();
+            console.log("既存のプレイヤーを破棄しました");
+        } catch (e) {
+            console.warn("破棄エラー:", e);
+        }
+        window.player = null; // 参照をクリア
+    }
+
 
 	// startTime（秒）を画面の入力欄に反映させる
     const startTimeInput = document.getElementById('eStart');
@@ -421,7 +434,7 @@ async function loadVideo(id, startTime = 0, isShorts = false, shouldScroll = fal
 
 	// どんな経路（検索・履歴・プレイリスト）で動画を読み込んでも、まず掃除する
 	resetAppState();
-
+	// メイン再生画面をショート動画のサイズにする
 	updateMainLayout(isShorts);
 	// モード切替（Shorts判定をここに集約）
 	isCurrentShorts = isShorts;
@@ -433,11 +446,11 @@ async function loadVideo(id, startTime = 0, isShorts = false, shouldScroll = fal
 		currentIdInPlayer = window.player.getVideoData().video_id;
 	}
 
-// 【修正！】同じIDでも、結果エリアが隠れている（＝まだ表示されていない）なら続行する
+	// 同じIDでも、結果エリアが隠れている（＝まだ表示されていない）なら続行する
 	const resArea = document.getElementById('resultArea');
 	const isHidden = resArea ? resArea.classList.contains('hidden') : true;
 
-// 「今表示されているID」と「これから読み込むID」が違うなら、必ず続行する
+	// 「今表示されているID」と「これから読み込むID」が違うなら、必ず続行する
 	if (id === currentIdInPlayer && !isHidden) {
 		console.log("今表示中の動画と同じなので、リロードをスキップします");
 		return;
@@ -445,7 +458,7 @@ async function loadVideo(id, startTime = 0, isShorts = false, shouldScroll = fal
 
 	// ここで初めて、グローバル変数を更新する
 	currentVideoId = id;
-
+	// 履歴を保存
 	saveHistory(id, startTime, isShorts);
 
 	document.getElementById('resultArea').classList.remove('hidden');
@@ -480,8 +493,12 @@ async function loadVideo(id, startTime = 0, isShorts = false, shouldScroll = fal
 	if (placeholder) placeholder.style.opacity = "1";
 
 
+
+
+
 	// --- プレイヤーの初期化 ---
-	player = new YT.Player('player', {
+	// player = new YT.Player('player', {
+	window.player = new YT.Player('player', {
 		height: '100%',
 		width: '100%',
 		videoId: id,
@@ -557,8 +574,11 @@ async function loadVideo(id, startTime = 0, isShorts = false, shouldScroll = fal
 
 
 	// --- 画像の存在チェック ---
-	assetList = [];
-	for (const c of candidates) {
+	// --- 画像の存在チェック (並列処理版) ---
+    // 全候補のチェックを同時に開始する
+	// assetList = [];
+	// for (const c of candidates) {
+    const checkPromises = candidates.map(async (c) => {
 		try {
 			const isValid = await new Promise(resolve => {
 				const img = new Image();
@@ -568,11 +588,18 @@ async function loadVideo(id, startTime = 0, isShorts = false, shouldScroll = fal
 				img.src = c.url;
 				setTimeout(() => resolve(false), 3000); // 3秒でタイムアウト
 			});
-			if (isValid) assetList.push(c);
+			return isValid ? c : null;
+			// if (isValid) assetList.push(c);
 		} catch (e) {
-			continue;
+			// continue;
+			return null;
 		}
 	}
+	// すべての結果が揃うのを待つ
+	const results = await Promise.all(checkPromises);
+
+	// null（無効だったもの）を除外して assetList を作成
+    assetList = results.filter(result => result !== null);
 
 	// --- スライダーの表示更新 ---
 	const slider = document.getElementById('mainSlider');
@@ -594,6 +621,20 @@ async function loadVideo(id, startTime = 0, isShorts = false, shouldScroll = fal
 	}
 }
 
+
+
+/**
+ * 現在の YouTube プレイヤーインスタンスが安全に操作可能な状態か確認し、取得する。
+ * プレイヤーが初期化されていない、または破棄されている場合は null を返す。
+ * * @returns {YT.Player|null} 有効な YouTube プレイヤーインスタンス、または null
+ */
+function getSafePlayer() {
+    // 1. window.player が存在するか
+    // 2. 破壊用メソッド (destroy) が関数として存在するか（＝初期化完了しているか）
+    const isAvailable = window.player && typeof window.player.destroy === 'function';
+
+    return isAvailable ? window.player : null;
+}
 
 
 /**
@@ -626,8 +667,6 @@ function onPlayerStateChange(event) {
 			setTimeout(() => placeholder.classList.add('hidden'), 500); // 完全に消去
 		}
 	}
-
-
 }
 
 
