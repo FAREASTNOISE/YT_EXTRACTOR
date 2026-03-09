@@ -36,6 +36,91 @@ let currentVideoTitle = "";
  */
 let isCurrentShorts = false;
 
+
+
+/**
+ * YouTube サムネイルの取得候補リスト（テンプレート）
+ * 各オブジェクトの `path` 内にある "ID" 文字列を、実行時に実際の動画IDと置換して使用する。
+ * @type {Array<{label: string, res: string, path: string, isScene: boolean}>}
+ */
+const THUMBNAIL_TEMPLATES = [
+    // メイン画像 (img.youtube.com 系)
+    { label: 'Max Res', res: '1280x720', path: 'vi/ID/maxresdefault.jpg', isScene: false },
+    { label: 'Ultra HQ', res: '720p', path: 'vi/ID/hq720.jpg', isScene: false },
+    { label: 'Standard', res: '640x480', path: 'vi/ID/sddefault.jpg', isScene: false },
+
+    // WebPのアニメーション (i.ytimg.com 系)
+    { label: 'Animated 1', res: 'WebP', path: 'vi_webp/ID/1.webp', isScene: true },
+    { label: 'Animated 2', res: 'WebP', path: 'vi_webp/ID/2.webp', isScene: true },
+    { label: 'Animated 3', res: 'WebP', path: 'vi_webp/ID/3.webp', isScene: true },
+    { label: 'Scene WebP', res: 'WebP', path: 'vi_webp/ID/default.webp', isScene: true },
+
+    // 高画質なシーン画像
+    { label: 'High Scene 1', res: 'HQ', path: 'vi/ID/hq1.jpg', isScene: true },
+    { label: 'High Scene 2', res: 'HQ', path: 'vi/ID/hq2.jpg', isScene: true },
+    { label: 'High Scene 3', res: 'HQ', path: 'vi/ID/hq3.jpg', isScene: true },
+
+    // 中画質なシーン画像
+    { label: 'Wide Scene 1', res: 'MQ', path: 'vi/ID/mq1.jpg', isScene: true },
+    { label: 'Wide Scene 2', res: 'MQ', path: 'vi/ID/mq2.jpg', isScene: true },
+    { label: 'Wide Scene 3', res: 'MQ', path: 'vi/ID/mq3.jpg', isScene: true },
+
+    // 予備枠
+    { label: 'Alt Thumb', res: '0.jpg', path: 'vi/ID/0.jpg', isScene: true },
+    { label: 'Legacy 1', res: '1.jpg', path: 'vi/ID/1.jpg', isScene: true }
+
+	// --- 以下、将来用の予備（コメントアウト） ---
+    // { label: 'Scene 1', res: 'Storyboard', path: 'vi/ID/1.jpg', isScene: true },
+    // { label: 'Scene 2', res: 'Storyboard', path: 'vi/ID/2.jpg', isScene: true },
+    // { label: 'Scene 3', res: 'Storyboard', path: 'vi/ID/3.jpg', isScene: true },
+
+    // { label: 'Start',   res: 'Small',      path: 'vi/ID/1.jpg', isScene: true },
+    // { label: 'Middle',  res: 'Small',      path: 'vi/ID/2.jpg', isScene: true },
+    // { label: 'End',     res: 'Small',      path: 'vi/ID/3.jpg', isScene: true },
+];
+
+
+
+/**
+ * YouTube サムネイルの取得候補リスト（テンプレート）
+ * 各オブジェクトの `path` 内にある "ID" 文字列を、実行時に実際の動画IDと置換して使用する。
+ * * @type {Array<{label: string, res: string, path: string, isScene: boolean}>}
+ */
+const THUMBNAIL_TEMPLATES = [
+		// メイン画像
+		{ label: 'Max Res', res: '1280x720', url: `https://img.youtube.com/vi/${id}/maxresdefault.jpg`, isScene: false },
+		{ label: 'Ultra HQ', res: '720p', url: `https://img.youtube.com/vi/${id}/hq720.jpg`, isScene: false },
+		{ label: 'Standard', res: '640x480', url: `https://img.youtube.com/vi/${id}/sddefault.jpg`, isScene: false },
+
+		// WebPのアニメーションサムネイル
+		{ label: 'Animated 1', res: 'WebP', url: `https://i.ytimg.com/vi_webp/${id}/1.webp`, isScene: true },
+		{ label: 'Animated 2', res: 'WebP', url: `https://i.ytimg.com/vi_webp/${id}/2.webp`, isScene: true },
+		{ label: 'Animated 3', res: 'WebP', url: `https://i.ytimg.com/vi_webp/${id}/3.webp`, isScene: true },
+
+		// preview.webp が一番「動く」確率が高い
+		{ label: 'Motion', res: 'WebP', url: `https://www.google.com/url?sa=E&source=gmail&q=i9.ytimg.com`, isScene: true },
+		{ label: 'Scene WebP', res: 'WebP', url: `https://i.ytimg.com/vi_webp/${id}/default.webp`, isScene: true },
+
+		// 高画質なシーン画像（16:9 狙い）
+		{ label: 'High Scene 1', res: 'HQ', url: `https://img.youtube.com/vi/${id}/hq1.jpg`, isScene: true },
+		{ label: 'High Scene 2', res: 'HQ', url: `https://img.youtube.com/vi/${id}/hq2.jpg`, isScene: true },
+		{ label: 'High Scene 3', res: 'HQ', url: `https://img.youtube.com/vi/${id}/hq3.jpg`, isScene: true },
+
+		// 中画質なシーン画像
+		{ label: 'Wide Scene 1', res: 'MQ', url: `https://img.youtube.com/vi/${id}/mq1.jpg`, isScene: true },
+		{ label: 'Wide Scene 2', res: 'MQ', url: `https://img.youtube.com/vi/${id}/mq2.jpg`, isScene: true },
+		{ label: 'Wide Scene 3', res: 'MQ', url: `https://img.youtube.com/vi/${id}/mq3.jpg`, isScene: true },
+
+		// 予備・レア枠
+		{ label: 'Alt Thumb', res: '0.jpg', url: `https://img.youtube.com/vi/${id}/0.jpg`, isScene: true },
+		{ label: 'Legacy 1', res: '1.jpg', url: `https://img.youtube.com/vi/${id}/1.jpg`, isScene: true },
+
+
+];
+
+
+
+
 /**
  * アプリケーションのグローバル状態（動画情報やアセット情報）を初期化する。
  * 新しい動画を読み込む直前に呼び出し、古いデータの混入を防ぐためのもの。
@@ -533,73 +618,62 @@ async function loadVideo(id, startTime = 0, isShorts = false, shouldScroll = fal
 		}
 	});
 
-	const candidates = [
 
-		// メイン画像
-		{ label: 'Max Res', res: '1280x720', url: `https://img.youtube.com/vi/${id}/maxresdefault.jpg`, isScene: false },
-		{ label: 'Ultra HQ', res: '720p', url: `https://img.youtube.com/vi/${id}/hq720.jpg`, isScene: false },
-		{ label: 'Standard', res: '640x480', url: `https://img.youtube.com/vi/${id}/sddefault.jpg`, isScene: false },
+	// //　これ冒頭に変数として移動
+	// const candidates = [
 
-		// WebPのアニメーションサムネイル
-		{ label: 'Animated 1', res: 'WebP', url: `https://i.ytimg.com/vi_webp/${id}/1.webp`, isScene: true },
-		{ label: 'Animated 2', res: 'WebP', url: `https://i.ytimg.com/vi_webp/${id}/2.webp`, isScene: true },
-		{ label: 'Animated 3', res: 'WebP', url: `https://i.ytimg.com/vi_webp/${id}/3.webp`, isScene: true },
-
-		// preview.webp が一番「動く」確率が高い
-		{ label: 'Motion', res: 'WebP', url: `https://www.google.com/url?sa=E&source=gmail&q=i9.ytimg.com`, isScene: true },
-		{ label: 'Scene WebP', res: 'WebP', url: `https://i.ytimg.com/vi_webp/${id}/default.webp`, isScene: true },
-
-		// 高画質なシーン画像（16:9 狙い）
-		{ label: 'High Scene 1', res: 'HQ', url: `https://img.youtube.com/vi/${id}/hq1.jpg`, isScene: true },
-		{ label: 'High Scene 2', res: 'HQ', url: `https://img.youtube.com/vi/${id}/hq2.jpg`, isScene: true },
-		{ label: 'High Scene 3', res: 'HQ', url: `https://img.youtube.com/vi/${id}/hq3.jpg`, isScene: true },
-
-		// 中画質なシーン画像
-		{ label: 'Wide Scene 1', res: 'MQ', url: `https://img.youtube.com/vi/${id}/mq1.jpg`, isScene: true },
-		{ label: 'Wide Scene 2', res: 'MQ', url: `https://img.youtube.com/vi/${id}/mq2.jpg`, isScene: true },
-		{ label: 'Wide Scene 3', res: 'MQ', url: `https://img.youtube.com/vi/${id}/mq3.jpg`, isScene: true },
-
-		// 予備・レア枠
-		{ label: 'Alt Thumb', res: '0.jpg', url: `https://img.youtube.com/vi/${id}/0.jpg`, isScene: true },
-		{ label: 'Legacy 1', res: '1.jpg', url: `https://img.youtube.com/vi/${id}/1.jpg`, isScene: true },
-
-		// { label: 'Scene 1', res: 'Storyboard', url: `https://img.youtube.com/vi/${id}/1.jpg`, isScene: true },
-		// { label: 'Scene 2', res: 'Storyboard', url: `https://img.youtube.com/vi/${id}/2.jpg`, isScene: true },
-		// { label: 'Scene 3', res: 'Storyboard', url: `https://img.youtube.com/vi/${id}/3.jpg`, isScene: true },
-
-		// { label: 'Start', res: 'Small', url: `https://img.youtube.com/vi/${id}/1.jpg`, isScene: true },
-		// { label: 'Middle', res: 'Small', url: `https://img.youtube.com/vi/${id}/2.jpg`, isScene: true },
-		// { label: 'End', res: 'Small', url: `https://img.youtube.com/vi/${id}/3.jpg`, isScene: true },
-	];
+	// ];
 
 
-	// --- 画像の存在チェック ---
-	// --- 画像の存在チェック (並列処理版) ---
-    // 全候補のチェックを同時に開始する
-	// assetList = [];
-	// for (const c of candidates) {
-    const checkPromises = candidates.map(async (c) => {
-		try {
-			const isValid = await new Promise(resolve => {
-				const img = new Image();
-				img.crossOrigin = "anonymous";
-				img.onload = () => resolve(img.width > 120); // YouTubeの404画像は幅が狭いため除外
-				img.onerror = () => resolve(false);
-				img.src = c.url;
-				setTimeout(() => resolve(false), 3000); // 3秒でタイムアウト
-			});
-			return isValid ? c : null;
-			// if (isValid) assetList.push(c);
-		} catch (e) {
-			// continue;
-			return null;
-		}
-	}
-	// すべての結果が揃うのを待つ
+	// --- 画像の存在チェック (リファクタリング版) ---
+
+	// 1. テンプレートからURL付きの候補リストを作成
+	const candidates = THUMBNAIL_TEMPLATES.map(t => ({
+		...t,
+		url: `https://img.youtube.com/${t.path.replace('ID', id)}`
+	}));
+
+	// 2. 全候補を一斉にチェック（爆速並列処理）
+	const checkPromises = candidates.map(async (c) => {
+		const isValid = await validateYouTubeImage(c.url);
+		return isValid ? c : null;
+	});
+
+	// 3. 全て完了するのを待って、有効なものだけ抽出
 	const results = await Promise.all(checkPromises);
+	assetList = results.filter(res => res !== null);
 
-	// null（無効だったもの）を除外して assetList を作成
-    assetList = results.filter(result => result !== null);
+	// // --- 画像の存在チェック ---
+	// // --- 画像の存在チェック (並列処理版) ---
+    // // 全候補のチェックを同時に開始する
+	// // assetList = [];
+	// // for (const c of candidates) {
+    // const checkPromises = candidates.map(async (c) => {
+
+	// 	try {
+	// 		const isValid = await new Promise(resolve => {
+	// 			const img = new Image();
+	// 			img.crossOrigin = "anonymous";
+	// 			img.onload = () => resolve(img.width > 120); // YouTubeの404画像は幅が狭いため除外
+	// 			img.onerror = () => resolve(false);
+	// 			img.src = c.url;
+	// 			setTimeout(() => resolve(false), 3000); // 3秒でタイムアウト
+	// 		});
+	// 		return isValid ? c : null;
+	// 		// if (isValid) assetList.push(c);
+	// 	} catch (e) {
+	// 		// continue;
+	// 		return null;
+	// 	}
+	// }
+	// // すべての結果が揃うのを待つ
+	// const results = await Promise.all(checkPromises);
+
+	// // null（無効だったもの）を除外して assetList を作成
+    // assetList = results.filter(result => result !== null);
+
+
+
 
 	// --- スライダーの表示更新 ---
 	const slider = document.getElementById('mainSlider');
@@ -635,6 +709,24 @@ function getSafePlayer() {
 
     return isAvailable ? window.player : null;
 }
+
+
+/**
+ * 指定されたURLの画像が有効（YouTubeの404用画像でない）か判定する
+ * @param {string} url - チェックする画像のURL
+ * @returns {Promise<boolean>} 有効ならtrue, 無効または失敗ならfalse
+ */
+function validateYouTubeImage(url) {
+    return new Promise(resolve => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => resolve(img.width > 120); // 404画像除外
+        img.onerror = () => resolve(false);
+        img.src = url;
+        setTimeout(() => resolve(false), 3000); // 3秒タイムアウト
+    });
+}
+
 
 
 /**
