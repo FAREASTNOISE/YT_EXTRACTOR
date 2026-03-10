@@ -382,7 +382,6 @@ function handleModeSwitch(isShorts) {
         eHeight: document.getElementById('eHeight')
 	};
 
-	// if (!el.normal || !el.shorts) return;
 	if (!el.normal || !el.shorts || !el.eWidth || !el.eHeight) return;
 
 	// 1. 表示の切り替え
@@ -399,7 +398,6 @@ function handleModeSwitch(isShorts) {
         el.eWidth.value = 560;
         el.eHeight.value = 315;
     }
-
 
     // 3. 【重要】サイズを変えたので、タグの出力を更新する
     updateEmbedOutputs();
@@ -447,7 +445,7 @@ function switchTab(t) {
 
 
 
-// 明日ここから↓↓↓↓↓↓↓↓ 3/7
+// だいぶリファクタりんした。また明日ここから↓↓↓↓↓↓↓↓ 3/９　
 
 
 /**
@@ -530,8 +528,11 @@ async function loadVideo(id, startTime = 0, isShorts = false, shouldScroll = fal
 		if (titleEl) titleEl.innerText = currentVideoTitle;
 
 	} catch (error) {
-		console.warn("タイトルの取得に失敗:", error);
-		currentVideoTitle = "YouTube Video"; // 失敗時の予備
+		const titleEl = document.getElementById('vTitle');
+		if (titleEl) {
+        	titleEl.innerHTML = `<span style="color:orange;">⚠ タイトルを取得できませんでした</span>`;
+		}
+		currentVideoTitle = "動画読み込みエラー";
 	}
 
 	// 1. まずプレースホルダーにサムネイルをセットして表示する
@@ -582,19 +583,18 @@ async function loadVideo(id, startTime = 0, isShorts = false, shouldScroll = fal
 	});
 
 
-	// //　これ冒頭に変数として移動
-	// const candidates = [
-
-	// ];
-
-
 	// --- 画像の存在チェック (リファクタリング版) ---
 
 	// 1. テンプレートからURL付きの候補リストを作成
-	const candidates = THUMBNAIL_TEMPLATES.map(t => ({
-		...t,
-		url: `https://img.youtube.com/${t.path.replace('ID', id)}`
-	}));
+	const candidates = THUMBNAIL_TEMPLATES.map(t => {
+		// webpが含まれるパスは i.ytimg.com、それ以外は img.youtube.com を使う
+		const domain = t.path.includes('webp') ? 'i.ytimg.com' : 'img.youtube.com';
+
+		return {
+			...t,
+			url: `https://${domain}/${t.path.replace('ID', id)}`
+		};
+	});
 
 	// 2. 全候補を一斉にチェック（爆速並列処理）
 	const checkPromises = candidates.map(async (c) => {
@@ -606,50 +606,26 @@ async function loadVideo(id, startTime = 0, isShorts = false, shouldScroll = fal
 	const results = await Promise.all(checkPromises);
 	assetList = results.filter(res => res !== null);
 
-	// // --- 画像の存在チェック ---
-	// // --- 画像の存在チェック (並列処理版) ---
-    // // 全候補のチェックを同時に開始する
-	// // assetList = [];
-	// // for (const c of candidates) {
-    // const checkPromises = candidates.map(async (c) => {
-
-	// 	try {
-	// 		const isValid = await new Promise(resolve => {
-	// 			const img = new Image();
-	// 			img.crossOrigin = "anonymous";
-	// 			img.onload = () => resolve(img.width > 120); // YouTubeの404画像は幅が狭いため除外
-	// 			img.onerror = () => resolve(false);
-	// 			img.src = c.url;
-	// 			setTimeout(() => resolve(false), 3000); // 3秒でタイムアウト
-	// 		});
-	// 		return isValid ? c : null;
-	// 		// if (isValid) assetList.push(c);
-	// 	} catch (e) {
-	// 		// continue;
-	// 		return null;
-	// 	}
-	// }
-	// // すべての結果が揃うのを待つ
-	// const results = await Promise.all(checkPromises);
-
-	// // null（無効だったもの）を除外して assetList を作成
-    // assetList = results.filter(result => result !== null);
-
-
-
 
 	// --- スライダーの表示更新 ---
 	const slider = document.getElementById('mainSlider');
-	slider.innerHTML = assetList.map(a => `
-		<div class="slide-item-container ${a.isScene ? 'is-scene' : 'is-main'}">
-			<img src="${a.url}" class="${a.isScene ? 'slide-item-natural' : 'slide-item-fit'}" loading="lazy">
-		</div>
-	`).join('');
+	if (slider) {
+		slider.innerHTML = assetList.map(a => `
+			<div class="slide-item-container ${a.isScene ? 'is-scene' : 'is-main'}">
+				<img src="${a.url}" class="${a.isScene ? 'slide-item-natural' : 'slide-item-fit'}" loading="lazy">
+			</div>
+		`).join('');
 
-	slider.scrollTo(0, 0);
-	updateDots('mainSlider', 'mainIndicator', 1);
+		slider.scrollTo(0, 0);
 
-	// --- 結果エリアへスクロール ---
+		if (typeof updateDots === 'function') {
+			updateDots('mainSlider', 'mainIndicator', 1);
+		}
+	} else {
+		console.warn("警告: mainSlider 要素が見つかりませんでした。");
+	}
+
+	// --- メインの結果エリアへスクロール ---
 	if (shouldScroll) {
 		window.scrollTo({
 			top: document.getElementById('resultArea').offsetTop - 20,
