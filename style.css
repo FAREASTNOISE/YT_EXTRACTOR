@@ -127,6 +127,45 @@ body {
 
 
 
+.result-header {
+    display: flex;
+    justify-content: center; /* 真ん中寄せ */
+    width: 100%;
+    margin: 20px 0 10px 0;   /* 上に少し余裕を持たせる */
+}
+
+#vTitle {
+    /* 装飾をリセット */
+    background: none;
+    border: none;
+    padding: 0;
+
+    /* フォント設定 */
+	font-family: 'DotGothic16', sans-serif;
+    font-size: 0.625rem;
+    font-weight: 400;
+    color: #666;              /* 文字色 */
+	text-transform: uppercase;
+	letter-spacing: 0.3em; /* ドットフォントは字間を少し広げると見やすくなります */
+
+    /* レイアウト */
+    text-align: center;
+    max-width: 90%;
+    line-height: 1.8;
+
+    /* 長いタイトルの処理（必要に応じて） */
+    /* 2行まで表示したい場合は、以下の設定を。1行なら ellipsis を。 */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;    /* 2行まで表示 */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+
+
+
+
+
 #mainSlider {
 	display: flex;
 	overflow-x: auto;          /* または scroll */

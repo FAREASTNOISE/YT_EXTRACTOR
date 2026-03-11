@@ -515,25 +515,32 @@ async function loadVideo(id, startTime = 0, isShorts = false, shouldScroll = fal
 	}
 
 
-	// --- 動画タイトル取得 (APIキー不要のoEmbedを使用) ---
-	try {
-		const response = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${id}&format=json`);
-		if (!response.ok) throw new Error("メタデータの取得に失敗");
+	// --- 動画タイトル取得 ---
+	currentVideoTitle = await fetchVideoTitle(id);
 
-		const data = await response.json();
-		currentVideoTitle = data.title; // シェア用に変数へ保存
+	// 画面表示を更新
+	const titleEl = document.getElementById('vTitle');
+	if (titleEl) titleEl.innerText = currentVideoTitle;
 
-		// 画面上にタイトル表示要素があれば更新
-		const titleEl = document.getElementById('vTitle');
-		if (titleEl) titleEl.innerText = currentVideoTitle;
+	// // --- 動画タイトル取得 (APIキー不要のoEmbedを使用) ---
+	// try {
+	// 	const response = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${id}&format=json`);
+	// 	if (!response.ok) throw new Error("メタデータの取得に失敗");
 
-	} catch (error) {
-		const titleEl = document.getElementById('vTitle');
-		if (titleEl) {
-        	titleEl.innerHTML = `<span style="color:orange;">⚠ タイトルを取得できませんでした</span>`;
-		}
-		currentVideoTitle = "動画読み込みエラー";
-	}
+	// 	const data = await response.json();
+	// 	currentVideoTitle = data.title; // シェア用に変数へ保存
+
+	// 	// 画面上にタイトル表示要素があれば更新
+	// 	const titleEl = document.getElementById('vTitle');
+	// 	if (titleEl) titleEl.innerText = currentVideoTitle;
+
+	// } catch (error) {
+	// 	const titleEl = document.getElementById('vTitle');
+	// 	if (titleEl) {
+    //     	titleEl.innerHTML = `<span style="color:orange;">⚠ タイトルを取得できませんでした</span>`;
+	// 	}
+	// 	currentVideoTitle = "動画読み込みエラー";
+	// }
 
 	// 1. まずプレースホルダーにサムネイルをセットして表示する
 	const placeholder = document.getElementById('player-placeholder');
@@ -606,24 +613,9 @@ async function loadVideo(id, startTime = 0, isShorts = false, shouldScroll = fal
 	const results = await Promise.all(checkPromises);
 	assetList = results.filter(res => res !== null);
 
-
 	// --- スライダーの表示更新 ---
-	const slider = document.getElementById('mainSlider');
-	if (slider) {
-		slider.innerHTML = assetList.map(a => `
-			<div class="slide-item-container ${a.isScene ? 'is-scene' : 'is-main'}">
-				<img src="${a.url}" class="${a.isScene ? 'slide-item-natural' : 'slide-item-fit'}" loading="lazy">
-			</div>
-		`).join('');
+    updateThumbnailSliderUI(assetList);
 
-		slider.scrollTo(0, 0);
-
-		if (typeof updateDots === 'function') {
-			updateDots('mainSlider', 'mainIndicator', 1);
-		}
-	} else {
-		console.warn("警告: mainSlider 要素が見つかりませんでした。");
-	}
 
 	// --- メインの結果エリアへスクロール ---
 	if (shouldScroll) {
@@ -634,6 +626,47 @@ async function loadVideo(id, startTime = 0, isShorts = false, shouldScroll = fal
 	}
 }
 
+
+/**
+ * 動画のタイトルを非同期で取得する
+ * @param {string} id - 動画ID
+ * @returns {Promise<string>} 動画タイトル（失敗時は予備のタイトル）
+ */
+async function fetchVideoTitle(id) {
+    try {
+        const response = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${id}&format=json`);
+        if (!response.ok) throw new Error("取得失敗");
+        const data = await response.json();
+        return data.title;
+    } catch (error) {
+        console.warn("タイトルの取得に失敗:", error);
+        return "YouTube Video"; // 失敗した時のバックアップ
+    }
+}
+
+
+
+/**
+ * 取得したアセットリストを元にスライダーのUIを更新する
+ * @param {Array} assets - 有効な画像のリスト
+ */
+function updateThumbnailSliderUI(assets) {
+    const slider = document.getElementById('mainSlider');
+    if (!slider) return;
+
+    // HTMLの組み立て
+    slider.innerHTML = assets.map(a => `
+        <div class="slide-item-container ${a.isScene ? 'is-scene' : 'is-main'}">
+            <img src="${a.url}" class="${a.isScene ? 'slide-item-natural' : 'slide-item-fit'}" loading="lazy">
+        </div>
+    `).join('');
+
+    // スクロール位置のリセットとドットの更新
+    slider.scrollTo(0, 0);
+    if (typeof updateDots === 'function') {
+        updateDots('mainSlider', 'mainIndicator', 1);
+    }
+}
 
 
 /**
@@ -703,102 +736,201 @@ function onPlayerStateChange(event) {
 
 
 
-
-
-
-
-
 /**
- * プレイリストの中身を履歴風のカードで表示する
+ * 指定されたプレイリストIDから動画一覧を取得し、履歴風のカードUIを生成・表示する。
+ * 内部で PHP API (get_playlist.php) を呼び出し、結果を #playlistList にレンダリングする。
+ * * @async
+ * @function fetchPlaylist
+ * @param {string} listId - 取得対象のYouTubeプレイリストID。
+ * @returns {Promise<void>}
  */
 async function fetchPlaylist(listId) {
-	const section = document.getElementById('playlistSection');
-	const list = document.getElementById('playlistList');
-	const indicator = document.getElementById('playlistIndicator');
+    const section = document.getElementById('playlistSection');
+    const list = document.getElementById('playlistList');
+    const indicator = document.getElementById('playlistIndicator');
 
-	if (!section || !list) return;
+    if (!section || !list) return;
 
-	section.classList.remove('hidden');
-	// 親要素に relative をつけて、ボタンを左右に固定する準備
-	section.className = "mt-12 border-t border-black/10 pt-8 relative group";
+    // セクションを表示状態にし、ローディング表示を開始
+    section.classList.remove('hidden');
+    list.innerHTML = `<p class="text-[10px] animate-pulse p-4 font-bold tracking-widest">SYNCHRONIZING...</p>`;
 
-	list.innerHTML = `<p class="text-[10px] animate-pulse p-4 font-bold tracking-widest">SYNCHRONIZING...</p>`;
+    try {
+        // 自前サーバーのPHPエンドポイントへリクエスト
+        const url = `api/get_playlist.php?id=${listId}`;
+        const response = await fetch(url);
 
-	try {
-		// const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=10&playlistId=${listId}&key=${YOUTUBE_API_KEY}`;
-		const url = `api/get_playlist.php?id=${listId}`;
-		const response = await fetch(url);
+        if (!response.ok) {
+            if (response.status === 404) {
+                throw new Error("PLAYLIST_NOT_FOUND");
+            } else {
+                throw new Error(`SERVER_ERROR: ${response.status}`);
+            }
+        }
 
-		// if (!response.ok) throw new Error(`HTTP_ERROR: ${response.status}`);
+        const data = await response.json();
 
-		if (!response.ok) {
-		if (response.status === 404) {
-			throw new Error("PLAYLIST_NOT_FOUND (IDを確認してください)");
-		} else {
-			throw new Error(`SERVER_ERROR: ${response.status}`);
-		}
-	}
+        if (data.items && data.items.length > 0) {
+            // 1. 各動画アイテムをカード形式のHTMLに変換
+            list.innerHTML = data.items.map(item => {
+                const snippet = item.snippet || {};
+                const videoId = snippet.resourceId ? snippet.resourceId.videoId : (item.videoId || null);
+                const title = snippet.title || 'NO_TITLE';
 
-		const data = await response.json();
+                // --- 追加：タイトルからShortsかどうかを簡易判定 ---
+                const isShorts = title.toLowerCase().includes('#shorts');
 
-		if (data.items) {
-			// 1. カードの生成
-			list.innerHTML = data.items.map(item => {
-				const vId = item.snippet.resourceId?.videoId;
-				if (!vId) return '';
+                if (!videoId) return '';
 
-				// タイトルを安全に取得（もしあれば）
-				const title = item.snippet.title || 'NO_TITLE';
+                // History（閲覧履歴）と同じデザインのカード構造を生成
+                return `
+                <div class="item-card rounded md:rounded-xl overflow-hidden
+				flex-shrink-0 w-[140px] md:w-[180px] cursor-pointer group/item active:scale-95 transition-transform"
+                     onclick="loadVideo('${videoId}', 0, ${isShorts}, true)">
+                    <div class="relative overflow-hidden rounded-lg bg-black/5">
+                        <img src="https://img.youtube.com/vi/${videoId}/mqdefault.jpg"
+                             class="w-full aspect-video object-cover transition-all duration-500 group-hover/item:scale-103"
+                             alt="thumbnail"
+                             loading="lazy">
+                    </div>
+                    <div class="mt-2 px-1">
+                        <p class="text-[9px] font-mono text-gray-500 tracking-widest uppercase line-clamp-1 opacity-80">
+                            ${title}
+                        </p>
+                    </div>
+                </div>`;
+            }).join('');
 
-				return `
-					<div class="item-card flex-shrink-0 w-[180px] snap-start cursor-pointer group/item active:scale-95 transition-transform"
-						onclick="loadVideo('${vId}', undefined, true)">
-						<div class="relative overflow-hidden rounded-2xl bg-black/[0.03] border border-black/[0.05]">
-							<img src="https://img.youtube.com/vi/${vId}/mqdefault.jpg"
-								class="w-full aspect-video object-cover transition-all duration-500 group-hover/item:scale-110"
-								loading="lazy">
-							<div class="absolute inset-0 bg-black/0 group-hover/item:bg-black/5 transition-colors"></div>
-						</div>
-						<p class="text-[10px] mt-3 font-medium text-black/60 line-clamp-2 uppercase tracking-[0.1em] leading-relaxed">
-							${title}
-						</p>
-					</div>
-				`;
-			}).join('');
+            // 2. スクロールに応じたドットインジケーターの更新設定
+            list.onscroll = () => updateDots('playlistList', 'playlistIndicator', 1);
+            updateDots('playlistList', 'playlistIndicator', 1);
 
-			// 2. ボタンの生成（Historyと全く同じ構造）
-			// 二重に作られないように一度消してから追加
- // 2. ボタンの生成（Historyと完全に一致、矢印の色をblackへ）
-			section.querySelectorAll('.nav-btn').forEach(btn => btn.remove());
-
-			const prevBtn = `
-				<div class="nav-btn !w-8 !h-8 opacity-0 group-hover:opacity-100 transition-opacity"
-					 style="left:-10px; top:45%; position:absolute; z-index:50;"
-					 onclick="moveSlide('playlistList', -1)">
-					<div class="arrow !w-1.5 !h-1.5"
-						 style="transform:rotate(-135deg); border-top:2px solid black; border-right:2px solid black;"></div>
-				</div>`;
-
-			const nextBtn = `
-				<div class="nav-btn !w-8 !h-8 opacity-0 group-hover:opacity-100 transition-opacity"
-					 style="right:-10px; top:45%; position:absolute; z-index:50;"
-					 onclick="moveSlide('playlistList', 1)">
-					<div class="arrow !w-1.5 !h-1.5"
-						 style="transform:rotate(45deg); border-top:2px solid black; border-right:2px solid black;"></div>
-				</div>`;
-
-			section.insertAdjacentHTML('beforeend', prevBtn);
-			section.insertAdjacentHTML('beforeend', nextBtn);
-
-			// 3. ドットの連動
-			list.onscroll = () => updateDots('playlistList', 'playlistIndicator', 1);
-			updateDots('playlistList', 'playlistIndicator', 1);
-		}
-	} catch (e) {
-		console.error("Playlist render error:", e);
-		list.innerHTML = `<p class="text-[10px] p-4 text-red-500 font-bold">\>_ CONNECTION_FAILED: ${e.message}</p>`;
-	}
+        } else {
+            list.innerHTML = `<p class="text-[10px] p-4 text-gray-400 font-bold">EMPTY_PLAYLIST</p>`;
+        }
+    } catch (e) {
+        console.error("Playlist render error:", e);
+        list.innerHTML = `<p class="text-[10px] p-4 text-red-500 font-bold">\>_ CONNECTION_FAILED: ${e.message}</p>`;
+    }
 }
+
+
+// /**
+//  * プレイリストの中身を履歴風のカードで表示する
+//  */
+// async function fetchPlaylist(listId) {
+// 	const section = document.getElementById('playlistSection');
+// 	const list = document.getElementById('playlistList');
+// 	const indicator = document.getElementById('playlistIndicator');
+
+// 	if (!section || !list) return;
+
+// 	section.classList.remove('hidden');
+// 	// 親要素に relative をつけて、ボタンを左右に固定する準備
+// 	//section.className = "mt-12 border-t border-black/10 pt-8 relative group";
+
+// 	list.innerHTML = `<p class="text-[10px] animate-pulse p-4 font-bold tracking-widest">SYNCHRONIZING...</p>`;
+
+// 	try {
+// 		// const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=10&playlistId=${listId}&key=${YOUTUBE_API_KEY}`;
+// 		const url = `api/get_playlist.php?id=${listId}`;
+// 		const response = await fetch(url);
+
+// 		// if (!response.ok) throw new Error(`HTTP_ERROR: ${response.status}`);
+
+// 		if (!response.ok) {
+// 			if (response.status === 404) {
+// 				throw new Error("PLAYLIST_NOT_FOUND (IDを確認してください)");
+// 			} else {
+// 				throw new Error(`SERVER_ERROR: ${response.status}`);
+// 			}
+// 		}
+
+// 		const data = await response.json();
+
+// 		if (data.items) {
+// 			// 1. カードの生成
+// 			list.innerHTML = data.items.map(item => {
+// 				// const videoId = item.snippet.resourceId?.videoId;
+// 				// if (!videoId) return '';
+
+// 				const isObj = (typeof item.snippet === 'object' && item.snippet !== null);
+// 				const videoId = isObj ? item.snippet.id : item.snippet;
+// 				//const startTime = isObj ? (item.start || 0) : 0;
+// 				const isShorts = isObj ? (item.snippet.isShorts || false) : false;
+
+// 				// タイトルを安全に取得（もしあれば）
+// 				const title = item.snippet.title || 'NO_TITLE';
+
+
+// 				return `
+// 				<div class="item-card rounded md:rounded-xl overflow-hidden" onclick="loadVideo('${videoId}', 0, ${isShorts}, true)">
+// 					<img src="https://img.youtube.com/vi/${videoId}/mqdefault.jpg"
+// 						class="w-full aspect-video object-cover rounded md:rounded-md shadow-sm"
+// 						alt="thumbnail">
+
+// 					<div class="flex items-baseline mt-1.5 mb-1.5 pl-2 font-mono text-gray-500">
+
+// 						<span class="inline-block transform translate-y-[1.5px] text-[9px] tracking-widest opacity-80">
+// 							${title}
+// 						</span>
+// 					</div>
+// 				</div>`;
+
+
+// 				// return `
+// 				// 	<div class="item-card flex-shrink-0 w-[180px] snap-start cursor-pointer group/item active:scale-95 transition-transform"
+// 				// 		onclick="loadVideo('${vId}', undefined, true)">
+// 				// 		<div class="relative overflow-hidden rounded-2xl bg-black/[0.03] border border-black/[0.05]">
+// 				// 			<img src="https://img.youtube.com/vi/${vId}/mqdefault.jpg"
+// 				// 				class="w-full aspect-video object-cover transition-all duration-500 group-hover/item:scale-110"
+// 				// 				loading="lazy">
+// 				// 			<div class="absolute inset-0 bg-black/0 group-hover/item:bg-black/5 transition-colors"></div>
+// 				// 		</div>
+// 				// 		<p class="text-[10px] mt-3 font-medium text-black/60 line-clamp-2 uppercase tracking-[0.1em] leading-relaxed">
+// 				// 			${title}
+// 				// 		</p>
+// 				// 	</div>
+// 				// `;
+// 			}).join('');
+
+// 			// 2. ボタンの生成（Historyと全く同じ構造）
+// 			// 二重に作られないように一度消してから追加
+//  // 2. ボタンの生成（Historyと完全に一致、矢印の色をblackへ）
+// 			// section.querySelectorAll('.nav-btn').forEach(btn => btn.remove());
+
+// 			// const prevBtn = `
+// 			// 	<div class="nav-btn !w-8 !h-8 opacity-0 group-hover:opacity-100 transition-opacity"
+// 			// 		 style="left:-10px; top:45%; position:absolute; z-index:50;"
+// 			// 		 onclick="moveSlide('playlistList', -1)">
+// 			// 		<div class="arrow !w-1.5 !h-1.5"
+// 			// 			 style="transform:rotate(-135deg); border-top:2px solid black; border-right:2px solid black;"></div>
+// 			// 	</div>`;
+
+// 			// const nextBtn = `
+// 			// 	<div class="nav-btn !w-8 !h-8 opacity-0 group-hover:opacity-100 transition-opacity"
+// 			// 		 style="right:-10px; top:45%; position:absolute; z-index:50;"
+// 			// 		 onclick="moveSlide('playlistList', 1)">
+// 			// 		<div class="arrow !w-1.5 !h-1.5"
+// 			// 			 style="transform:rotate(45deg); border-top:2px solid black; border-right:2px solid black;"></div>
+// 			// 	</div>`;
+
+// 			// section.insertAdjacentHTML('beforeend', prevBtn);
+// 			// section.insertAdjacentHTML('beforeend', nextBtn);
+
+// 			// 3. ドットの連動
+// 			list.onscroll = () => updateDots('playlistList', 'playlistIndicator', 1);
+// 			updateDots('playlistList', 'playlistIndicator', 1);
+// 		}
+// 	} catch (e) {
+// 		console.error("Playlist render error:", e);
+// 		list.innerHTML = `<p class="text-[10px] p-4 text-red-500 font-bold">\>_ CONNECTION_FAILED: ${e.message}</p>`;
+// 	}
+// }
+
+
+
+
 
 /**
  * 実際にカードとドットを描画する共通関数
@@ -1063,7 +1195,6 @@ function updateEmbedOutputs() {
 		`;
 	}
 }
-
 
 
 /**

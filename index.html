@@ -164,6 +164,10 @@
 		</div>
 		<!-- // Tab Buttons -->
 
+<div class="result-header ">
+    <h3 id="vTitle"></h3>
+</div>
+
 
 
 		<!-- Main Assets content -->
@@ -187,7 +191,7 @@
 
 
 		<!-- Main Embed content -->
-			<div id="contentEmbed" class="hidden space-y-6">
+			<div id="contentEmbed" class="hidden space-y-4">
 
 				<!-- Player -->
 <div id="main-card-wrapper" class="nothing-card video-preview-area p-2 relative">
@@ -348,25 +352,31 @@
 
 		<div id="playlistSection" class="mt-12 hidden border-t border-black/10 pt-8">
 			<h3 class="dot-font text-[10px] uppercase mb-3 px-2 font-bold">Playlist Contents</h3>
-			<div id="playlistList" class="horizontal-scroll"></div>
+			<div class="relative">
+				<div class="nav-btn !w-8 !h-8" style="left:-10px;" onclick="moveSlide('playlistList', -1)"><div class="arrow !w-1.5 !h-1.5" style="transform:rotate(-135deg);"></div></div>
+				<div class="nav-btn !w-8 !h-8" style="right:-10px;" onclick="moveSlide('playlistList', 1)"><div class="arrow !w-1.5 !h-1.5" style="transform:rotate(45deg);"></div></div>
+
+
+				<div id="playlistList" class="horizontal-scroll gap-x-[8px] md:gap-x-[16px]"></div>
+			</div>
 			<div id="playlistIndicator" class="indicator-container"></div>
 		</div>
 
 
 
-<div id="historySection" class="mt-12 hidden border-t border-black/10 pt-8">
-	<h3 class="dot-font text-[10px] uppercase mb-3 px-2 font-bold">History</h3>
-	<div class="relative">
-		<div class="nav-btn !w-8 !h-8" style="left:-10px;" onclick="moveSlide('historyList', -1)"><div class="arrow !w-1.5 !h-1.5" style="transform:rotate(-135deg);"></div></div>
-		<div class="nav-btn !w-8 !h-8" style="right:-10px;" onclick="moveSlide('historyList', 1)"><div class="arrow !w-1.5 !h-1.5" style="transform:rotate(45deg);"></div></div>
+		<div id="historySection" class="mt-12 hidden border-t border-black/10 pt-8">
+			<h3 class="dot-font text-[10px] uppercase mb-3 px-2 font-bold">History</h3>
+			<div class="relative">
+				<div class="nav-btn !w-8 !h-8" style="left:-10px;" onclick="moveSlide('historyList', -1)"><div class="arrow !w-1.5 !h-1.5" style="transform:rotate(-135deg);"></div></div>
+				<div class="nav-btn !w-8 !h-8" style="right:-10px;" onclick="moveSlide('historyList', 1)"><div class="arrow !w-1.5 !h-1.5" style="transform:rotate(45deg);"></div></div>
 
-		<div id="historyList" class="horizontal-scroll gap-x-[8px] md:gap-x-[16px]"></div>
-	</div>
-	<div id="historyIndicator" class="indicator-container"></div>
-	<div class="flex justify-end mt-4 px-2">
-		<button onclick="copyAllHistory()" class="text-[9px] font-bold text-gray-400 border border-gray-300 rounded-full px-4 py-1 uppercase hover:bg-black hover:text-white transition-all">Copy All History URLs</button>
-	</div>
-</div>
+				<div id="historyList" class="horizontal-scroll gap-x-[8px] md:gap-x-[16px]"></div>
+			</div>
+			<div id="historyIndicator" class="indicator-container"></div>
+			<div class="flex justify-end mt-4 px-2">
+				<button onclick="copyAllHistory()" class="text-[9px] font-bold text-gray-400 border border-gray-300 rounded-full px-4 py-1 uppercase hover:bg-black hover:text-white transition-all">Copy All History URLs</button>
+			</div>
+		</div>
 
 		<footer class="mt-20 text-center pb-10">
 			<a href="https://www.amazon.jp/hz/wishlist/ls/zeitgeist-22" target="_blank" class="amazon-btn mb-8">Support Project</a>
