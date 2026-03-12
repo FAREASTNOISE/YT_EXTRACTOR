@@ -785,14 +785,13 @@ async function fetchPlaylist(listId) {
                 // History（閲覧履歴）と同じデザインのカード構造を生成
                 return `
                 <div class="item-card rounded md:rounded-xl overflow-hidden
-				flex-shrink-0 w-[140px] md:w-[180px] cursor-pointer group/item active:scale-95 transition-transform"
+				flex-shrink-0 w-[140px] md:w-[180px] cursor-pointer group/item active:scale-95 transition-transform" 
                      onclick="loadVideo('${videoId}', 0, ${isShorts}, true)">
-                    <div class="relative overflow-hidden rounded-lg bg-black/5">
+
                         <img src="https://img.youtube.com/vi/${videoId}/mqdefault.jpg"
-                             class="w-full aspect-video object-cover transition-all duration-500 group-hover/item:scale-103"
-                             alt="thumbnail"
-                             loading="lazy">
-                    </div>
+							class="w-full aspect-video object-cover rounded md:rounded-md shadow-sm"
+                            alt="thumbnail"
+                            loading="lazy">
                     <div class="mt-2 px-1">
                         <p class="text-[9px] font-mono text-gray-500 tracking-widest uppercase line-clamp-1 opacity-80">
                             ${title}

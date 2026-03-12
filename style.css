@@ -449,12 +449,14 @@ body {
 
 
 /* 履歴の親要素を基準にするための設定 */
+#playlistSection .relative,
 #historySection .relative {
 	position: relative;
 	padding: 0 10px;
 }
 
 /* 履歴用の小さなボタン */
+#playlistSection .nav-btn,
 #historySection .nav-btn {
 	background: rgba(255, 255, 255, 0.95);
 	border: 1px solid rgba(0,0,0,0.1);
