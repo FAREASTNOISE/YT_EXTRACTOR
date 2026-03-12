@@ -785,7 +785,7 @@ async function fetchPlaylist(listId) {
                 // History（閲覧履歴）と同じデザインのカード構造を生成
                 return `
                 <div class="item-card rounded md:rounded-xl overflow-hidden
-				flex-shrink-0 w-[140px] md:w-[180px] cursor-pointer group/item active:scale-95 transition-transform" 
+				flex-shrink-0 w-[140px] md:w-[180px] cursor-pointer group/item active:scale-95 transition-transform"
                      onclick="loadVideo('${videoId}', 0, ${isShorts}, true)">
 
                         <img src="https://img.youtube.com/vi/${videoId}/mqdefault.jpg"
@@ -800,6 +800,10 @@ async function fetchPlaylist(listId) {
                 </div>`;
             }).join('');
 
+
+			// ここでマウスホイールの横スクロール変換を有効にする
+			enableHorizontalWheel('playlistList');
+
             // 2. スクロールに応じたドットインジケーターの更新設定
             list.onscroll = () => updateDots('playlistList', 'playlistIndicator', 1);
             updateDots('playlistList', 'playlistIndicator', 1);
@@ -811,7 +815,42 @@ async function fetchPlaylist(listId) {
         console.error("Playlist render error:", e);
         list.innerHTML = `<p class="text-[10px] p-4 text-red-500 font-bold">\>_ CONNECTION_FAILED: ${e.message}</p>`;
     }
+
+
 }
+
+
+
+/**
+ * 指定された要素に対して、マウスホイールの上下入力を横スクロールに変換する機能を付与する。
+ * 末尾の multiplier でスクロール速度を調整可能。
+ * @function enableHorizontalWheel
+ * @param {string} elementId - 横スクロールを有効にしたいHTML要素のID。
+ * @example
+ * enableHorizontalWheel('playlistList');
+ * enableHorizontalWheel('historyList');
+ */
+function enableHorizontalWheel(elementId) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+
+    // addEventListener ではなく onwheel を使うことで、
+    // 2回呼んでも「上書き」されるだけになり、重複や爆走を防げます。
+    el.onwheel = function(e) {
+        if (e.deltaY !== 0) {
+            // 縦スクロールをキャンセル
+            e.preventDefault();
+
+			// 横スクロールに変換
+            // el.scrollLeft += e.deltaY;
+
+			// スピード倍率（1.5 〜 2.5 くらいが快適です）
+            const multiplier = 1.5;
+            el.scrollLeft += e.deltaY * multiplier;
+        }
+    };
+}
+
 
 
 // /**
@@ -1651,19 +1690,19 @@ function moveSlide(sId, d) {
 	// setTimeout(() => updateDots(sId, 'indicatorのID', 4), 500);
 
 	// スライダー要素を取得して、スクロールを監視する
-const historyList = document.getElementById('historyList'); // IDは実際のものに
+	// const historyList = document.getElementById('historyList'); // IDは実際のものに
 
-if (historyList) {
-	historyList.addEventListener('wheel', (e) => {
-		// 上下のスクロール（ホイール回転）が発生したら
-		if (e.deltaY !== 0) {
-			// 標準の「上下移動」をキャンセルして
-			e.preventDefault();
-			// 横方向にその分だけ動かす
-			historyList.scrollLeft += e.deltaY;
-		}
-	}, { passive: false }); // preventDefaultを使うために必要
-}
+	// if (historyList) {
+	// 	historyList.addEventListener('wheel', (e) => {
+	// 		// 上下のスクロール（ホイール回転）が発生したら
+	// 		if (e.deltaY !== 0) {
+	// 			// 標準の「上下移動」をキャンセルして
+	// 			e.preventDefault();
+	// 			// 横方向にその分だけ動かす
+	// 			historyList.scrollLeft += e.deltaY;
+	// 		}
+	// 	}, { passive: false }); // preventDefaultを使うために必要
+	// }
 }
 
 
@@ -2134,3 +2173,14 @@ function copyCurrentUrl(btn) {
 
 
 
+// ==========================================
+//  実行・初期化処理（スイッチを入れる場所）
+// ==========================================
+
+// ページが読み込まれたら最初に実行したいこと
+document.addEventListener('DOMContentLoaded', () => {
+    // 履歴は最初からHTMLに存在するので、ここでスイッチを入れる
+    enableHorizontalWheel('historyList');
+
+    // 他にも「最初から動いていてほしいもの」があればここに書く
+});
