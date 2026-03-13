@@ -735,11 +735,14 @@ function onPlayerStateChange(event) {
 
 
 
+/* ───────────────────────────────────────────
+	 PLAYLIST
+─────────────────────────────────────────── */
 
 /**
  * 指定されたプレイリストIDから動画一覧を取得し、履歴風のカードUIを生成・表示する。
  * 内部で PHP API (get_playlist.php) を呼び出し、結果を #playlistList にレンダリングする。
- * * @async
+ * @async
  * @function fetchPlaylist
  * @param {string} listId - 取得対象のYouTubeプレイリストID。
  * @returns {Promise<void>}
@@ -749,11 +752,22 @@ async function fetchPlaylist(listId) {
     const list = document.getElementById('playlistList');
     const indicator = document.getElementById('playlistIndicator');
 
+	const navButtons = section.querySelectorAll('.nav-btn');
+
     if (!section || !list) return;
 
-    // セクションを表示状態にし、ローディング表示を開始
+	// #playlistSection の中にある .nav-btn だけを取得
+	navButtons.forEach(btn => btn.style.display = 'none');
+
+    // このセクションのボタンだけを隠す
+	list.innerHTML = `
+		<div class="flex items-center justify-center w-full min-h-[60px] md:min-h-[140px]">
+			<div class="text-xs dot-font opacity-50 animate-pulse uppercase tracking-widest">
+				SYNCHRONIZING...
+			</div>
+		</div>
+		`;
     section.classList.remove('hidden');
-    list.innerHTML = `<p class="text-[10px] animate-pulse p-4 font-bold tracking-widest">SYNCHRONIZING...</p>`;
 
     try {
         // 自前サーバーのPHPエンドポイントへリクエスト
@@ -771,6 +785,10 @@ async function fetchPlaylist(listId) {
         const data = await response.json();
 
         if (data.items && data.items.length > 0) {
+
+			// ★ここを追加！読み込み中の中央揃え設定（items-center）を消して、
+    		// 本来の横並び設定に上書きリセットします。
+			list.className = "flex overflow-x-auto gap-4 py-2 px-1 scroll-smooth";
             // 1. 各動画アイテムをカード形式のHTMLに変換
             list.innerHTML = data.items.map(item => {
                 const snippet = item.snippet || {};
@@ -785,13 +803,13 @@ async function fetchPlaylist(listId) {
                 // History（閲覧履歴）と同じデザインのカード構造を生成
                 return `
                 <div class="item-card rounded md:rounded-xl overflow-hidden
-				flex-shrink-0 w-[140px] md:w-[180px] cursor-pointer group/item active:scale-95 transition-transform"
-                     onclick="loadVideo('${videoId}', 0, ${isShorts}, true)">
+					flex-shrink-0 w-[140px] md:w-[180px] cursor-pointer group/item active:scale-95 transition-transform"
+					onclick="loadVideo('${videoId}', 0, ${isShorts}, true)">
 
-                        <img src="https://img.youtube.com/vi/${videoId}/mqdefault.jpg"
-							class="w-full aspect-video object-cover rounded md:rounded-md shadow-sm"
-                            alt="thumbnail"
-                            loading="lazy">
+					<img src="https://img.youtube.com/vi/${videoId}/mqdefault.jpg"
+						class="w-full aspect-video object-cover rounded md:rounded-md shadow-sm"
+						alt="thumbnail"
+						loading="lazy">
                     <div class="mt-2 px-1">
                         <p class="text-[9px] font-mono text-gray-500 tracking-widest uppercase line-clamp-1 opacity-80">
                             ${title}
@@ -800,6 +818,11 @@ async function fetchPlaylist(listId) {
                 </div>`;
             }).join('');
 
+			// 新しいリストを表示する前に、一番左に戻しておくと親切です
+			list.scrollLeft = 0;
+
+			// このセクションのボタンだけを再表示
+			navButtons.forEach(btn => btn.style.display = 'block');
 
 			// ここでマウスホイールの横スクロール変換を有効にする
 			enableHorizontalWheel('playlistList');
@@ -809,14 +832,24 @@ async function fetchPlaylist(listId) {
             updateDots('playlistList', 'playlistIndicator', 1);
 
         } else {
-            list.innerHTML = `<p class="text-[10px] p-4 text-gray-400 font-bold">EMPTY_PLAYLIST</p>`;
-        }
+            list.innerHTML = `
+			<div class="flex items-center justify-center w-full min-h-[60px] md:min-h-[140px]">
+				<div class="text-xs dot-font opacity-50 animate-pulse uppercase tracking-widest text-gray-400 text-orange-500">
+				\>_ EMPTY_PLAYLIST
+				</div>
+			</div>
+			`;
+		}
     } catch (e) {
         console.error("Playlist render error:", e);
-        list.innerHTML = `<p class="text-[10px] p-4 text-red-500 font-bold">\>_ CONNECTION_FAILED: ${e.message}</p>`;
+        list.innerHTML = `
+			<div class="flex items-center justify-center w-full min-h-[60px] md:min-h-[140px]">
+				<div class="text-xs dot-font opacity-50 animate-pulse uppercase tracking-widest text-orange-500">
+				\>_ CONNECTION_FAILED: ${e.message}
+				</div>
+			</div>
+			`;
     }
-
-
 }
 
 
