@@ -36,7 +36,14 @@ let currentVideoTitle = "";
  */
 let isCurrentShorts = false;
 
-
+/**
+ * 現在のデバイスがiOS（iPhone/iPad）かどうかを判定する
+ * @returns {boolean}
+ */
+function isIOS() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
 
 /**
  * YouTube サムネイルの取得候補リスト（テンプレート）
@@ -550,8 +557,6 @@ async function loadVideo(id, startTime = 0, isShorts = false, shouldScroll = fal
 
 
 
-
-
 	// --- プレイヤーの初期化 ---
 	// player = new YT.Player('player', {
 	window.player = new YT.Player('player', {
@@ -562,7 +567,9 @@ async function loadVideo(id, startTime = 0, isShorts = false, shouldScroll = fal
 			'rel': 0,          // 関連動画を自分のチャンネルのみに
 			'playsinline': 1,   // モバイルで全画面表示にさせない
 			'start': startTime, // 開始時間をセット
-			'autoplay': 1,      // 自動再生
+			//'autoplay': 1,      // 自動再生
+			// 'mute': 1,		  // ミュート
+			playsinline: 1,      // モバイルで全画面表示にさせない
 
 
 			// 'controls': 0,      // コントロール非表示
@@ -706,12 +713,40 @@ function validateYouTubeImage(url) {
  */
 function onPlayerReady(event) {
 	console.log("YouTube Player is Ready!");
-	// 必要ならここでミュートにしたり再生したりできるよ
+
+	event.target.playVideo();
+    setTimeout(() => {
+        event.target.unMute();
+        event.target.setVolume(10);
+        hidePlaceholder();
+    }, 100);
+
+	// // 1. iPhone以外（PC, Androidなど）の場合の処理
+    // if (!isIOS()) {
+    //     // event.target.unMute(); // ミュート解除
+    //     // event.target.setVolume(10); // お好みの音量（0〜100）
+	// 	event.target.mute();
+	// 	event.target.setVolume(10);
+	// 	event.target.playVideo();
+
+    // }
+
+	// iPhone対策：準備ができたら、500ms後に強制的にLoadingを消す保険を作る
+    // これにより、自動再生がブロックされて停止していても、Loadingが消えて再生ボタンが見えるようになります
+    // setTimeout(() => {
+    //     hidePlaceholder();
+    // }, 500);
 }
 
 // loadVideo関数から、プレイヤーの状態が変わった時のイベント（API作成時に登録しておく）
 function onPlayerStateChange(event) {
 	console.log("Player State:", event.data);
+
+	// 1:PLAYING(再生中) だけでなく、3:BUFFERING(読み込み中) が来たら消し始める
+    // iPhoneでは再生がブロックされてもBUFFERINGまでは行くことが多いです
+    if (event.data == YT.PlayerState.PLAYING || event.data == YT.PlayerState.BUFFERING) {
+        hidePlaceholder();
+    }
 
 	/** @type {boolean} ループ設定が有効かどうか (要素がない場合はfalse) */
 	const isLoop = document.getElementById('checkLoop')?.checked ?? false;
@@ -724,16 +759,27 @@ function onPlayerStateChange(event) {
     }
 
 	// 1: 再生開始 (PLAYING) または 3: バッファ中 (BUFFERING)
-	if (event.data == YT.PlayerState.PLAYING) {
-		const placeholder = document.getElementById('player-placeholder');
-		if (placeholder) {
-			placeholder.style.opacity = "0"; // スッと消す
-			setTimeout(() => placeholder.classList.add('hidden'), 500); // 完全に消去
-		}
-	}
+	// if (event.data == YT.PlayerState.PLAYING) {
+	// 	const placeholder = document.getElementById('player-placeholder');
+	// 	if (placeholder) {
+	// 		placeholder.style.opacity = "0"; // スッと消す
+	// 		setTimeout(() => placeholder.classList.add('hidden'), 500); // 完全に消去
+	// 	}
+	// }
 }
 
-
+/**
+ * プレースホルダーを消す共通関数
+ */
+function hidePlaceholder() {
+    const placeholder = document.getElementById('player-placeholder');
+    if (placeholder && !placeholder.classList.contains('hidden')) {
+        placeholder.style.opacity = "0";
+        setTimeout(() => {
+            placeholder.classList.add('hidden');
+        }, 500);
+    }
+}
 
 /* ───────────────────────────────────────────
 	 PLAYLIST
@@ -756,10 +802,12 @@ async function fetchPlaylist(listId) {
 
     if (!section || !list) return;
 
-	// #playlistSection の中にある .nav-btn だけを取得
-	navButtons.forEach(btn => btn.style.display = 'none');
+	// #playlistSection の中にある .nav-btn だけを隠す
+	navButtons.forEach(btn => btn.classList.add('hidden'));
 
-    // このセクションのボタンだけを隠す
+	// list.innerHTML = `
+	// <p class="text-[10px] p-4 text-gray-400 font-bold dot-font opacity-50 animate-pulse uppercase">SYNCHRONIZING...</p>
+	// `;
 	list.innerHTML = `
 		<div class="flex items-center justify-center w-full min-h-[60px] md:min-h-[140px]">
 			<div class="text-xs dot-font opacity-50 animate-pulse uppercase tracking-widest">
@@ -788,7 +836,7 @@ async function fetchPlaylist(listId) {
 
 			// ★ここを追加！読み込み中の中央揃え設定（items-center）を消して、
     		// 本来の横並び設定に上書きリセットします。
-			list.className = "flex overflow-x-auto gap-4 py-2 px-1 scroll-smooth";
+			// list.className = "flex overflow-x-auto gap-4 py-2 px-1 scroll-smooth";
             // 1. 各動画アイテムをカード形式のHTMLに変換
             list.innerHTML = data.items.map(item => {
                 const snippet = item.snippet || {};
@@ -822,7 +870,7 @@ async function fetchPlaylist(listId) {
 			list.scrollLeft = 0;
 
 			// このセクションのボタンだけを再表示
-			navButtons.forEach(btn => btn.style.display = 'block');
+			navButtons.forEach(btn => btn.classList.remove('hidden'));
 
 			// ここでマウスホイールの横スクロール変換を有効にする
 			enableHorizontalWheel('playlistList');
@@ -832,6 +880,9 @@ async function fetchPlaylist(listId) {
             updateDots('playlistList', 'playlistIndicator', 1);
 
         } else {
+			// list.innerHTML = `
+			// 	<p class="text-[10px] p-4 text-gray-400 font-bold">EMPTY_PLAYLIST</p>
+			// `;
             list.innerHTML = `
 			<div class="flex items-center justify-center w-full min-h-[60px] md:min-h-[140px]">
 				<div class="text-xs dot-font opacity-50 animate-pulse uppercase tracking-widest text-gray-400 text-orange-500">
@@ -842,7 +893,12 @@ async function fetchPlaylist(listId) {
 		}
     } catch (e) {
         console.error("Playlist render error:", e);
-        list.innerHTML = `
+        // list.innerHTML = `
+		// <p class="text-[10px] p-4 text-gray-400 font-bold">
+		// \>_ CONNECTION_FAILED: ${e.message}
+		// </p>
+		// `;
+		list.innerHTML = `
 			<div class="flex items-center justify-center w-full min-h-[60px] md:min-h-[140px]">
 				<div class="text-xs dot-font opacity-50 animate-pulse uppercase tracking-widest text-orange-500">
 				\>_ CONNECTION_FAILED: ${e.message}
@@ -1438,32 +1494,69 @@ function updateSizeButtonStyles() {
  * YouTubeプレイヤーの現在の再生時間を取得し、
  * 開始時間（eStart）の入力欄に反映させた後、タグ一覧も更新する。
  */
+/**
+ * YouTubeプレイヤーの現在の再生時間を取得し、
+ * 開始時間（eStart）の入力欄に反映させた後、タグ一覧も更新する。
+ */
 function syncTime() {
-	// 1. YouTubeプレイヤーのインスタンスがあるか確認
-	// ※ player 変数名は環境に合わせてね（YT.Playerのインスタンス）
-	if (typeof player !== 'undefined' && player.getCurrentTime) {
-		/** @type {number} 現在の再生秒数（小数点以下切り捨て） */
-		const currentTime = Math.floor(player.getCurrentTime());
+    // 1. window.player を見に行く、または getSafePlayer() を使う
+    // 前に作った getSafePlayer() があれば、それが一番安全です
+    const activePlayer = window.player;
 
-		/** @type {HTMLInputElement|null} 開始時間の入力フィールド */
-		const startInput = document.getElementById('eStart');
+    if (activePlayer && typeof activePlayer.getCurrentTime === 'function') {
+        /** @type {number} 現在の再生秒数 */
+        const currentTime = Math.floor(activePlayer.getCurrentTime());
 
-		if (startInput) {
-			// 入力欄に値をセット
-			startInput.value = currentTime;
+        const startInput = document.getElementById('eStart');
+        if (startInput) {
+            startInput.value = currentTime;
 
-			// 値が変わったので、下の「埋め込みタグ一覧」も再生成させる
-			updateEmbedOutputs();
+            // タグを更新
+            if (typeof updateEmbedOutputs === 'function') {
+                updateEmbedOutputs();
+            }
 
-			// ★追加：数値が変わったのでボタンの状態も再チェック
-			//（秒数を変えると、たとえサイズが一致していてもカスタム状態とみなして枠を消す、
-			// もしくは現在のサイズを維持して枠を残すかの判定を走らせる）
-			updateSizeButtonStyles();
-		}
-	} else {
-		console.error("Player instance not found. Make sure YouTube IFrame API is ready.");
-	}
+            // ボタンの状態を更新
+            if (typeof updateSizeButtonStyles === 'function') {
+                updateSizeButtonStyles();
+            }
+
+            console.log("Time synced:", currentTime);
+        }
+    } else {
+        // ここでエラーが出るなら、まだプレイヤーの準備ができていない証拠
+        console.error("Player instance not ready or not found.");
+    }
 }
+
+// function syncTime() {
+// 	// 1. YouTubeプレイヤーのインスタンスがあるか確認
+// const activePlayer = window.player;
+
+// 	// ※ player 変数名は環境に合わせてね（YT.Playerのインスタンス）
+// 	if (typeof player !== 'undefined' && player.getCurrentTime) {
+// 		/** @type {number} 現在の再生秒数（小数点以下切り捨て） */
+// 		const currentTime = Math.floor(player.getCurrentTime());
+
+// 		/** @type {HTMLInputElement|null} 開始時間の入力フィールド */
+// 		const startInput = document.getElementById('eStart');
+
+// 		if (startInput) {
+// 			// 入力欄に値をセット
+// 			startInput.value = currentTime;
+
+// 			// 値が変わったので、下の「埋め込みタグ一覧」も再生成させる
+// 			updateEmbedOutputs();
+
+// 			// ★追加：数値が変わったのでボタンの状態も再チェック
+// 			//（秒数を変えると、たとえサイズが一致していてもカスタム状態とみなして枠を消す、
+// 			// もしくは現在のサイズを維持して枠を残すかの判定を走らせる）
+// 			updateSizeButtonStyles();
+// 		}
+// 	} else {
+// 		console.error("Player instance not found. Make sure YouTube IFrame API is ready.");
+// 	}
+// }
 
 
 

@@ -59,7 +59,12 @@
 					</div>
 				</div>
 
-				<input type="text" id="videoUrl" placeholder="PASTE YOUTUBE URL OR PLAYLIST..." class="nothing-input w-full p-4 pr-24 text-sm font-mono uppercase focus:outline-none">
+				<input type="text" id="videoUrl"
+				placeholder="PASTE YOUTUBE URL OR PLAYLIST..."
+				class="nothing-input w-full p-4 pr-24 text-sm font-mono uppercase focus:outline-none"
+				inputmode="url"
+				enterkeyhint="go"
+				style="-webkit-user-select: text !important; -webkit-touch-callout: default !important;">
 				<!-- // Input Box -->
 
 				<!-- Paste Button -->
@@ -351,25 +356,25 @@
 
 		<!-- Playlist Section -->
 
-		<div id="playlistSection" class="mt-12 hidden border-t border-black/10 pt-8 overflow-x-auto min-h-[120px] md:min-h-[200px]">
+		<div id="playlistSection" class="mt-12 hidden border-t border-black/10 pt-8 overflow-hidden">
 			<h3 class="dot-font text-[10px] uppercase mb-3 px-2 font-bold">Playlist Contents</h3>
 
-			<div class="relative w-full min-h-[90px] md:min-h-[160px]">
+			<div class="relative min-h-[90px] md:min-h-[160px]">
 				<div class="nav-btn !w-8 !h-8" style="left:-10px;" onclick="moveSlide('playlistList', -1)"><div class="arrow !w-1.5 !h-1.5" style="transform:rotate(-135deg);"></div></div>
 				<div class="nav-btn !w-8 !h-8" style="right:-10px;" onclick="moveSlide('playlistList', 1)"><div class="arrow !w-1.5 !h-1.5" style="transform:rotate(45deg);"></div></div>
 
-				<div id="playlistList" class="horizontal-scroll gap-x-[8px] md:gap-x-[16px]"></div>
+				<div id="playlistList" class="flex overflow-x-auto gap-4 py-2 px-1 scroll-smooth no-scrollbar min-h-[120px] md:min-h-[160px]">
+					</div>
 			</div>
-			<div id="playlistIndicator" class="indicator-container"></div>
+
+			<div id="playlistIndicator" class="indicator-container mt-4"></div>
 		</div>
 
 		<!-- // Playlist Section -->
 
 
-
-
-
-		<div id="historySection" class="mt-12 hidden border-t border-black/10 pt-8">
+		<!-- History Section -->
+		<div id="historySection" class="mt-12 hidden border-t border-black/10 pt-8 overflow-hidden">
 			<h3 class="dot-font text-[10px] uppercase mb-3 px-2 font-bold">History</h3>
 			<div class="relative min-h-[90px] md:min-h-[160px]">
 				<div class="nav-btn !w-8 !h-8" style="left:-10px;" onclick="moveSlide('historyList', -1)"><div class="arrow !w-1.5 !h-1.5" style="transform:rotate(-135deg);"></div></div>
@@ -382,6 +387,13 @@
 				<button onclick="copyAllHistory()" class="text-[9px] font-bold text-gray-400 border border-gray-300 rounded-full px-4 py-1 uppercase hover:bg-black hover:text-white transition-all">Copy All History URLs</button>
 			</div>
 		</div>
+
+		<!-- // History Section -->
+
+
+
+
+
 
 		<footer class="mt-20 text-center pb-10">
 			<a href="https://www.amazon.jp/hz/wishlist/ls/zeitgeist-22" target="_blank" class="amazon-btn mb-8">Support Project</a>
