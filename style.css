@@ -7,7 +7,7 @@
     box-sizing: border-box;
 }
 
-/* 2. Nothing OSっぽいフォントと色をセット */
+/*フォントと色をセット */
 :root {
 	--grid-color: rgba(0, 0, 0, 0.05);
 	--nothing-red: #ff3131;
@@ -230,7 +230,6 @@ html, body {
 	background: rgba(200, 200, 200, 0.25); /* 透過グレー */
 	backdrop-filter: blur(10px);
 	-webkit-backdrop-filter: blur(10px);
-	border: 1px solid rgba(0, 0, 0, 0.05);
 	position: relative;
 }
 
