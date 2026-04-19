@@ -148,6 +148,50 @@
 
 		</div>
 	</div>
+
+
+
+
+
+
+	<div class="nothing-card p-3 md:p-4 mb-4 md:mb-6">
+		<div class="flex flex-col gap-2.5 md:gap-3">
+
+			<div class="relative w-full flex items-center group">
+				<div class="absolute left-2.5 flex items-center pointer-events-none text-black/30 group-focus-within:text-black/50 transition-colors">
+					<i class="ph-bold ph-link text-base"></i>
+				</div>
+
+				<input type="text" id="videoUrl"
+					placeholder="YouTube URL..."
+					class="nothing-input w-full h-9 md:h-10 pl-9 pr-3 md:pr-20 text-xs md:text-sm font-mono uppercase focus:outline-none rounded-md border border-black/10 transition-all focus:border-black/20"
+					inputmode="url">
+
+				<div class="hidden md:flex absolute right-1 top-1 bottom-1 items-center">
+					<button id="pasteBtn" class="h-full px-3 bg-black text-white rounded-[4px] text-[8px] font-bold uppercase tracking-[0.1em] active:scale-95 transition-transform">
+						Paste
+					</button>
+				</div>
+			</div>
+
+			<div class="flex items-center gap-2 w-full">
+				<div class="flex-grow">
+					<button onclick="processInput()"
+						class="btn-black-rect w-full h-9 md:h-10 rounded-md font-bold text-[9px] md:text-xs uppercase transition-all flex items-center justify-center">
+						Start Extraction
+					</button>
+				</div>
+				<div class="w-fit">
+					<button onclick="clearInput()"
+						class="bg-gray-100 text-gray-400 px-4 md:px-6 h-9 md:h-10 rounded-md font-bold text-[9px] md:text-xs uppercase hover:bg-black/5 transition-colors whitespace-nowrap">
+						Clear
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+
 	<!-- //Main Input Area -->
 
 
